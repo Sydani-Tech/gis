@@ -6,6 +6,16 @@ app_email = "admin@sydani.org"
 app_license = "mit"
 # required_apps = []
 
+#Fixtures
+fixtures = [
+    {"dt": "DocType", "filters": [["name", "in", ["State", "Local Government Area", "Ward", "Facility", "Settlement", "Building", "Grid Doctypes", "Grid Assignees", "Grid"]]]},
+    {"dt": "Role", "filters": [["name", "in", ["Data Collector", "Project Team", "Supervisor"]]]},
+    {"dt": "Local Government Area"},
+    {"dt": "State"},
+    {"dt": "Ward"}
+]
+
+
 # Includes in <head>
 # ------------------
 
