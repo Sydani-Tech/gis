@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-08-18 15:50:39.996113",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "details_section",
+  "project",
+  "number_of_grids",
+  "create_grids",
+  "column_break_mxnx",
+  "location_type",
+  "location",
+  "preview_grids",
+  "grid_doctypes_section",
+  "table_tezw"
+ ],
+ "fields": [
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "number_of_grids",
+   "fieldtype": "Int",
+   "label": "Number of Grids",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "create_grids",
+   "fieldtype": "Button",
+   "label": "Create Grids"
+  },
+  {
+   "fieldname": "column_break_mxnx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "location_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Location Type",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Location",
+   "options": "location_type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "preview_grids",
+   "fieldtype": "Button",
+   "label": "Preview Grids"
+  },
+  {
+   "fieldname": "grid_doctypes_section",
+   "fieldtype": "Section Break",
+   "label": "Grid Doctypes"
+  },
+  {
+   "fieldname": "table_tezw",
+   "fieldtype": "Table",
+   "label": "Doctypes",
+   "options": "Grid Doctypes",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2024-08-26 12:07:22.162019",
+ "modified_by": "Administrator",
+ "module": "GIS frappe app",
+ "name": "Grid Creator",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

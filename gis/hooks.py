@@ -8,11 +8,15 @@ app_license = "mit"
 
 #Fixtures
 fixtures = [
-    {"dt": "DocType", "filters": [["name", "in", ["State", "Local Government Area", "Ward", "Facility", "Settlement", "Building", "Grid Doctypes", "Grid Assignees", "Grid"]]]},
-    {"dt": "Role", "filters": [["name", "in", ["Data Collector", "Project Team", "Supervisor"]]]},
+    {"dt": "DocType", "filters": [["name", "in", ["State", "Local Government Area", "Ward", "Facility", "Settlement", "Building", "Grid Doctypes", "Assignees", "Grid", "Project", "Grid Creator"]]]},
+    {"dt": "Role", "filters": [["name", "in", ["Data Collector", "Project Team", "Supervisor", "Project Manager"]]]},
     {"dt": "Local Government Area"},
     {"dt": "State"},
-    {"dt": "Ward"}
+    {"dt": "Ward"},
+    {"dt": "Facility"},
+    {"dt": "Settlement"},
+    {"dt": "Building"},
+    {"dt": "Project"}
 ]
 
 

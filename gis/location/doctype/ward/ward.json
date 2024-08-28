@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{ward}-{local_government_area}",
+ "creation": "2024-08-13 20:33:56.277521",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ward",
+  "local_government_area",
+  "state",
+  "country",
+  "column_break_zcmo",
+  "geolocation"
+ ],
+ "fields": [
+  {
+   "fieldname": "ward",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Ward",
+   "reqd": 1
+  },
+  {
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "local_government_area.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "State",
+   "options": "State",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "local_government_area.country",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "Country",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zcmo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Geolocation"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-08-26 12:08:32.410251",
+ "modified_by": "Administrator",
+ "module": "Location",
+ "name": "Ward",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Data Collector",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

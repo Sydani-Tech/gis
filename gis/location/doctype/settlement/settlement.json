@@ -1,0 +1,242 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{name_of_settlement}",
+ "creation": "2024-08-13 20:33:56.499829",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "settlement_type_section",
+  "name_of_settlement",
+  "column_break_qkel",
+  "type_of_settlement",
+  "contact_details_of_settlement_influencersleader_section",
+  "name_of_settlementcommunity_head",
+  "contact_of_settlementcommunity_head",
+  "column_break_uetb",
+  "name_of_disease_surveillance_community_informant",
+  "names_of_other_influential_members_within_settlement",
+  "settlement_health_facility_section",
+  "name_of_nearest_facility_to_settlement",
+  "distance_from_settlement_to_facility",
+  "column_break_zjpw",
+  "facility_geolocation",
+  "vdc_information_section",
+  "is_there_a_vdc",
+  "column_break_ahrb",
+  "how_often_does_the_vdc_meet",
+  "location_tab",
+  "ward",
+  "local_government_area",
+  "column_break_jirb",
+  "state",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "settlement_type_section",
+   "fieldtype": "Section Break",
+   "label": "Settlement Type"
+  },
+  {
+   "fieldname": "name_of_settlement",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name of Settlement",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_qkel",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "type_of_settlement",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type of Settlement",
+   "options": "\nRural\nRiverine\nHard to Reach\nNomadic\nSecurity Compromised\nUrban Slum",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact_details_of_settlement_influencersleader_section",
+   "fieldtype": "Section Break",
+   "label": "Contact Details of Settlement Influencers/Leader"
+  },
+  {
+   "fieldname": "name_of_settlementcommunity_head",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name of Settlement Community Head",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact_of_settlementcommunity_head",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact of Settlement/Community Head",
+   "options": "Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_uetb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "name_of_disease_surveillance_community_informant",
+   "fieldtype": "Data",
+   "label": "Name of Disease surveillance Community informant",
+   "reqd": 1
+  },
+  {
+   "fieldname": "names_of_other_influential_members_within_settlement",
+   "fieldtype": "Data",
+   "label": "Names of other influential members within settlement"
+  },
+  {
+   "fieldname": "settlement_health_facility_section",
+   "fieldtype": "Section Break",
+   "label": "Settlement Health Facility"
+  },
+  {
+   "fieldname": "name_of_nearest_facility_to_settlement",
+   "fieldtype": "Link",
+   "label": "Name of nearest facility to settlement",
+   "options": "Facility"
+  },
+  {
+   "fieldname": "distance_from_settlement_to_facility",
+   "fieldtype": "Float",
+   "label": "Distance from Settlement to Facility (KM)"
+  },
+  {
+   "fieldname": "column_break_zjpw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "facility_geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Facility Geolocation"
+  },
+  {
+   "fieldname": "vdc_information_section",
+   "fieldtype": "Section Break",
+   "label": "VDC Information"
+  },
+  {
+   "fieldname": "is_there_a_vdc",
+   "fieldtype": "Select",
+   "label": "Is there a VDC?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_ahrb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "how_often_does_the_vdc_meet",
+   "fieldtype": "Select",
+   "label": "How often does the VDC meet?",
+   "options": "\nWeekly\nMonthly\nQuarterly\nAnnually"
+  },
+  {
+   "fieldname": "location_tab",
+   "fieldtype": "Tab Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "ward",
+   "fieldtype": "Link",
+   "label": "Ward",
+   "options": "Ward",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "ward.local_government_area",
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_jirb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "ward.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "label": "State",
+   "options": "State",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "ward.country",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-08-26 12:08:32.826172",
+ "modified_by": "Administrator",
+ "module": "Location",
+ "name": "Settlement",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Data Collector",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

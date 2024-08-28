@@ -1,0 +1,228 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{building_number} - {street_name}",
+ "creation": "2024-08-13 20:33:56.380536",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "building_information_section",
+  "column_break_vhmb",
+  "project",
+  "building_number",
+  "how_many_households_occupy_this_building",
+  "picture_of_the_building",
+  "column_break_pugj",
+  "building_address",
+  "describe_the_building",
+  "street_name",
+  "geocordinates_section",
+  "geocoordinates",
+  "column_break_zlmf",
+  "geocordinates_actual_location",
+  "location_tab",
+  "location_section",
+  "settlement",
+  "ward",
+  "local_government_area",
+  "column_break_sipk",
+  "state",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "building_information_section",
+   "fieldtype": "Section Break",
+   "label": "Building Information"
+  },
+  {
+   "fieldname": "column_break_vhmb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "building_number",
+   "fieldtype": "Data",
+   "label": "Building Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "how_many_households_occupy_this_building",
+   "fieldtype": "Int",
+   "label": "How Many Households Occupy this Building?",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "picture_of_the_building",
+   "fieldtype": "Image",
+   "label": "Picture of the Building"
+  },
+  {
+   "fieldname": "column_break_pugj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "building_address",
+   "fieldtype": "Text",
+   "label": "Building Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "describe_the_building",
+   "fieldtype": "Text",
+   "label": "Describe the Building",
+   "reqd": 1
+  },
+  {
+   "fieldname": "street_name",
+   "fieldtype": "Text",
+   "label": "Street Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "geocordinates_section",
+   "fieldtype": "Section Break",
+   "label": "Geocordinates"
+  },
+  {
+   "fieldname": "geocoordinates",
+   "fieldtype": "Geolocation",
+   "label": "Geocoordinates",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zlmf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "geocordinates_actual_location",
+   "fieldtype": "Geolocation",
+   "label": "Geocordinates (Actual Location)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "location_tab",
+   "fieldtype": "Tab Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "settlement",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Settlement",
+   "options": "Settlement",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "settlement.ward",
+   "fieldname": "ward",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Ward",
+   "options": "Ward",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "ward.local_government_area",
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_sipk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "ward.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "State",
+   "options": "State",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "ward.country",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-08-26 12:06:33.793525",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Building",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Data Collector",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
