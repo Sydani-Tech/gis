@@ -1,18 +1,15 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2024-08-18 15:50:39.996113",
+ "creation": "2024-12-17 13:35:40.072079",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "details_section",
-  "project",
-  "number_of_grids",
-  "create_grids",
-  "column_break_mxnx",
   "location_type",
   "location",
   "preview_grids",
+  "create_grids",
   "grid_doctypes_section",
   "table_tezw"
  ],
@@ -23,27 +20,9 @@
    "label": "Details"
   },
   {
-   "fieldname": "project",
-   "fieldtype": "Link",
-   "label": "Project",
-   "options": "Project",
-   "reqd": 1
-  },
-  {
-   "fieldname": "number_of_grids",
-   "fieldtype": "Int",
-   "label": "Number of Grids",
-   "non_negative": 1,
-   "reqd": 1
-  },
-  {
    "fieldname": "create_grids",
    "fieldtype": "Button",
    "label": "Create Grids"
-  },
-  {
-   "fieldname": "column_break_mxnx",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "location_type",
@@ -82,7 +61,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-08-26 12:07:22.162019",
+ "modified": "2024-12-20 08:27:59.855227",
  "modified_by": "Administrator",
  "module": "GIS frappe app",
  "name": "Grid Creator",
@@ -95,26 +74,6 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "Project Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "Project Team",
    "share": 1,
    "write": 1
   }

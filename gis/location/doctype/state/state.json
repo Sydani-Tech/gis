@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:{state}",
- "creation": "2024-08-13 20:33:55.981366",
+ "creation": "2024-12-17 13:35:39.150784",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -39,7 +39,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-08-26 12:08:33.003761",
+ "modified": "2024-12-20 08:27:04.635268",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "State",
@@ -93,10 +93,29 @@
    "role": "Data Collector",
    "share": 1,
    "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Enumerator",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Outreach Worker",
+   "share": 1
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "track_changes": 1,
  "track_views": 1
 }

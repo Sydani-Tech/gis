@@ -1,0 +1,489 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-10-04 19:36:50.661583",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "personal_details_section",
+  "name_of_household_head",
+  "gender_of_household_head",
+  "date_of_birth_of_household_head",
+  "column_break_qtyh",
+  "phone_number",
+  "educational_level_of_household_head",
+  "economic_details_section",
+  "is_the_household_head_employed",
+  "industry_of_employment",
+  "average_monthly_income",
+  "column_break_armw",
+  "is_the_household_residing_in_a_rented_apartment",
+  "how_many_household_members_are_above_18",
+  "how_many_household_members_are_between_15_and_18_years",
+  "how_many_household_members_are_between_9_and_14_years",
+  "how_many_household_members_are_between_5_and_8_years",
+  "how_many_household_members_are_below_5",
+  "how_many_people_live_in_the_household",
+  "health_facility_and_common_illnesses_section",
+  "most_common_illness_within_the_last_year",
+  "if_others_specify",
+  "what_is_the_nearest_facility",
+  "how_far_is_the_nearest_facility",
+  "column_break_ndpv",
+  "do_you_take_your_childchildren_to_the_facility_for_ri_services",
+  "please_state_why",
+  "location_tab",
+  "location_section",
+  "geolocation",
+  "building",
+  "settlement",
+  "ward",
+  "column_break_jedq",
+  "local_government_area",
+  "state",
+  "country",
+  "comment_tab",
+  "comment_section",
+  "comment_to_supervisor",
+  "tab_3_response",
+  "response_info_section",
+  "response_id",
+  "status",
+  "project",
+  "grid",
+  "start_time",
+  "end_time",
+  "column_break_ysjl",
+  "response_geolocation"
+ ],
+ "fields": [
+  {
+   "fieldname": "name_of_household_head",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name of Household Head",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gender_of_household_head",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Gender of Household Head",
+   "options": "\nMale\nFemale",
+   "reqd": 1
+  },
+  {
+   "fieldname": "date_of_birth_of_household_head",
+   "fieldtype": "Date",
+   "label": "Date of Birth of Household Head",
+   "reqd": 1
+  },
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "label": "Phone Number",
+   "options": "Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_qtyh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "educational_level_of_household_head",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Educational Level of Household Head",
+   "options": "\nInformal Education\nPrimary Education\nJunior Secondary Education\nSenior Secondary Education\nTertiary Education\nIslamic School\nCollege of Education\nNone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "personal_details_section",
+   "fieldtype": "Section Break",
+   "label": "Household Details"
+  },
+  {
+   "fieldname": "economic_details_section",
+   "fieldtype": "Section Break",
+   "label": "Economic Details"
+  },
+  {
+   "depends_on": "eval:doc.is_the_household_head_employed  === \"Yes\"",
+   "fieldname": "industry_of_employment",
+   "fieldtype": "Select",
+   "label": " Industry of Employment",
+   "mandatory_depends_on": "eval:doc.is_the_household_head_employed  === \"Yes\"",
+   "options": "\nAgriculture\nTrader/Business Owner\nGovernment\nPrivate Company\nStudent\nMilitary/Law Enforcement\nUnskilled Labour"
+  },
+  {
+   "fieldname": "is_the_household_head_employed",
+   "fieldtype": "Select",
+   "label": "Is the Household Head Employed?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "average_monthly_income",
+   "fieldtype": "Select",
+   "label": "Average Monthly Income",
+   "options": "\n< \u20a650,000\n\u20a650,000 - \u20a699,999\n\u20a6100,000 - \u20a6149,999\n\u20a6150,000 - \u20a6199,999\n\u20a6200,000 - \u20a6299,999\n\u20a6300,000 & Above",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_armw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_the_household_residing_in_a_rented_apartment",
+   "fieldtype": "Select",
+   "label": "Is the Household Residing In a Rented Apartment?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "health_facility_and_common_illnesses_section",
+   "fieldtype": "Section Break",
+   "label": "Health Facility and Common Illnesses"
+  },
+  {
+   "fieldname": "most_common_illness_within_the_last_year",
+   "fieldtype": "Select",
+   "label": "Most Common Illness Within the Last Year?",
+   "options": "\nMalaria\nCatarrh\nSore Throat\nFever\nTyphoid\nOthers",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.most_common_illness_within_the_last_year === \"Others\"",
+   "fieldname": "if_others_specify",
+   "fieldtype": "Data",
+   "label": "If Others Specify",
+   "mandatory_depends_on": "eval:doc.most_common_illness_within_the_last_year === \"Others\""
+  },
+  {
+   "fieldname": "what_is_the_nearest_facility",
+   "fieldtype": "Link",
+   "label": "What is the Nearest Facility?",
+   "options": "Facility"
+  },
+  {
+   "fieldname": "how_far_is_the_nearest_facility",
+   "fieldtype": "Select",
+   "label": "How Far is the Nearest Facility?",
+   "options": "\n< 2KM\n2 - 5KM\n> 5KM"
+  },
+  {
+   "fieldname": "column_break_ndpv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.do_you_take_your_childchildren_to_the_facility_for_ri_services === \"No\"",
+   "fieldname": "please_state_why",
+   "fieldtype": "Data",
+   "label": "Please State Why",
+   "mandatory_depends_on": "eval:doc.do_you_take_your_childchildren_to_the_facility_for_ri_services === \"No\""
+  },
+  {
+   "fieldname": "location_tab",
+   "fieldtype": "Tab Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "building",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Building",
+   "options": "Building",
+   "reqd": 1
+  },
+  {
+   "fieldname": "how_many_people_live_in_the_household",
+   "fieldtype": "Int",
+   "label": "How Many People Live in the Household?",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_above_18",
+   "fieldtype": "Int",
+   "label": "How Many Household Members are Above 18?",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "building.settlement",
+   "fieldname": "settlement",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Settlement",
+   "options": "Settlement",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "building.ward",
+   "fieldname": "ward",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Ward",
+   "options": "Ward",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "building.local_government_area",
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "column_break_jedq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "building.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "State",
+   "options": "State",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "building.country",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "building.geolocation",
+   "fieldname": "geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Geolocation",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "response_info_section",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "response_id",
+   "fieldtype": "Data",
+   "label": "Response ID",
+   "permlevel": 2
+  },
+  {
+   "default": "Submitted",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "tab_3_response",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ysjl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Response Geolocation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "comment_tab",
+   "fieldtype": "Tab Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "comment_to_supervisor",
+   "fieldtype": "Text",
+   "label": "Comment to Supervisor"
+  },
+  {
+   "fieldname": "grid",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Grid",
+   "options": "Grid",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "do_you_take_your_childchildren_to_the_facility_for_ri_services",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Do You Take Your Child/Children to the Facility for RI Services?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_between_15_and_18_years",
+   "fieldtype": "Int",
+   "label": "How many household members are between 15 and 18 years?",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_between_9_and_14_years",
+   "fieldtype": "Int",
+   "label": "How many household members are between 9 and 14 years?",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_between_5_and_8_years",
+   "fieldtype": "Int",
+   "label": "How many household members are between 5 and 8 years?",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_below_5",
+   "fieldtype": "Int",
+   "label": "How Many Household Members are Below 5?",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Children",
+   "link_fieldname": "household"
+  }
+ ],
+ "make_attachments_public": 1,
+ "modified": "2025-01-09 13:54:01.831928",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Household",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Enumerator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "name_of_household_head",
+ "track_changes": 1
+}

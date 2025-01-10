@@ -2,32 +2,48 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:{building_number} - {street_name}",
- "creation": "2024-08-13 20:33:56.380536",
+ "creation": "2024-12-17 13:35:39.550312",
+ "default_view": "Image",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "building_information_section",
   "column_break_vhmb",
-  "project",
   "building_number",
+  "building_type",
+  "establishment_type",
+  "health_facility",
   "how_many_households_occupy_this_building",
-  "picture_of_the_building",
-  "column_break_pugj",
+  "building_picture",
+  "building_picture_2",
   "building_address",
+  "column_break_pugj",
   "describe_the_building",
   "street_name",
   "geocordinates_section",
-  "geocoordinates",
-  "column_break_zlmf",
-  "geocordinates_actual_location",
+  "percentage_of_vaccinated_children",
   "location_tab",
   "location_section",
+  "geolocation",
   "settlement",
   "ward",
   "local_government_area",
   "column_break_sipk",
   "state",
-  "country"
+  "country",
+  "tab_3_tab",
+  "comment_section",
+  "comments_to_supervisor",
+  "metadata_tab",
+  "metadata_section",
+  "response_id",
+  "status",
+  "project",
+  "grid",
+  "start_time",
+  "end_time",
+  "column_break_cewl",
+  "response_geolocation"
  ],
  "fields": [
   {
@@ -44,7 +60,7 @@
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project",
-   "reqd": 1
+   "permlevel": 2
   },
   {
    "fieldname": "building_number",
@@ -53,16 +69,11 @@
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.building_type===\"Residential\"",
    "fieldname": "how_many_households_occupy_this_building",
    "fieldtype": "Int",
    "label": "How Many Households Occupy this Building?",
-   "non_negative": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "picture_of_the_building",
-   "fieldtype": "Image",
-   "label": "Picture of the Building"
+   "non_negative": 1
   },
   {
    "fieldname": "column_break_pugj",
@@ -87,25 +98,10 @@
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.building_type === \"Residential\" ",
    "fieldname": "geocordinates_section",
    "fieldtype": "Section Break",
-   "label": "Geocordinates"
-  },
-  {
-   "fieldname": "geocoordinates",
-   "fieldtype": "Geolocation",
-   "label": "Geocoordinates",
-   "reqd": 1
-  },
-  {
-   "fieldname": "column_break_zlmf",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "geocordinates_actual_location",
-   "fieldtype": "Geolocation",
-   "label": "Geocordinates (Actual Location)",
-   "reqd": 1
+   "label": "Vaccination Status"
   },
   {
    "fieldname": "location_tab",
@@ -121,6 +117,7 @@
    "fieldname": "settlement",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Settlement",
    "options": "Settlement",
    "reqd": 1
@@ -129,19 +126,20 @@
    "fetch_from": "settlement.ward",
    "fieldname": "ward",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Ward",
    "options": "Ward",
-   "reqd": 1
+   "permlevel": 2
   },
   {
    "fetch_from": "ward.local_government_area",
    "fieldname": "local_government_area",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Local Government Area",
    "options": "Local Government Area",
-   "reqd": 1
+   "permlevel": 2
   },
   {
    "fieldname": "column_break_sipk",
@@ -151,10 +149,10 @@
    "fetch_from": "ward.state",
    "fieldname": "state",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "State",
    "options": "State",
-   "reqd": 1
+   "permlevel": 2
   },
   {
    "fetch_from": "ward.country",
@@ -162,12 +160,143 @@
    "fieldtype": "Link",
    "label": "Country",
    "options": "Country",
+   "permlevel": 2
+  },
+  {
+   "default": "Submitted",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "tab_3_tab",
+   "fieldtype": "Tab Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "response_id",
+   "fieldtype": "Data",
+   "label": "Response ID",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "comments_to_supervisor",
+   "fieldtype": "Text",
+   "label": "Comments to Supervisor"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Response Geolocation",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "grid",
+   "fieldtype": "Link",
+   "label": "Grid",
+   "options": "Grid",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Geocoordinates"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "metadata_tab",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "column_break_cewl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "building_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Building Type",
+   "options": "\nResidential\nNon-residential",
    "reqd": 1
+  },
+  {
+   "fieldname": "building_picture",
+   "fieldtype": "Attach Image",
+   "label": "Buidling Picture"
+  },
+  {
+   "fieldname": "building_picture_2",
+   "fieldtype": "Attach Image",
+   "label": "Building Picture 2"
+  },
+  {
+   "depends_on": "eval:doc.building_type===\"Non-residential\"",
+   "fieldname": "establishment_type",
+   "fieldtype": "Select",
+   "label": "Establishment Type",
+   "mandatory_depends_on": "eval:doc.building_type===\"Non-residential\"",
+   "options": "\nChurch\nHealth Facility\nMosque\nSchool"
+  },
+  {
+   "depends_on": "eval:doc.establishment_type===\"Health Facility\"",
+   "fieldname": "health_facility",
+   "fieldtype": "Link",
+   "label": "Health Facility",
+   "mandatory_depends_on": "eval:doc.establishment_type===\"Health Facility\"",
+   "options": "Facility"
+  },
+  {
+   "default": "0",
+   "fieldname": "percentage_of_vaccinated_children",
+   "fieldtype": "Percent",
+   "label": "Percentage of Vaccinated Children",
+   "permlevel": 2,
+   "read_only": 1
   }
  ],
+ "image_field": "building_picture",
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2024-08-26 12:06:33.793525",
+ "links": [
+  {
+   "link_doctype": "Household",
+   "link_fieldname": "building"
+  },
+  {
+   "link_doctype": "Children",
+   "link_fieldname": "building"
+  }
+ ],
+ "make_attachments_public": 1,
+ "modified": "2025-01-10 08:48:41.621016",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
@@ -188,7 +317,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -199,7 +327,6 @@
    "write": 1
   },
   {
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -216,7 +343,51 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Data Collector",
+   "role": "Enumerator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Outreach Worker",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
    "share": 1,
    "write": 1
   }

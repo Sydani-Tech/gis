@@ -1,21 +1,19 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2024-08-13 20:33:56.724435",
+ "creation": "2024-12-17 13:35:39.876293",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "enabled",
-  "project",
   "location_type",
   "location",
+  "title",
   "get_grid_geocordinates_from_location",
   "column_break_kpxw",
   "geolocation_kyow",
   "document_types_section",
-  "grid_assignees",
-  "column_break_esvj",
-  "documents"
+  "grid_assignees"
  ],
  "fields": [
   {
@@ -23,13 +21,6 @@
    "fieldname": "enabled",
    "fieldtype": "Check",
    "label": "Enabled"
-  },
-  {
-   "fieldname": "project",
-   "fieldtype": "Link",
-   "label": "Project",
-   "options": "Project",
-   "reqd": 1
   },
   {
    "fieldname": "location_type",
@@ -73,23 +64,18 @@
    "allow_bulk_edit": 1,
    "fieldname": "grid_assignees",
    "fieldtype": "Table",
-   "label": "Grid Assignees",
+   "label": "Team Members",
    "options": "Assignees"
   },
   {
-   "fieldname": "column_break_esvj",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "documents",
-   "fieldtype": "Table",
-   "label": "Documents",
-   "options": "Grid Doctypes"
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Team Code"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-08-26 12:07:39.607305",
+ "modified": "2024-12-20 08:27:04.240193",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",
@@ -106,45 +92,6 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Project Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Project Team",
-   "share": 1
-  },
-  {
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Supervisor",
-   "share": 1
-  },
-  {
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Data Collector",
-   "share": 1
   }
  ],
  "sort_field": "modified",

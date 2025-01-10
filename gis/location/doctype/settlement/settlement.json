@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:{name_of_settlement}",
- "creation": "2024-08-13 20:33:56.499829",
+ "creation": "2024-12-17 13:35:39.674932",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -10,6 +10,8 @@
   "name_of_settlement",
   "column_break_qkel",
   "type_of_settlement",
+  "archetype_for_rural",
+  "archetype_for_urban",
   "contact_details_of_settlement_influencersleader_section",
   "name_of_settlementcommunity_head",
   "contact_of_settlementcommunity_head",
@@ -20,17 +22,31 @@
   "name_of_nearest_facility_to_settlement",
   "distance_from_settlement_to_facility",
   "column_break_zjpw",
-  "facility_geolocation",
   "vdc_information_section",
   "is_there_a_vdc",
   "column_break_ahrb",
   "how_often_does_the_vdc_meet",
   "location_tab",
+  "location_section",
+  "facility_geolocation",
+  "column_break_jirb",
   "ward",
   "local_government_area",
-  "column_break_jirb",
   "state",
-  "country"
+  "country",
+  "comment_tab",
+  "comment_section",
+  "comment_to_supervisor",
+  "metadata_tab",
+  "metadata_section",
+  "response_id",
+  "status",
+  "project",
+  "grid",
+  "start_time",
+  "end_time",
+  "column_break_pqno",
+  "response_geolocation"
  ],
  "fields": [
   {
@@ -41,7 +57,6 @@
   {
    "fieldname": "name_of_settlement",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Name of Settlement",
    "reqd": 1
   },
@@ -54,7 +69,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type of Settlement",
-   "options": "\nRural\nRiverine\nHard to Reach\nNomadic\nSecurity Compromised\nUrban Slum",
+   "options": "\nRural\nUrban",
    "reqd": 1
   },
   {
@@ -72,7 +87,6 @@
   {
    "fieldname": "contact_of_settlementcommunity_head",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Contact of Settlement/Community Head",
    "options": "Phone",
    "reqd": 1
@@ -113,9 +127,11 @@
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "name_of_nearest_facility_to_settlement.geolocation",
    "fieldname": "facility_geolocation",
    "fieldtype": "Geolocation",
-   "label": "Facility Geolocation"
+   "label": "Facility Geolocation",
+   "permlevel": 2
   },
   {
    "fieldname": "vdc_information_section",
@@ -134,9 +150,11 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.is_there_a_vdc===\"Yes\"",
    "fieldname": "how_often_does_the_vdc_meet",
    "fieldtype": "Select",
    "label": "How often does the VDC meet?",
+   "mandatory_depends_on": "eval:doc.is_there_a_vdc===\"Yes\"",
    "options": "\nWeekly\nMonthly\nQuarterly\nAnnually"
   },
   {
@@ -147,42 +165,160 @@
   {
    "fieldname": "ward",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Ward",
    "options": "Ward",
    "reqd": 1
   },
   {
+   "columns": 2,
    "fetch_from": "ward.local_government_area",
    "fieldname": "local_government_area",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Local Government Area",
    "options": "Local Government Area",
-   "reqd": 1
+   "permlevel": 2
   },
   {
    "fieldname": "column_break_jirb",
    "fieldtype": "Column Break"
   },
   {
+   "columns": 2,
    "fetch_from": "ward.state",
    "fieldname": "state",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "State",
    "options": "State",
-   "reqd": 1
+   "permlevel": 2
   },
   {
+   "columns": 2,
    "fetch_from": "ward.country",
    "fieldname": "country",
    "fieldtype": "Link",
    "label": "Country",
    "options": "Country",
-   "reqd": 1
+   "permlevel": 2
+  },
+  {
+   "fieldname": "response_id",
+   "fieldtype": "Data",
+   "label": "Response ID",
+   "permlevel": 2
+  },
+  {
+   "default": "Submitted",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "response_geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Response Geolocation",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "comment_tab",
+   "fieldtype": "Tab Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "grid",
+   "fieldtype": "Link",
+   "label": "Grid",
+   "options": "Grid",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "comment_to_supervisor",
+   "fieldtype": "Text",
+   "label": "Comment to Supervisor"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "metadata_tab",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "column_break_pqno",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.type_of_settlement===\"Rural\"",
+   "fieldname": "archetype_for_rural",
+   "fieldtype": "Select",
+   "label": "Archetype for Rural",
+   "mandatory_depends_on": "eval:doc.type_of_settlement===\"Rural\"",
+   "options": "\nIDP Camp\nHard to reach\nNomadic\nRiverine\nSecurity-Compromised"
+  },
+  {
+   "depends_on": "eval:doc.type_of_settlement===\"Urban\"",
+   "fieldname": "archetype_for_urban",
+   "fieldtype": "Select",
+   "label": "Archetype for Urban",
+   "options": "\nIDP Camp\nRiverine\nSecurity-Compromised\nUrban Slum"
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2024-08-26 12:08:32.826172",
+ "links": [
+  {
+   "link_doctype": "Building",
+   "link_fieldname": "settlement"
+  },
+  {
+   "link_doctype": "Household",
+   "link_fieldname": "settlement"
+  },
+  {
+   "link_doctype": "Children",
+   "link_fieldname": "settlement"
+  }
+ ],
+ "modified": "2025-01-01 11:02:25.711987",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
@@ -231,12 +367,57 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Data Collector",
+   "role": "Enumerator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Outreach Worker",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
    "share": 1,
    "write": 1
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

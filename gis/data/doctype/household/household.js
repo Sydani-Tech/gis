@@ -1,12 +1,13 @@
 // Copyright (c) 2024, Sydani Technologies and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("Settlement", {
+// frappe.ui.form.on("Household", {
 // 	refresh(frm) {
 
 // 	},
 // });
-frappe.ui.form.on('Settlement', {
+
+frappe.ui.form.on('Household', {
     refresh(frm) {
         var userRoles = frappe.user_roles;
         var allowedRoles = ["Supervisor", "Project Team", "System Manager"];
@@ -23,4 +24,3 @@ frappe.ui.form.on('Settlement', {
         }
     }
 });
-

@@ -2,8 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:{project}",
- "creation": "2024-08-22 12:18:38.644836",
- "default_view": "List",
+ "creation": "2024-12-17 13:35:40.146162",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -11,6 +10,7 @@
   "project",
   "column_break_ieyj",
   "close_data_collection",
+  "enable_geofencing",
   "project_team_section",
   "team"
  ],
@@ -45,13 +45,19 @@
   {
    "fieldname": "team",
    "fieldtype": "Table",
-   "label": "Team",
+   "label": "Dashboard Viewers",
    "options": "Assignees"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_geofencing",
+   "fieldtype": "Check",
+   "label": "Enable Geofencing"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-08-26 12:06:14.678419",
+ "modified": "2025-01-02 08:10:59.572195",
  "modified_by": "Administrator",
  "module": "GIS frappe app",
  "name": "Project",
@@ -73,5 +79,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

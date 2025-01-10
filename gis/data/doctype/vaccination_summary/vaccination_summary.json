@@ -1,0 +1,566 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-18 15:46:38.426285",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "vaccination_summary_section",
+  "bcg_dosage_report",
+  "bcg_received_in_doses",
+  "bcg_used_in_doses",
+  "bcg_returned_in_doses",
+  "hep_b_dosage_report",
+  "hep_b_received_in_doses",
+  "hep_b_used_in_doses",
+  "hep_b_returned_in_doses",
+  "opv_dosage_report",
+  "opv_received_in_doses",
+  "opv_used_in_doses",
+  "opv_returned_in_doses",
+  "penta_dosage_report",
+  "penta_received_in_doses",
+  "penta_used_in_doses",
+  "penta_returned_in_doses",
+  "pcv_dosage_report",
+  "pcv_received_in_doses",
+  "pcv_used_in_doses",
+  "pcv_returned_in_doses",
+  "ipv_dosage_report",
+  "ipv_received_in_doses",
+  "ipv_used_in_doses",
+  "ipv_returned_in_doses",
+  "column_break_zorr",
+  "rota_dosage_report",
+  "rota_received_in_doses",
+  "rota_used_in_doses",
+  "rota_returned_in_doses",
+  "vit_a_dosage_report",
+  "vit_a_received_in_doses",
+  "vit_a_used_in_doses",
+  "vit_a_returned_in_doses",
+  "measles_dosage_report",
+  "measles_received_in_doses",
+  "measles_used_in_doses",
+  "measles_returned_in_doses",
+  "yellow_fever_dosage_report",
+  "yellow_fever_received_in_doses",
+  "yellow_fever_used_in_doses",
+  "yellow_fever_returned_in_doses",
+  "aefi_case_report",
+  "has_the_team_recorded_aefi_cases_today",
+  "what_type_of_aefi_has_been_recorded",
+  "select_the_type_of_aefis_that_was_observed",
+  "how_many_recorded_serious_aefi_cases_recorded",
+  "how_many_recorded_nonserious_aefi_cases_recorded",
+  "did_you_face_any_challenge",
+  "please_state_the_challenges_faced",
+  "did_you_receive_any_supervisor_today",
+  "what_is_the_name_of_the_supervisor",
+  "metadata_tab",
+  "metadata_section",
+  "response_id",
+  "status",
+  "project",
+  "grid",
+  "start_time",
+  "end_time",
+  "column_break_fsye",
+  "response_geolocation"
+ ],
+ "fields": [
+  {
+   "fieldname": "vaccination_summary_section",
+   "fieldtype": "Section Break",
+   "label": "Vaccination Summary"
+  },
+  {
+   "fieldname": "bcg_dosage_report",
+   "fieldtype": "Heading",
+   "label": "BCG Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "bcg_received_in_doses",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "BCG received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "bcg_used_in_doses",
+   "fieldtype": "Int",
+   "label": "BCG used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "bcg_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "BCG returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hep_b_dosage_report",
+   "fieldtype": "Heading",
+   "label": "Hep B Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "hep_b_received_in_doses",
+   "fieldtype": "Int",
+   "label": "Hep B received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "hep_b_used_in_doses",
+   "fieldtype": "Int",
+   "label": "Hep B used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "hep_b_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "Hep B returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "opv_dosage_report",
+   "fieldtype": "Heading",
+   "label": "OPV Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "opv_received_in_doses",
+   "fieldtype": "Int",
+   "label": "OPV received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "opv_used_in_doses",
+   "fieldtype": "Int",
+   "label": "OPV used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "opv_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "OPV returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "penta_dosage_report",
+   "fieldtype": "Heading",
+   "label": "Penta Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "penta_received_in_doses",
+   "fieldtype": "Int",
+   "label": "Penta received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "penta_used_in_doses",
+   "fieldtype": "Int",
+   "label": "Penta used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "penta_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "Penta returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pcv_dosage_report",
+   "fieldtype": "Heading",
+   "label": "PCV Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "pcv_received_in_doses",
+   "fieldtype": "Int",
+   "label": "PCV received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "pcv_used_in_doses",
+   "fieldtype": "Int",
+   "label": "PCV used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "pcv_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "PCV returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ipv_dosage_report",
+   "fieldtype": "Heading",
+   "label": "IPV Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "ipv_received_in_doses",
+   "fieldtype": "Int",
+   "label": "IPV received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "ipv_used_in_doses",
+   "fieldtype": "Int",
+   "label": "IPV used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "ipv_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "IPV returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zorr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rota_dosage_report",
+   "fieldtype": "Heading",
+   "label": "Rota Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "rota_received_in_doses",
+   "fieldtype": "Int",
+   "label": "Rota received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "rota_used_in_doses",
+   "fieldtype": "Int",
+   "label": "Rota used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "rota_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "Rota returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vit_a_dosage_report",
+   "fieldtype": "Heading",
+   "label": "Vit. A Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "vit_a_received_in_doses",
+   "fieldtype": "Int",
+   "label": "Vit. A received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "vit_a_used_in_doses",
+   "fieldtype": "Int",
+   "label": "Vit. A used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "vit_a_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "Vit. A returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "measles_dosage_report",
+   "fieldtype": "Heading",
+   "label": "Measles Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "measles_received_in_doses",
+   "fieldtype": "Int",
+   "label": "Measles received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "measles_used_in_doses",
+   "fieldtype": "Int",
+   "label": "Measles used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "measles_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "Measles returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "yellow_fever_dosage_report",
+   "fieldtype": "Heading",
+   "label": "Yellow Fever Dosage Report"
+  },
+  {
+   "description": "Enter the number of doses you received",
+   "fieldname": "yellow_fever_received_in_doses",
+   "fieldtype": "Int",
+   "label": "Yellow Fever received (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you used",
+   "fieldname": "yellow_fever_used_in_doses",
+   "fieldtype": "Int",
+   "label": "Yellow Fever used (in doses)",
+   "reqd": 1
+  },
+  {
+   "description": "Enter the number of doses you returned",
+   "fieldname": "yellow_fever_returned_in_doses",
+   "fieldtype": "Int",
+   "label": "Yellow Fever returned (in doses)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "aefi_case_report",
+   "fieldtype": "Heading",
+   "label": "AEFI Case Report"
+  },
+  {
+   "description": "Select one",
+   "fieldname": "has_the_team_recorded_aefi_cases_today",
+   "fieldtype": "Select",
+   "label": "Has the team recorded AEFI cases today?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "depends_on": "  has_the_team_recorded_aefi_cases_today = 'Yes';",
+   "fieldname": "what_type_of_aefi_has_been_recorded",
+   "fieldtype": "Select",
+   "label": "What type of AEFI has been recorded?",
+   "options": "\nSerious\nNon-serious",
+   "reqd": 1
+  },
+  {
+   "fieldname": "select_the_type_of_aefis_that_was_observed",
+   "fieldtype": "Select",
+   "label": "Select the type of AEFIs that was observed",
+   "options": "\nSerious\nNon-serious",
+   "reqd": 1
+  },
+  {
+   "fieldname": "how_many_recorded_serious_aefi_cases_recorded",
+   "fieldtype": "Int",
+   "label": "How many serious AEFI cases was recorded?",
+   "reqd": 1
+  },
+  {
+   "fieldname": "how_many_recorded_nonserious_aefi_cases_recorded",
+   "fieldtype": "Int",
+   "label": "How many non-serious AEFI cases was recorded?",
+   "reqd": 1
+  },
+  {
+   "fieldname": "did_you_face_any_challenge",
+   "fieldtype": "Select",
+   "label": "Did you face any challenge?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.did_you_face_any_challenge == \"Yes\";",
+   "fieldname": "please_state_the_challenges_faced",
+   "fieldtype": "Text",
+   "label": "Please state the challenges faced?",
+   "mandatory_depends_on": "eval:doc.did_you_face_any_challenge == \"Yes\";"
+  },
+  {
+   "fieldname": "did_you_receive_any_supervisor_today",
+   "fieldtype": "Select",
+   "label": "Did you receive any supervisor today?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.did_you_receive_any_supervisor_today == \"Yes\";",
+   "fieldname": "what_is_the_name_of_the_supervisor",
+   "fieldtype": "Text",
+   "label": "What is the name of the supervisor?",
+   "mandatory_depends_on": "eval:doc.did_you_receive_any_supervisor_today == \"Yes\";"
+  },
+  {
+   "fieldname": "metadata_tab",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "response_id",
+   "fieldtype": "Data",
+   "label": "Response ID",
+   "permlevel": 2
+  },
+  {
+   "default": "Submitted",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nReturned\nApproved",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "grid",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Grid",
+   "options": "Grid",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fsye",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Response Geolocation",
+   "permlevel": 2
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-12-20 08:25:42.661267",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Vaccination Summary",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Outreach Worker",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

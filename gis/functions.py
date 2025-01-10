@@ -7,6 +7,7 @@ import random
 import time
 import re
 import json
+import os
 
 
 session = requests.Session()
@@ -53,22 +54,35 @@ def auto_dates():
 def generate_keys(user):
   user_doc = frappe.get_doc("User", user)
   sid = frappe.session.user
-
+ 
   if frappe.cache().get_value(user):
-      user_doc.api_secret = frappe.cache().get_value(user)
-      user_doc.sid = frappe.cache().get_value(f'{user}_sid')
+    user_doc.api_secret = frappe.cache.get_value(user)
+    user_doc.sid = frappe.cache.get_value(f'{user}_sid')
   else:
-      api_secret = frappe.generate_hash(length=15)
-      frappe.cache().set_value(user, api_secret)
-      frappe.cache().set_value(f'{user}_sid', sid)
+    api_secret = frappe.generate_hash(length=15)
+    frappe.cache().set_value(user, api_secret)
+    frappe.cache().set_value(f'{user}_sid', sid)
+    user_doc.api_secret = frappe.cache.get_value(user)
 
-      user_doc.api_secret = frappe.cache().get_value(user)
+    # api_key = frappe.generate_hash(length=32)
+    # api_secret = frappe.generate_hash(length=32)
+
   if not user_doc.api_key:
-      user_doc.api_key = frappe.generate_hash(length=15)
+    user_doc.api_key = frappe.generate_hash(length=15)
+  
+  usr_data = {
+    'api_key': user_doc.api_key,
+    'api_secret': user_doc.api_secret,
+    'username': user_doc.username,
+    'email': user_doc.email
+  }
 
   user_doc.save(ignore_permissions=True)
-  user_doc.api_secret = frappe.cache().get_value(user)
-  return user_doc
+  
+  # u.api_secret = frappe.cache.get_value(user)
+  # return u.api_secret
+  # return frappe.cache.get_value(user);
+  return usr_data
 
 def get_date_range(start_date_str, end_date_str):
   if is_valid_date_format(start_date_str) == False:
@@ -123,6 +137,8 @@ def fetch_db_resource(stmt=None, var=None, doc=None, fields=None, filters=None):
 
     if stmt and var:
       data = frappe.db.sql(stmt, var, as_dict=True)
+    elif stmt:
+       data = frappe.db.sql(stmt, as_dict=True)
     elif doc:
       data = frappe.db.get_all(doc, fields=fields, filters=filters)
     
@@ -132,8 +148,23 @@ def fetch_db_resource(stmt=None, var=None, doc=None, fields=None, filters=None):
       set_error(code=404)
   except:
     set_error(code=505)
-  
   return
+
+def save_image(request, field_name, img_name):
+
+  uploaded_file = request.files[field_name]
+  if uploaded_file:
+    save_path = os.path.join(os.path.expanduser('~'), 
+    'frappe-bench/sites/gis.sydani.org/public/files', 
+    img_name)
+
+    with open(save_path, 'wb') as new_file:
+      new_file.write(uploaded_file.read())
+
+    return f"/files/{img_name}"
+  else:
+    return "";
+  
 
 # def get_proxies():
 #   proxy_url = 'https://free-proxy-list.net/'

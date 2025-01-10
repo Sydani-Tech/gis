@@ -8,15 +8,16 @@ app_license = "mit"
 
 #Fixtures
 fixtures = [
-    {"dt": "DocType", "filters": [["name", "in", ["State", "Local Government Area", "Ward", "Facility", "Settlement", "Building", "Grid Doctypes", "Assignees", "Grid", "Project", "Grid Creator"]]]},
-    {"dt": "Role", "filters": [["name", "in", ["Data Collector", "Project Team", "Supervisor", "Project Manager"]]]},
+    {"dt": "DocType", "filters": [["name", "in", ["Children", "Vaccination", "Household", "Building", "State", "Local Government Area", "Ward", "Facility", "Settlement", "Grid Doctypes", "Grid Assignees", "Grid", "Project", "Project Team", "Grid Creator"]]]},
+    {"dt": "Role", "filters": [["name", "in", ["Enumerator", "Project Team", "Supervisor", "Project Manager", "Outreach Worker", "Dashboard Viewer"]]]},
     {"dt": "Local Government Area"},
     {"dt": "State"},
     {"dt": "Ward"},
-    {"dt": "Facility"},
-    {"dt": "Settlement"},
-    {"dt": "Building"},
-    {"dt": "Project"}
+	{"dt": "Server Script"},
+    # {"dt": "Facility"},
+    # {"dt": "Settlement"},
+    # {"dt": "Building"},
+    # {"dt": "Project"}
 ]
 
 
@@ -136,13 +137,14 @@ fixtures = [
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-#	"*": {
-#		"on_update": "method",
-#		"on_cancel": "method",
-#		"on_trash": "method"
-#	}
-# }
+doc_events = {
+	# "*": {
+	# 	"on_update": "gis.data.doctype.children.children.get_full_name",
+		# "on_cancel": "method",
+		# "on_trash": "method"
+	# }
+    # "Children": {"before_save": "gis.test.update_children_vaccination"},
+}
 
 # Scheduled Tasks
 # ---------------

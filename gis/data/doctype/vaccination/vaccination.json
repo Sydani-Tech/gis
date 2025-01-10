@@ -1,0 +1,437 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-17 08:22:28.858447",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "child_information_section",
+  "first_name",
+  "middle_name",
+  "last_name",
+  "full_name",
+  "date_of_birth",
+  "column_break_fmtj",
+  "gender",
+  "care_givers_name",
+  "care_givers_phone_no",
+  "household",
+  "children",
+  "vaccination_section",
+  "vaccination_status",
+  "vaccination_date",
+  "next_vaccination_date",
+  "column_break_heor",
+  "does_the_child_have_a_child_health_card",
+  "did_you_administer_the_child_health_card",
+  "take_a_picture_of_the_health_card",
+  "why_were_health_cards_not_given",
+  "location_tab",
+  "location_section",
+  "geolocation",
+  "column_break_hncc",
+  "facility",
+  "building",
+  "settlement",
+  "ward",
+  "local_government_area",
+  "state",
+  "country",
+  "comment_tab",
+  "comment_section",
+  "comment_to_supervisor",
+  "metadata_tab",
+  "metadata_section",
+  "response_id",
+  "status",
+  "project",
+  "grid",
+  "start_time",
+  "end_time",
+  "column_break_zhcs",
+  "response_geolocation"
+ ],
+ "fields": [
+  {
+   "fieldname": "child_information_section",
+   "fieldtype": "Section Break",
+   "label": "Child Information"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "First Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "middle_name",
+   "fieldtype": "Data",
+   "label": "Middle Name"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Last Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fmtj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nMale\nFemale",
+   "reqd": 1
+  },
+  {
+   "fieldname": "care_givers_name",
+   "fieldtype": "Data",
+   "label": "Care Giver's Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "care_givers_phone_no",
+   "fieldtype": "Data",
+   "label": "Care Giver's Phone No",
+   "options": "Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "household",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Household",
+   "options": "Household",
+   "read_only": 1
+  },
+  {
+   "fieldname": "children",
+   "fieldtype": "Link",
+   "label": "Children",
+   "options": "Children",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "metadata_tab",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "metadata_section",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "response_id",
+   "fieldtype": "Data",
+   "label": "Response ID",
+   "permlevel": 2
+  },
+  {
+   "default": "Submitted",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "grid",
+   "fieldtype": "Link",
+   "label": "Grid",
+   "options": "Grid",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "permlevel": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_zhcs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Response Geolocation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "comment_tab",
+   "fieldtype": "Tab Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "comment_to_supervisor",
+   "fieldtype": "Text",
+   "label": "Comment to Supervisor"
+  },
+  {
+   "fieldname": "vaccination_section",
+   "fieldtype": "Section Break",
+   "label": "Vaccination"
+  },
+  {
+   "fieldname": "vaccination_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vaccination Status",
+   "options": "\nFully Vaccinated (Measles 2)\nVaccinated to Age\nUnder Immunized\nZero Dose\nNever Vaccinated",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.vaccination_status !== \"Fully Vaccinated (Measles 2)\"",
+   "fieldname": "next_vaccination_date",
+   "fieldtype": "Date",
+   "label": "Next Vaccination Date",
+   "mandatory_depends_on": "eval:doc.vaccination_status !== \"Fully Vaccinated (Measles 2)\""
+  },
+  {
+   "fieldname": "does_the_child_have_a_child_health_card",
+   "fieldtype": "Select",
+   "label": "Does the Child Have a Child Health Card?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"Yes\"",
+   "fieldname": "did_you_administer_the_child_health_card",
+   "fieldtype": "Select",
+   "label": "Did You Administer the Child Health Card?",
+   "mandatory_depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"Yes\"",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"Yes\"",
+   "fieldname": "take_a_picture_of_the_health_card",
+   "fieldtype": "Attach Image",
+   "label": "Take a Picture of the Health Card",
+   "mandatory_depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"Yes\""
+  },
+  {
+   "depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"No\"",
+   "fieldname": "why_were_health_cards_not_given",
+   "fieldtype": "Text",
+   "label": "Why Were Health Cards Not Given?",
+   "mandatory_depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"No\""
+  },
+  {
+   "fieldname": "location_tab",
+   "fieldtype": "Tab Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fetch_from": "household.building",
+   "fieldname": "building",
+   "fieldtype": "Link",
+   "label": "Building",
+   "options": "Building",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "building.settlement",
+   "fieldname": "settlement",
+   "fieldtype": "Link",
+   "label": "Settlement",
+   "options": "Settlement",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "settlement.ward",
+   "fieldname": "ward",
+   "fieldtype": "Link",
+   "label": "Ward",
+   "options": "Ward",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "settlement.local_government_area",
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "settlement.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "label": "State",
+   "options": "State",
+   "permlevel": 2
+  },
+  {
+   "fetch_from": "building.country",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "permlevel": 2
+  },
+  {
+   "fieldname": "column_break_hncc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_heor",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "geolocation",
+   "fieldtype": "Geolocation",
+   "label": "Record your Current Location"
+  },
+  {
+   "fieldname": "facility",
+   "fieldtype": "Link",
+   "label": "Facility",
+   "options": "Facility",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vaccination_date",
+   "fieldtype": "Date",
+   "label": "Vaccination Date",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "make_attachments_public": 1,
+ "modified": "2025-01-09 11:32:18.552697",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Vaccination",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Outreach Worker",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 2,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
