@@ -9,7 +9,7 @@ from gis.functions import (
 )
 
 from gis.access_to_records import (
-  projects, forms, outreach_forms, grids, save_building, save_settlement, save_household, save_children, save_vaccination, projects_for_dashboard_viewers
+  projects, forms, outreach_forms, grids, save_building, save_settlement, save_household, save_children, save_vaccination, save_vaccination_summary, projects_for_dashboard_viewers
 )
 
 from gis.grid import (grid_facilities, grid_buildings, 
@@ -58,6 +58,7 @@ def login(email, password):
             return
 
         user_doc = frappe.get_doc("User", email)
+
         fields = ['key']
         filters = {'name': email}
         user_key = fetch_db_resource(doc='Sec Keys', fields=fields, filters=filters)
@@ -66,13 +67,17 @@ def login(email, password):
         if user_key:
           api_secret = user_key[0]['key']
         else:          
-          api_secret = frappe.generate_hash(length=15)
+          api_secret = frappe.generate_hash(length=18)
           nk = frappe.get_doc({'doctype': 'Sec Keys', 'usr': email, 'key': api_secret})
           nk.save(ignore_permissions=True)
           # frappe.cache().set_value(email, api_secret)
           user_doc.api_secret = nk.key
           user_doc.save(ignore_permissions=True)
-       
+
+        if not user_doc.api_key:
+          user_doc.api_key = frappe.generate_hash(length=18)
+          user_doc.save(ignore_permissions=True)
+
         # user_data = frappe.db.get_value("User", email, ["username", "full_name", "phone","user_image"], as_dict=True)
         roles = frappe.permissions.get_roles(user=email)
         user_roles = [x for x in roles if x not in ["All", "Guest", "Desk Access"]]
@@ -276,7 +281,8 @@ def settlements(stateName=None, lgaName=None, wardName=None):
   filters = {
     'state': stateName,
     'local_government_area': lgaName,
-    'ward': wardName
+    'ward': wardName,
+    'status': 'Approved'
   }
 
   filters = {k: v for k, v in filters.items() if v}  # Remove keys with None values
@@ -375,7 +381,8 @@ def get_building(settlement=None, ward=None, lga=None, state=None):
         'ward': ward,
         'settlement': settlement,
         'local_government_area': lga,
-        'state': state
+        'state': state,
+        'status': 'Approved'
     }
     filters = {k: v for k, v in filters.items() if v}  # Remove keys with None values
 
@@ -416,7 +423,8 @@ def get_household(building=None, settlement=None, ward=None, lga=None, state=Non
         'settlement': settlement,
         'ward': ward,
         'local_government_area': lga,
-        'state': state
+        'state': state,
+        'status': 'Approved'
     }
     filters = {k: v for k, v in filters.items() if v}  # Remove keys with None values
     
@@ -429,7 +437,33 @@ def get_household(building=None, settlement=None, ward=None, lga=None, state=Non
     
     # Return the fetched records
     set_res(households=households)
+
+@frappe.whitelist()
+def get_vaccines():
+    vaccines = fetch_db_resource(
+        doc='Vaccine', fields=["name"], filters=None, 
+        
+    )
+    vaccines = sorted(vaccines, key=lambda x: x['name'])
+    set_res(vaccines=vaccines)
     
+@frappe.whitelist()
+def serious_aefi():
+    serious_aefi = fetch_db_resource(
+        doc='Serious AEFI', fields=["name"], filters=None, 
+        
+    )
+    serious_aefi = sorted(serious_aefi, key=lambda x: x['name'])
+    set_res(serious_aefi=serious_aefi)
+
+@frappe.whitelist()
+def non_serious_aefi():
+    non_serious_aefi = fetch_db_resource(
+        doc='Non Serious AEFI', fields=["name"], filters=None, 
+        
+    )
+    non_serious_aefi = sorted(non_serious_aefi, key=lambda x: x['name'])
+    set_res(non_serious_aefi=non_serious_aefi)
 
 @frappe.whitelist()
 def get_user_records(project, form=None, status=None):

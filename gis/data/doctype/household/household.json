@@ -29,6 +29,7 @@
   "if_others_specify",
   "what_is_the_nearest_facility",
   "how_far_is_the_nearest_facility",
+  "exact_distance_in_km",
   "column_break_ndpv",
   "do_you_take_your_childchildren_to_the_facility_for_ri_services",
   "please_state_why",
@@ -62,6 +63,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Name of Household Head",
+   "options": "Name",
    "reqd": 1
   },
   {
@@ -164,13 +166,15 @@
    "fieldname": "what_is_the_nearest_facility",
    "fieldtype": "Link",
    "label": "What is the Nearest Facility?",
-   "options": "Facility"
+   "options": "Facility",
+   "permlevel": 2
   },
   {
    "fieldname": "how_far_is_the_nearest_facility",
    "fieldtype": "Select",
    "label": "How Far is the Nearest Facility?",
-   "options": "\n< 2KM\n2 - 5KM\n> 5KM"
+   "options": "\n< 2KM\n2 - 5KM\n> 5KM",
+   "permlevel": 2
   },
   {
    "fieldname": "column_break_ndpv",
@@ -384,6 +388,13 @@
    "fieldtype": "Int",
    "label": "How Many Household Members are Below 5?",
    "reqd": 1
+  },
+  {
+   "fieldname": "exact_distance_in_km",
+   "fieldtype": "Float",
+   "label": "Exact Distance(KM)",
+   "permlevel": 2,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -394,7 +405,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-01-09 13:54:01.831928",
+ "modified": "2025-01-22 12:31:52.384028",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

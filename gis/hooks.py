@@ -8,12 +8,13 @@ app_license = "mit"
 
 #Fixtures
 fixtures = [
-    {"dt": "DocType", "filters": [["name", "in", ["Children", "Vaccination", "Household", "Building", "State", "Local Government Area", "Ward", "Facility", "Settlement", "Grid Doctypes", "Grid Assignees", "Grid", "Project", "Project Team", "Grid Creator"]]]},
+    {"dt": "DocType", "filters": [["name", "in", ["Children", "Vaccination", "Vaccination Summary", "Household", "Building", "State", "Local Government Area", "Ward", "Facility", "Settlement", "Grid Doctypes", "Grid Assignees", "Grid", "Project", "Project Team", "Grid Creator", "Serious AEFI Table", "Non Serious AEFI Table", "Non Serious AEFI", "Serious AEFI", "Vaccine Multiselect", "Vaccine", "Sec Keys"]]]},
     {"dt": "Role", "filters": [["name", "in", ["Enumerator", "Project Team", "Supervisor", "Project Manager", "Outreach Worker", "Dashboard Viewer"]]]},
     {"dt": "Local Government Area"},
     {"dt": "State"},
     {"dt": "Ward"},
 	{"dt": "Server Script"},
+    {"dt": "Workspace", "filters": [["name", "in", ["Coverage Trackr"]]]},
     # {"dt": "Facility"},
     # {"dt": "Settlement"},
     # {"dt": "Building"},

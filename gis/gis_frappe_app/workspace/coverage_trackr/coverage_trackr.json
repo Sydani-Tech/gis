@@ -1,0 +1,203 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"Fz2SSdldVL\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Data</span>\",\"col\":12}},{\"id\":\"WZr2MiV4N6\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"G7r4Y0Q9q9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Vaccination</b></span>\",\"col\":12}},{\"id\":\"jIoRxbfmvY\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Vaccination\",\"col\":8}},{\"id\":\"jw8E6KMvvv\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved Vaccination\",\"col\":4}},{\"id\":\"n-HMPSAwHE\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted Vaccination\",\"col\":4}},{\"id\":\"jLumMkpiCx\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Returned Vaccination\",\"col\":4}},{\"id\":\"QvPEKbrfY7\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Draft Vaccination\",\"col\":4}},{\"id\":\"OUFcxrs0bY\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Children</b></span>\",\"col\":12}},{\"id\":\"WL23KVZSUn\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Children\",\"col\":8}},{\"id\":\"b-1-8y7Rc_\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved Children\",\"col\":4}},{\"id\":\"yBwhvN6jV-\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted Children\",\"col\":4}},{\"id\":\"JQC48UHjVd\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Returned Children\",\"col\":4}},{\"id\":\"l6_NfKUd3w\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Draft Children\",\"col\":4}},{\"id\":\"_RaZMGo3ej\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Children\",\"col\":12}},{\"id\":\"-msumMBgIu\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Households</b></span>\",\"col\":12}},{\"id\":\"kbUju8pz2y\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Household\",\"col\":8}},{\"id\":\"5cjD8KXYBh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved Households\",\"col\":4}},{\"id\":\"4nzknMf_sj\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted Households\",\"col\":4}},{\"id\":\"dpPufjqVRd\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Returned Households\",\"col\":4}},{\"id\":\"0_peMidWfq\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Draft Households\",\"col\":4}},{\"id\":\"D5oY31BDz3\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Household\",\"col\":12}},{\"id\":\"epehNbkOdh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Buildings</b></span>\",\"col\":12}},{\"id\":\"fWdFTekix0\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Buildings\",\"col\":8}},{\"id\":\"1yJSrwzN6o\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved Buildings\",\"col\":4}},{\"id\":\"lghEoztaEF\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted Buildings\",\"col\":4}},{\"id\":\"WSSZGFgQiK\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Returned Buildings\",\"col\":4}},{\"id\":\"8kBlQ02N6K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Draft Buildings\",\"col\":4}},{\"id\":\"izbR9PznUa\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Building\",\"col\":12}},{\"id\":\"gyqzmyzcOw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Settlements</b></span>\",\"col\":12}},{\"id\":\"hinP_0SpsL\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Settlements\",\"col\":8}},{\"id\":\"oLcsAIKmv8\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved Settlements\",\"col\":4}},{\"id\":\"5I21k5WT8e\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted Settlements\",\"col\":4}},{\"id\":\"kWJytdVm6N\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Returned Settlements\",\"col\":4}},{\"id\":\"TQWYK6ji1m\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Draft Settlements\",\"col\":4}},{\"id\":\"mWMGoXFRs-\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"jzuls8QXgd\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Settlement\",\"col\":12}},{\"id\":\"Prgrzdy5eA\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Location</b></span>\",\"col\":12}},{\"id\":\"o7wk7h3E2H\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Facilities\",\"col\":4}},{\"id\":\"Amzvi0d_Yu\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Wards\",\"col\":4}},{\"id\":\"MQjPtpMSE1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"LGAs\",\"col\":4}},{\"id\":\"xL80AVOrZv\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"States\",\"col\":4}},{\"id\":\"JpXdbHUpMn\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Countries\",\"col\":4}}]",
+ "creation": "2024-08-18 10:30:34.281080",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "map",
+ "idx": 1,
+ "indicator_color": "",
+ "is_hidden": 0,
+ "label": "Coverage Trackr",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Country 2",
+   "link_count": 0,
+   "link_to": "Country",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2025-01-21 14:52:05.495791",
+ "modified_by": "Administrator",
+ "module": "GIS frappe app",
+ "name": "Coverage Trackr",
+ "number_cards": [
+  {
+   "label": "Children",
+   "number_card_name": "Children-1"
+  },
+  {
+   "label": "Household",
+   "number_card_name": "Household"
+  },
+  {
+   "label": "Buildings",
+   "number_card_name": "Buildings"
+  },
+  {
+   "label": "Returned Children",
+   "number_card_name": "Returned Children"
+  },
+  {
+   "label": "Submitted Children",
+   "number_card_name": "Submitted Children"
+  },
+  {
+   "label": "Approved Children",
+   "number_card_name": "Approved Children"
+  },
+  {
+   "label": "Approved Households",
+   "number_card_name": "Approved Household"
+  },
+  {
+   "label": "Approved Buildings",
+   "number_card_name": "Approved Building"
+  },
+  {
+   "label": "Approved Settlements",
+   "number_card_name": "Approved Settlement"
+  },
+  {
+   "label": "Vaccination",
+   "number_card_name": "Vaccination"
+  },
+  {
+   "label": "Returned Vaccination",
+   "number_card_name": "Returned Vaccination"
+  },
+  {
+   "label": "Settlements",
+   "number_card_name": "Settlements"
+  },
+  {
+   "label": "Draft Children",
+   "number_card_name": "Draft Children"
+  },
+  {
+   "label": "Submitted Households",
+   "number_card_name": "Submitted Household"
+  },
+  {
+   "label": "Submitted Buildings",
+   "number_card_name": "Submitted Building"
+  },
+  {
+   "label": "Submitted Settlements",
+   "number_card_name": "Submitted Settlement"
+  },
+  {
+   "label": "Approved Vaccination",
+   "number_card_name": "Approved Vaccination"
+  },
+  {
+   "label": "Draft Vaccination",
+   "number_card_name": "Draft Vaccination"
+  },
+  {
+   "label": "Returned Households",
+   "number_card_name": "Returned Household"
+  },
+  {
+   "label": "Returned Buildings",
+   "number_card_name": "Returned Building"
+  },
+  {
+   "label": "Returned Settlements",
+   "number_card_name": "Returned Settlement"
+  },
+  {
+   "label": "Submitted Vaccination",
+   "number_card_name": "Submitted Vaccination"
+  },
+  {
+   "label": "Draft Households",
+   "number_card_name": "Draft Household"
+  },
+  {
+   "label": "Draft Buildings",
+   "number_card_name": "Draft Building"
+  },
+  {
+   "label": "Draft Settlements",
+   "number_card_name": "Draft Settlement"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [
+  {
+   "document_type": "Settlement",
+   "label": "Settlement",
+   "quick_list_filter": "[]"
+  },
+  {
+   "document_type": "Children",
+   "label": "Children",
+   "quick_list_filter": "[]"
+  },
+  {
+   "document_type": "Household",
+   "label": "Household",
+   "quick_list_filter": "[]"
+  },
+  {
+   "document_type": "Building",
+   "label": "Building",
+   "quick_list_filter": "[]"
+  }
+ ],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Facilities",
+   "link_to": "Facility",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Wards",
+   "link_to": "Ward",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "LGAs",
+   "link_to": "Local Government Area",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "States",
+   "link_to": "State",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Countries",
+   "link_to": "Country",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Coverage Trackr"
+}

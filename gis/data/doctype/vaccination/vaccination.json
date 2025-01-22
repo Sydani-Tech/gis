@@ -18,9 +18,12 @@
   "household",
   "children",
   "vaccination_section",
+  "was_the_child_vaccinated_during_this_program",
   "vaccination_status",
   "vaccination_date",
   "next_vaccination_date",
+  "last_vaccines_administered",
+  "vaccines_taken",
   "column_break_heor",
   "does_the_child_have_a_child_health_card",
   "did_you_administer_the_child_health_card",
@@ -62,18 +65,21 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "First Name",
+   "options": "Name",
    "reqd": 1
   },
   {
    "fieldname": "middle_name",
    "fieldtype": "Data",
-   "label": "Middle Name"
+   "label": "Middle Name",
+   "options": "Name"
   },
   {
    "fieldname": "last_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Last Name",
+   "options": "Name",
    "reqd": 1
   },
   {
@@ -104,6 +110,7 @@
    "fieldname": "care_givers_name",
    "fieldtype": "Data",
    "label": "Care Giver's Name",
+   "options": "Name",
    "reqd": 1
   },
   {
@@ -119,6 +126,7 @@
    "in_standard_filter": 1,
    "label": "Household",
    "options": "Household",
+   "permlevel": 2,
    "read_only": 1
   },
   {
@@ -219,14 +227,15 @@
    "in_standard_filter": 1,
    "label": "Vaccination Status",
    "options": "\nFully Vaccinated (Measles 2)\nVaccinated to Age\nUnder Immunized\nZero Dose\nNever Vaccinated",
-   "reqd": 1
+   "permlevel": 2,
+   "read_only": 1
   },
   {
    "depends_on": "eval:doc.vaccination_status !== \"Fully Vaccinated (Measles 2)\"",
    "fieldname": "next_vaccination_date",
    "fieldtype": "Date",
    "label": "Next Vaccination Date",
-   "mandatory_depends_on": "eval:doc.vaccination_status !== \"Fully Vaccinated (Measles 2)\""
+   "permlevel": 2
   },
   {
    "fieldname": "does_the_child_have_a_child_health_card",
@@ -244,11 +253,10 @@
    "options": "\nYes\nNo"
   },
   {
-   "depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"Yes\"",
    "fieldname": "take_a_picture_of_the_health_card",
    "fieldtype": "Attach Image",
    "label": "Take a Picture of the Health Card",
-   "mandatory_depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"Yes\""
+   "reqd": 1
   },
   {
    "depends_on": "eval:doc.does_the_child_have_a_child_health_card === \"No\"",
@@ -276,15 +284,13 @@
    "permlevel": 2
   },
   {
-   "fetch_from": "building.settlement",
    "fieldname": "settlement",
    "fieldtype": "Link",
    "label": "Settlement",
    "options": "Settlement",
-   "permlevel": 2
+   "reqd": 1
   },
   {
-   "fetch_from": "settlement.ward",
    "fieldname": "ward",
    "fieldtype": "Link",
    "label": "Ward",
@@ -292,7 +298,7 @@
    "permlevel": 2
   },
   {
-   "fetch_from": "settlement.local_government_area",
+   "fetch_from": "ward.local_government_area",
    "fieldname": "local_government_area",
    "fieldtype": "Link",
    "label": "Local Government Area",
@@ -300,7 +306,7 @@
    "permlevel": 2
   },
   {
-   "fetch_from": "settlement.state",
+   "fetch_from": "ward.state",
    "fieldname": "state",
    "fieldtype": "Link",
    "label": "State",
@@ -308,7 +314,7 @@
    "permlevel": 2
   },
   {
-   "fetch_from": "building.country",
+   "fetch_from": "ward.country",
    "fieldname": "country",
    "fieldtype": "Link",
    "label": "Country",
@@ -331,7 +337,7 @@
   {
    "fieldname": "facility",
    "fieldtype": "Link",
-   "label": "Facility",
+   "label": "Health Facility",
    "options": "Facility",
    "reqd": 1
   },
@@ -340,12 +346,33 @@
    "fieldtype": "Date",
    "label": "Vaccination Date",
    "reqd": 1
+  },
+  {
+   "fieldname": "was_the_child_vaccinated_during_this_program",
+   "fieldtype": "Select",
+   "label": "Was the child vaccinated during this program?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_vaccines_administered",
+   "fieldtype": "Table",
+   "label": "Last Vaccine(s) Administered",
+   "options": "Vaccine Multiselect"
+  },
+  {
+   "fieldname": "vaccines_taken",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Vaccines Taken",
+   "length": 255,
+   "permlevel": 2
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-01-09 11:32:18.552697",
+ "modified": "2025-01-22 12:21:56.536897",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination",

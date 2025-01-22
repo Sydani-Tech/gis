@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:{building_number} - {street_name}",
+ "autoname": "format:{building_number} - {building_address}",
  "creation": "2024-12-17 13:35:39.550312",
  "default_view": "Image",
  "doctype": "DocType",
@@ -10,18 +10,16 @@
   "building_information_section",
   "column_break_vhmb",
   "building_number",
+  "building_address",
+  "street_name",
+  "describe_the_building",
+  "column_break_pugj",
   "building_type",
   "establishment_type",
   "health_facility",
   "how_many_households_occupy_this_building",
   "building_picture",
   "building_picture_2",
-  "building_address",
-  "column_break_pugj",
-  "describe_the_building",
-  "street_name",
-  "geocordinates_section",
-  "percentage_of_vaccinated_children",
   "location_tab",
   "location_section",
   "geolocation",
@@ -36,6 +34,7 @@
   "comments_to_supervisor",
   "metadata_tab",
   "metadata_section",
+  "percentage_of_vaccinated_children",
   "response_id",
   "status",
   "project",
@@ -96,12 +95,6 @@
    "fieldtype": "Text",
    "label": "Street Name",
    "reqd": 1
-  },
-  {
-   "depends_on": "eval:doc.building_type === \"Residential\" ",
-   "fieldname": "geocordinates_section",
-   "fieldtype": "Section Break",
-   "label": "Vaccination Status"
   },
   {
    "fieldname": "location_tab",
@@ -251,7 +244,7 @@
   {
    "fieldname": "building_picture",
    "fieldtype": "Attach Image",
-   "label": "Buidling Picture"
+   "label": "Building Picture"
   },
   {
    "fieldname": "building_picture_2",
@@ -296,7 +289,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-01-10 08:48:41.621016",
+ "modified": "2025-01-22 16:36:41.820772",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",

@@ -2159,8 +2159,8 @@ def children_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
 
 
     total_children = children_count + vaccination_count
-    percentage_male_children = (total_male_count / total_children) * 100 if total_children > 0 else 0
-    percentage_female_children = (total_female_count / total_children) * 100 if total_children > 0 else 0
+    percentage_male_children = round((total_male_count / total_children) * 100,2) if total_children > 0 else 0
+    percentage_female_children = round((total_female_count / total_children) * 100,2) if total_children > 0 else 0
 
     # Fully Vaccinated (Measles 2) Count from Children Table
     fully_vaccinated_children_query = f"""
@@ -2830,8 +2830,8 @@ def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga
     # Query Household Table for number of male household heads
     male_household_head_query = f"""
         SELECT COUNT(*) AS count
-        FROM `tabChildren`
-        WHERE status = 'Approved' AND gender = 'Male' AND {where_clause}
+        FROM `tabHousehold`
+        WHERE status = 'Approved' AND gender_of_household_head = 'Male' AND {where_clause}
     """
     male_household_head_count = frappe.db.sql(male_household_head_query, tuple(sql_values), as_dict=True)[0]['count']
 

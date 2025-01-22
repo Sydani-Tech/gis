@@ -1,33 +1,27 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:usr",
- "creation": "2025-01-09 12:39:26.991811",
+ "autoname": "field:vaccine",
+ "creation": "2025-01-16 15:23:57.148439",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "usr",
-  "key"
+  "vaccine"
  ],
  "fields": [
   {
-   "fieldname": "usr",
+   "fieldname": "vaccine",
    "fieldtype": "Data",
-   "label": "usr",
+   "label": "Vaccine",
    "unique": 1
-  },
-  {
-   "fieldname": "key",
-   "fieldtype": "Password",
-   "label": "key"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-22 23:16:45.034520",
+ "modified": "2025-01-16 15:24:33.503359",
  "modified_by": "Administrator",
  "module": "Data",
- "name": "Sec Keys",
+ "name": "Vaccine",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

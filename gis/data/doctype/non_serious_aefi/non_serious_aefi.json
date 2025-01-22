@@ -1,34 +1,27 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:usr",
- "creation": "2025-01-09 12:39:26.991811",
+ "autoname": "format:{aefi}",
+ "creation": "2025-01-21 09:42:29.680653",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "usr",
-  "key"
+  "aefi"
  ],
  "fields": [
   {
-   "fieldname": "usr",
+   "fieldname": "aefi",
    "fieldtype": "Data",
-   "label": "usr",
-   "unique": 1
-  },
-  {
-   "fieldname": "key",
-   "fieldtype": "Password",
-   "label": "key"
+   "label": "AEFI"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-22 23:16:45.034520",
+ "modified": "2025-01-21 09:43:06.266563",
  "modified_by": "Administrator",
  "module": "Data",
- "name": "Sec Keys",
- "naming_rule": "By fieldname",
+ "name": "Non Serious AEFI",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {

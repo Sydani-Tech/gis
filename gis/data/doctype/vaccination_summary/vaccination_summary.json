@@ -6,10 +6,6 @@
  "engine": "InnoDB",
  "field_order": [
   "vaccination_summary_section",
-  "bcg_dosage_report",
-  "bcg_received_in_doses",
-  "bcg_used_in_doses",
-  "bcg_returned_in_doses",
   "hep_b_dosage_report",
   "hep_b_received_in_doses",
   "hep_b_used_in_doses",
@@ -31,6 +27,10 @@
   "ipv_used_in_doses",
   "ipv_returned_in_doses",
   "column_break_zorr",
+  "bcg_dosage_report",
+  "bcg_received_in_doses",
+  "bcg_used_in_doses",
+  "bcg_returned_in_doses",
   "rota_dosage_report",
   "rota_received_in_doses",
   "rota_used_in_doses",
@@ -47,16 +47,21 @@
   "yellow_fever_received_in_doses",
   "yellow_fever_used_in_doses",
   "yellow_fever_returned_in_doses",
-  "aefi_case_report",
+  "aefi_case_report_tab",
+  "aefi_case_report_section",
   "has_the_team_recorded_aefi_cases_today",
-  "what_type_of_aefi_has_been_recorded",
-  "select_the_type_of_aefis_that_was_observed",
+  "serious_aefi_table",
+  "non_serious_aefi_table",
   "how_many_recorded_serious_aefi_cases_recorded",
   "how_many_recorded_nonserious_aefi_cases_recorded",
+  "column_break_svqz",
   "did_you_face_any_challenge",
   "please_state_the_challenges_faced",
   "did_you_receive_any_supervisor_today",
   "what_is_the_name_of_the_supervisor",
+  "comments_tab",
+  "comment_section",
+  "comment_to_supervisor",
   "metadata_tab",
   "metadata_section",
   "response_id",
@@ -340,12 +345,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "aefi_case_report",
-   "fieldtype": "Heading",
-   "label": "AEFI Case Report"
-  },
-  {
-   "description": "Select one",
    "fieldname": "has_the_team_recorded_aefi_cases_today",
    "fieldtype": "Select",
    "label": "Has the team recorded AEFI cases today?",
@@ -353,31 +352,18 @@
    "reqd": 1
   },
   {
-   "depends_on": "  has_the_team_recorded_aefi_cases_today = 'Yes';",
-   "fieldname": "what_type_of_aefi_has_been_recorded",
-   "fieldtype": "Select",
-   "label": "What type of AEFI has been recorded?",
-   "options": "\nSerious\nNon-serious",
-   "reqd": 1
-  },
-  {
-   "fieldname": "select_the_type_of_aefis_that_was_observed",
-   "fieldtype": "Select",
-   "label": "Select the type of AEFIs that was observed",
-   "options": "\nSerious\nNon-serious",
-   "reqd": 1
-  },
-  {
+   "depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\"",
    "fieldname": "how_many_recorded_serious_aefi_cases_recorded",
    "fieldtype": "Int",
    "label": "How many serious AEFI cases was recorded?",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\""
   },
   {
+   "depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\"",
    "fieldname": "how_many_recorded_nonserious_aefi_cases_recorded",
    "fieldtype": "Int",
    "label": "How many non-serious AEFI cases was recorded?",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\""
   },
   {
    "fieldname": "did_you_face_any_challenge",
@@ -387,11 +373,11 @@
    "reqd": 1
   },
   {
-   "depends_on": "eval:doc.did_you_face_any_challenge == \"Yes\";",
+   "depends_on": "eval:doc.did_you_face_any_challenge===\"Yes\"",
    "fieldname": "please_state_the_challenges_faced",
    "fieldtype": "Text",
    "label": "Please state the challenges faced?",
-   "mandatory_depends_on": "eval:doc.did_you_face_any_challenge == \"Yes\";"
+   "mandatory_depends_on": "eval:doc.did_you_face_any_challenge===\"Yes\""
   },
   {
    "fieldname": "did_you_receive_any_supervisor_today",
@@ -401,11 +387,11 @@
    "reqd": 1
   },
   {
-   "depends_on": "eval:doc.did_you_receive_any_supervisor_today == \"Yes\";",
+   "depends_on": "eval:doc.did_you_receive_any_supervisor_today===\"Yes\"",
    "fieldname": "what_is_the_name_of_the_supervisor",
-   "fieldtype": "Text",
+   "fieldtype": "Data",
    "label": "What is the name of the supervisor?",
-   "mandatory_depends_on": "eval:doc.did_you_receive_any_supervisor_today == \"Yes\";"
+   "mandatory_depends_on": "eval:doc.did_you_receive_any_supervisor_today===\"Yes\""
   },
   {
    "fieldname": "metadata_tab",
@@ -470,11 +456,56 @@
    "fieldtype": "Geolocation",
    "label": "Response Geolocation",
    "permlevel": 2
+  },
+  {
+   "fieldname": "aefi_case_report_tab",
+   "fieldtype": "Tab Break",
+   "label": "AEFI Case Report"
+  },
+  {
+   "fieldname": "aefi_case_report_section",
+   "fieldtype": "Section Break",
+   "label": "AEFI Case Report"
+  },
+  {
+   "fieldname": "column_break_svqz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "comments_tab",
+   "fieldtype": "Tab Break",
+   "label": "Comments"
+  },
+  {
+   "fieldname": "comment_section",
+   "fieldtype": "Section Break",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "comment_to_supervisor",
+   "fieldtype": "Text",
+   "label": "Comment to Supervisor"
+  },
+  {
+   "depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\"",
+   "fieldname": "serious_aefi_table",
+   "fieldtype": "Table",
+   "label": "Serious AEFI",
+   "mandatory_depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\"",
+   "options": "Serious AEFI Table"
+  },
+  {
+   "depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\"",
+   "fieldname": "non_serious_aefi_table",
+   "fieldtype": "Table",
+   "label": "Non Serious AEFI",
+   "mandatory_depends_on": "eval:doc.has_the_team_recorded_aefi_cases_today===\"Yes\"",
+   "options": "Non Serious AEFI Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-20 08:25:42.661267",
+ "modified": "2025-01-21 10:44:31.402144",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Summary",

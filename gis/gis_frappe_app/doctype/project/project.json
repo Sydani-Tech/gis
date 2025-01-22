@@ -12,7 +12,10 @@
   "close_data_collection",
   "enable_geofencing",
   "project_team_section",
-  "team"
+  "team",
+  "forms_section",
+  "forms",
+  "outreach_forms"
  ],
  "fields": [
   {
@@ -45,7 +48,7 @@
   {
    "fieldname": "team",
    "fieldtype": "Table",
-   "label": "Dashboard Viewers",
+   "label": "Project Team",
    "options": "Assignees"
   },
   {
@@ -53,11 +56,28 @@
    "fieldname": "enable_geofencing",
    "fieldtype": "Check",
    "label": "Enable Geofencing"
+  },
+  {
+   "fieldname": "forms_section",
+   "fieldtype": "Section Break",
+   "label": "Forms"
+  },
+  {
+   "fieldname": "outreach_forms",
+   "fieldtype": "Table",
+   "label": "Outreach Forms",
+   "options": "Outreach Doctype Table"
+  },
+  {
+   "fieldname": "forms",
+   "fieldtype": "Table",
+   "label": "Enumeration Forms",
+   "options": "Doctype Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-02 08:10:59.572195",
+ "modified": "2025-01-15 10:09:20.148534",
  "modified_by": "Administrator",
  "module": "GIS frappe app",
  "name": "Project",
