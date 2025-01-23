@@ -12,7 +12,7 @@ fixtures = [
     {"dt": "Role", "filters": [["name", "in", ["Enumerator", "Project Team", "Supervisor", "Project Manager", "Outreach Worker", "Dashboard Viewer"]]]},
     {"dt": "Local Government Area"},
     {"dt": "State"},
-    {"dt": "Ward"},
+    # {"dt": "Ward"},
 	{"dt": "Server Script"},
     {"dt": "Workspace", "filters": [["name", "in", ["Coverage Trackr"]]]},
     # {"dt": "Facility"},
