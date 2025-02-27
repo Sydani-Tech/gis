@@ -24,6 +24,7 @@
    "fieldname": "state",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "State",
    "options": "State",
    "reqd": 1
@@ -49,7 +50,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-20 08:27:04.494686",
+ "modified": "2025-02-27 13:34:15.817680",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Local Government Area",

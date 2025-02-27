@@ -114,7 +114,7 @@
    "depends_on": "eval:doc.is_the_household_head_employed  === \"Yes\"",
    "fieldname": "industry_of_employment",
    "fieldtype": "Select",
-   "label": " Industry of Employment",
+   "label": "Industry of Employment",
    "mandatory_depends_on": "eval:doc.is_the_household_head_employed  === \"Yes\"",
    "options": "\nAgriculture\nTrader/Business Owner\nGovernment\nPrivate Company\nStudent\nMilitary/Law Enforcement\nUnskilled Labour"
   },
@@ -174,7 +174,8 @@
    "fieldtype": "Select",
    "label": "How Far is the Nearest Facility?",
    "options": "\n< 2KM\n2 - 5KM\n> 5KM",
-   "permlevel": 2
+   "permlevel": 2,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_ndpv",
@@ -392,7 +393,7 @@
   {
    "fieldname": "exact_distance_in_km",
    "fieldtype": "Float",
-   "label": "Exact Distance(KM)",
+   "label": "How Far is the Nearest Facility(KM)?",
    "permlevel": 2,
    "read_only": 1
   }
@@ -405,7 +406,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-01-22 12:31:52.384028",
+ "modified": "2025-02-26 13:48:37.232307",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

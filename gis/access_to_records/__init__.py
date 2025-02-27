@@ -24,7 +24,7 @@ def get_fields(parent):
   filt = {'name': parent}
   fields = frappe.db.sql(f""" 
     SELECT name, docstatus, parent, fieldname, 
-    label, fieldtype, options, hidden, reqd, read_only, depends_on, permlevel,
+    label, fieldtype, options, hidden, reqd, read_only, depends_on, permlevel, description,
     mandatory_depends_on, read_only_depends_on, `default`, idx 
     FROM tabDocField
     WHERE parent = %(name)s AND label != '' 

@@ -179,6 +179,56 @@ def settlements(ward, lga, state):
         set_res(message="No settlements found.")
 
 
+
+@frappe.whitelist()
+def grids(ward, lga, state):
+
+    # Get the logged-in user
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": "error"}
+
+    # Define fields to fetch
+    fields = ['name', 'title', 'geolocation_kyow']
+
+    # Fetch user permissions where allow = 'Settlement'
+    user_permissions = frappe.get_all(
+        'User Permission',
+        filters={'user': user, 'allow': 'Settlement'},
+        fields=['for_value']
+    )
+
+    # Build the filters
+    filters = {}
+    if user_permissions:
+        permitted_settlements = [perm['for_value'] for perm in user_permissions]
+        filters['name'] = ('in', permitted_settlements)
+
+    # Add additional filters if provided
+    if ward:
+        filters['ward'] = ward
+    if lga:
+        filters['local_government_area'] = lga
+    if state:
+        filters['state'] = state
+
+    # Fetch settlements based on the filters
+    grids = fetch_db_resource(
+        doc='Grid',
+        fields=fields,
+        filters=filters
+    )
+
+    # Sort settlements alphabetically by name
+    if grids:
+        grids = sorted(grids, key=lambda x: x['name'])
+        # Limit to the first 20 results
+        # settlements = settlements[:20]
+        set_res(grids=grids)
+    else:
+        set_res(message="No Grids found.")
+
+
 # @frappe.whitelist()
 # def overview(project=None, grid=None, settlement=None, ward=None, lga=None, state=None):
 #     """
@@ -1032,12 +1082,13 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
 def get_building_data(building):
     """
     Fetch data for a given building, including pictures, approved households, and approved children in those households.
+    If the building is not residential, fetch vaccination records instead.
 
     Args:
         building (str): The name of the building.
 
     Returns:
-        dict: Building data with associated households and children.
+        dict: Building data with associated households and children or vaccination records.
     """
 
     # Get the logged-in user
@@ -1048,9 +1099,8 @@ def get_building_data(building):
             "status": "error"
         }
 
-    # Check if the user has the "Map Viewer" role
-    user_roles = frappe.get_roles(user)
-    if "Dashboard Viewer" not in user_roles:
+    # Check if the user has the "Dashboard Viewer" role
+    if "Dashboard Viewer" not in frappe.get_roles(user):
         return {
             "message": "You do not have the required role to view the map, please contact the project manager.",
             "status": "error"
@@ -1062,12 +1112,11 @@ def get_building_data(building):
             "status": 400
         }
     
-
-    # Fetch building pictures
+    # Fetch building details including type and pictures
     building_data = frappe.db.get_value(
         "Building",
         building,
-        ["building_picture", "building_picture_2"],
+        ["building_picture", "building_picture_2", "building_type"],
         as_dict=True
     )
 
@@ -1077,72 +1126,304 @@ def get_building_data(building):
             "status": 404
         }
 
-    # Fetch households associated with the building
-    households = frappe.db.sql(
+    # Fetch both children and vaccination records in a single query
+    combined_records = frappe.db.sql(
         """
-        SELECT name, name_of_household_head
-        FROM `tabHousehold`
-        WHERE building = %(building)s AND status = 'Approved'
+        SELECT 
+            full_name, 
+            date_of_birth, 
+            gender, 
+            vaccination_status, 
+            COALESCE(vaccination_date, last_vaccination_date) AS vaccination_date,
+            next_vaccination_date,
+            household
+        FROM (
+            SELECT 
+                full_name, 
+                date_of_birth, 
+                gender, 
+                vaccination_status, 
+                vaccination_date, 
+                next_vaccination_date,
+                NULL AS last_vaccination_date,
+                household
+            FROM `tabVaccination`
+            WHERE building = %(building)s AND status = 'Approved' AND children IS NULL AND building IS NOT NULL
+            
+            UNION ALL
+
+            SELECT 
+                full_name, 
+                date_of_birth, 
+                gender, 
+                vaccination_status, 
+                NULL AS vaccination_date,
+                next_vaccination_date AS next_vaccination_date,
+                last_vaccination_date,
+                household
+            FROM `tabChildren`
+            WHERE building = %(building)s AND status = 'Approved'
+        ) AS combined_data
         """,
         {"building": building},
         as_dict=True
     )
 
-    # Fetch children associated with each household
-    households_with_children = []
-    for household in households:
-        children = frappe.db.sql(
-            """
-            SELECT name, full_name, date_of_birth, gender, vaccination_status
-            FROM `tabChildren`
-            WHERE household = %(household)s AND status = 'Approved'
-            """,
-            {"household": household["name"]},
-            as_dict=True
-        )
-        households_with_children.append({
-            "household": household["name_of_household_head"],
-            "children": children
-        })
-
+    # Calculate age and structure data
     today = date.today()
+    formatted_data = [
+        {
+            "full_name": record["full_name"],
+            "gender": record["gender"],
+            "vaccination_status": record["vaccination_status"],
+            "vaccination_date": record["vaccination_date"],
+            "next_vaccination_date": record["next_vaccination_date"],
+            "date_of_birth": record["date_of_birth"],
+            "age": (
+                f"{(today.year - record['date_of_birth'].year) - (1 if today.month < record['date_of_birth'].month or (today.month == record['date_of_birth'].month and today.day < record['date_of_birth'].day) else 0)} years, "
+                f"{((today.month - record['date_of_birth'].month) % 12 if today.day >= record['date_of_birth'].day else (today.month - record['date_of_birth'].month - 1) % 12)} months"
+                if record["date_of_birth"] else "Unknown"
+            ),
+            "household_head": frappe.db.get_value("Household", record["household"], "name_of_household_head")
+        }
+        for record in combined_records
+    ]
 
     return {
-    "status": 200,
-    "data": {
-        "building": {
-            "name": building,
-            "building_picture": building_data.get("building_picture"),
-            "building_picture_2": building_data.get("building_picture_2"),
-            "households": [
-                {
-                    "name_of_household_head": household["name_of_household_head"],
-                    "children": [
-                        {
-                            "name": child["name"],
-                            "full_name": child["full_name"],
-                            "date_of_birth": child["date_of_birth"],
-                            "gender": child["gender"],
-                            "vaccination_status": child["vaccination_status"],
-                            "age": f"{(today.year - child['date_of_birth'].year) - (1 if today.month < child['date_of_birth'].month or (today.month == child['date_of_birth'].month and today.day < child['date_of_birth'].day) else 0)} years, {((today.month - child['date_of_birth'].month) % 12 if today.day >= child['date_of_birth'].day else (today.month - child['date_of_birth'].month - 1) % 12)} months"
-                            if child["date_of_birth"] else "Unknown"
-                        }
-                        for child in frappe.db.sql(
-                            """
-                            SELECT name, full_name, date_of_birth, gender, vaccination_status
-                            FROM `tabChildren`
-                            WHERE household = %(household)s AND status = 'Approved'
-                            """,
-                            {"household": household["name"]},
-                            as_dict=True
-                        )
-                    ]
-                }
-                for household in households
-            ]
+        "status": 200,
+        "data": {
+            "building": {
+                "name": building,
+                "building_picture": building_data.get("building_picture"),
+                "building_picture_2": building_data.get("building_picture_2"),
+                "children_and_vaccination_data": formatted_data
+            }
         }
     }
-}
+
+@frappe.whitelist()
+def table_overview(project=None, grid=None, settlement=None, ward=None, lga=None, state=None, form=None):
+    """
+    Fetch data for the dashboard based on selected form: Settlement, Building, Household, Children, or Vaccination.
+    """
+    if not project:
+        return {"message": "Please provide a project to return the data for the dashboard.", "status": 400}
+
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+    
+    user_roles = frappe.get_roles(user)
+    if "Dashboard Viewer" not in user_roles:
+        return {"message": "You do not have the required role to visualize the dashboard, please contact the project manager.", "status": 401}
+
+    user_permissions = frappe.get_all(
+        'User Permission',
+        filters={'user': user},
+        fields=['allow', 'for_value', 'is_default']
+    )
+    
+    filters = {}
+    for allow_value in ['State', 'Local Government Area', 'Ward', 'Settlement']:
+        allowed_records = [perm for perm in user_permissions if perm['allow'] == allow_value]
+        if allowed_records:
+            default_record = next((perm for perm in allowed_records if perm['is_default']), None)
+            if default_record:
+                filters[allow_value.lower().replace(" ", "_")] = default_record['for_value']
+            else:
+                filters[allow_value.lower().replace(" ", "_")] = ('in', [perm['for_value'] for perm in allowed_records])
+
+    if grid:
+        filters['grid'] = grid
+    if settlement:
+        filters['settlement'] = settlement
+    if ward:
+        filters['ward'] = ward
+    if lga:
+        filters['local_government_area'] = lga
+    if state:
+        filters['state'] = state
+    if project:
+        filters['project'] = project
+
+    sql_conditions = []
+    sql_values = []
+
+    for key, value in filters.items():
+        if isinstance(value, tuple) and value[0] == 'in':
+            sql_conditions.append(f"`{key}` IN %s")
+            sql_values.append(tuple(value[1]))
+        else:
+            sql_conditions.append(f"`{key}` = %s")
+            sql_values.append(value)
+
+    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+
+    form_table_mapping = {
+        "Settlement": "tabSettlement",
+        "Building": "tabBuilding",
+        "Household": "tabHousehold",
+        "Children": "tabChildren",
+        "Vaccination": "tabVaccination"
+    }
+    
+    field_selection = {
+        "Settlement": ["name_of_settlement", "type_of_settlement", "archetype_for_rural", "archetype_for_urban", "name_of_settlementcommunity_head", "name_of_disease_surveillance_community_informant", "names_of_other_influential_members_within_settlement", "is_there_a_vdc", "how_often_does_the_vdc_meet", "ward", "local_government_area", "state"],
+        "Building": ["building_address", "building_picture", "building_picture_2", "building_type", "establishment_type", "health_facility", "how_many_households_occupy_this_building", "settlement", "ward", "local_government_area", "state"],
+        "Children": ["full_name", "date_of_birth", "vaccination_status", "gender", "last_vaccination_date", "vaccines_taken", "settlement", "ward", "local_government_area", "state"],
+        "Vaccination": ["full_name", "vaccination_status", "date_of_birth", "vaccination_date", "vaccines_taken", "next_vaccination_date", "gender", "care_givers_name", "household", "children", "facility", "settlement", "ward", "local_government_area", "state"],
+        "Household": ["name_of_household_head", "gender_of_household_head", "date_of_birth_of_household_head", "educational_level_of_household_head", "is_the_household_head_employed", "industry_of_employment", "average_monthly_income", "is_the_household_residing_in_a_rented_apartment", "how_many_people_live_in_the_household", "what_is_the_nearest_facility", "exact_distance_in_km", "settlement", "ward", "local_government_area", "state"]
+    }
+    
+    if form not in form_table_mapping:
+        return {"message": "Invalid form type provided.", "status": 400}
+    
+    table_name = form_table_mapping[form]
+    selected_fields = field_selection.get(form, [])
+    
+    field_labels = {}
+    for field in selected_fields:
+        label = frappe.db.get_value("DocField", {"parent": form, "fieldname": field}, "label")
+        field_labels[field] = label if label else field
+    
+    field_names = []
+    for field in selected_fields:
+        if "date_of_birth" in field:
+            field_names.append(f"TIMESTAMPDIFF(MONTH, `{field}`, CURDATE()) AS Age")
+            field_labels[field] = "Age"
+        else:
+            field_names.append(f"`{field}`")
+    
+    field_names_str = ", ".join(field_names)
+    
+    query = f"""
+        SELECT {field_names_str} FROM `{table_name}`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    records = frappe.db.sql(query, tuple(sql_values), as_dict=True)
+    
+    if not records:
+        return {"message": "No records found for the selected criteria.", "status": 404}
+    
+    for record in records:
+        if "ward" in record and record["ward"]:
+            record["ward"] = frappe.db.get_value("Ward", record["ward"], "ward")
+        if "local_government_area" in record and record["local_government_area"]:
+            record["local_government_area"] = frappe.db.get_value("Local Government Area", record["local_government_area"], "local_government_area")
+        if "state" in record and record["state"]:
+            record["state"] = frappe.db.get_value("State", record["state"], "state")
+        if "household" in record and record["household"]:
+            record["household"] = frappe.db.get_value("Household", record["household"], "name_of_household_head")
+        if "children" in record and record["children"]:
+            record["children"] = frappe.db.get_value("Children", record["children"], "full_name")
+        if "facility" in record and record["facility"]:
+            record["facility"] = frappe.db.get_value("Facility", record["facility"], "facility_name")
+        if "what_is_the_nearest_facility" in record and record["what_is_the_nearest_facility"]:
+            record["what_is_the_nearest_facility"] = frappe.db.get_value("Facility", record["what_is_the_nearest_facility"], "facility_name")
+        if "health_facility" in record and record["health_facility"]:
+            record["health_facility"] = frappe.db.get_value("Facility", record["health_facility"], "facility_name")
+        if "Age" in record:
+            months = record["Age"]
+            if months < 12:
+                record["Age"] = f"{months} months"
+            else:
+                years = months // 12
+                remaining_months = months % 12
+                record["Age"] = f"{years} years {remaining_months} months"
+    
+    headers = [field_labels[field] for field in selected_fields]
+    data = [list(record.values()) for record in records]
+
+    # Count the total number of settlements
+    settlement_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabSettlement`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    settlement_count = frappe.db.sql(settlement_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    # Count the total number of buildings
+    building_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabBuilding`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    building_count = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)[0]['count']
+
+
+    # Count the total number residential of buildings
+    residential_building_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabBuilding`
+        WHERE status = 'Approved' AND building_type = 'Residential' AND {where_clause}
+    """
+    residential_building_count = frappe.db.sql(residential_building_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    #Calculate the percentage of residential buildings
+    total_buildings = building_count
+    if total_buildings > 0:
+        residential_percentage = round((residential_building_count / total_buildings) * 100, 2)
+    else:
+        residential_percentage = 0
+
+    # Count the total number of households
+    household_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabHousehold`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    household_count = frappe.db.sql(household_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    # Count the total number of children
+    children_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabChildren`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    children_count = frappe.db.sql(children_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    # Count the total number of male children
+    male_children_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabChildren`
+        WHERE status = 'Approved' AND gender = 'Male' AND {where_clause}
+    """
+    male_children_count = frappe.db.sql(male_children_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    # Count the total number of male children
+    female_children_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabChildren`
+        WHERE status = 'Approved' AND gender = 'Female' AND {where_clause}
+    """
+    female_children_count = frappe.db.sql(female_children_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    # Count the total number of vaccinations
+    vaccination_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabVaccination`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    vaccination_count = frappe.db.sql(vaccination_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    
+    return {
+        "headers": headers,
+        "data": data,
+        "total_settlements": settlement_count,
+        "total_buildings": building_count,
+        "residential_building_count": residential_building_count,
+        "residential_building_percentage": residential_percentage,
+        "total_households": household_count,
+        "total_children": children_count,
+        "total_male_children": male_children_count,
+        "total_female_children": female_children_count,
+        "total_vaccinations": vaccination_count,
+        "status": 200,
+        "response": "Success"
+    }
+
+
 
 @frappe.whitelist()
 def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=None, lga=None, state=None):

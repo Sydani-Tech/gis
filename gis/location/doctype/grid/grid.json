@@ -6,9 +6,12 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
+  "title",
+  "ward",
+  "local_government_area",
+  "state",
   "location_type",
   "location",
-  "title",
   "get_grid_geocordinates_from_location",
   "column_break_kpxw",
   "geolocation_kyow",
@@ -25,25 +28,22 @@
   {
    "fieldname": "location_type",
    "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
+   "hidden": 1,
    "label": "Location Type",
-   "options": "DocType",
-   "reqd": 1
+   "options": "DocType"
   },
   {
    "fieldname": "location",
    "fieldtype": "Dynamic Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
+   "hidden": 1,
    "label": "Location",
-   "options": "location_type",
-   "reqd": 1
+   "options": "location_type"
   },
   {
    "default": "0",
    "fieldname": "get_grid_geocordinates_from_location",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Get Grid Geocordinates from Location"
   },
   {
@@ -70,12 +70,43 @@
   {
    "fieldname": "title",
    "fieldtype": "Data",
-   "label": "Team Code"
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Team Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ward",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Ward",
+   "options": "Ward",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "ward.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "State",
+   "options": "State",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "ward.local_government_area",
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-20 08:27:04.240193",
+ "modified": "2025-02-24 22:24:53.348806",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",

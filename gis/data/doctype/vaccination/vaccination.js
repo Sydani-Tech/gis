@@ -30,5 +30,18 @@ frappe.ui.form.on("Vaccination", {
                 }
             }
         })
+        frm.set_query("building", function () {
+            return {
+                filters: {
+                    "ward": frm.doc.ward,
+                    "status": "Approved"
+                }
+            }
+        })
+    },
+    validate(frm) {
+        if (frm.doc.status === "Approved" && !frm.doc.building) {
+            frappe.throw(__('Building field cannot be empty when status is Approved. Please select a building and try again.'));
+        }
     }
 });

@@ -8,6 +8,7 @@
  "field_order": [
   "settlement_type_section",
   "name_of_settlement",
+  "settlement",
   "column_break_qkel",
   "type_of_settlement",
   "archetype_for_rural",
@@ -76,6 +77,7 @@
    "label": "Contact Details of Settlement Influencers/Leader"
   },
   {
+   "description": "Include first and last name of community head",
    "fieldname": "name_of_settlementcommunity_head",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -95,6 +97,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "Include first and last name of Disease survellaince communuity Informant",
    "fieldname": "name_of_disease_surveillance_community_informant",
    "fieldtype": "Data",
    "label": "Name of Disease surveillance Community informant",
@@ -102,6 +105,7 @@
    "reqd": 1
   },
   {
+   "description": "Include first and last name of influential members",
    "fieldname": "names_of_other_influential_members_within_settlement",
    "fieldtype": "Data",
    "label": "Names of other influential members within settlement",
@@ -134,7 +138,7 @@
   {
    "fieldname": "is_there_a_vdc",
    "fieldtype": "Select",
-   "label": "Is there a VDC?",
+   "label": "Is there a Village Development Committee?",
    "options": "\nYes\nNo",
    "reqd": 1
   },
@@ -146,7 +150,7 @@
    "depends_on": "eval:doc.is_there_a_vdc===\"Yes\"",
    "fieldname": "how_often_does_the_vdc_meet",
    "fieldtype": "Select",
-   "label": "How often does the VDC meet?",
+   "label": "How often does the Village Development Committee meet?",
    "mandatory_depends_on": "eval:doc.is_there_a_vdc===\"Yes\"",
    "options": "\nWeekly\nMonthly\nQuarterly\nAnnually"
   },
@@ -295,6 +299,11 @@
    "fieldtype": "Select",
    "label": "Archetype for Urban",
    "options": "\nIDP Camp\nRiverine\nSecurity-Compromised\nUrban Slum"
+  },
+  {
+   "fieldname": "settlement",
+   "fieldtype": "Data",
+   "label": "Settlement"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -312,7 +321,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-01-22 12:33:13.624568",
+ "modified": "2025-02-26 04:07:50.006450",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
