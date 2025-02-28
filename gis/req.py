@@ -73,8 +73,10 @@ def login(email, password):
           # frappe.cache().set_value(email, api_secret)
           user_doc.api_secret = nk.key
           user_doc.save(ignore_permissions=True)
-
-        if not user_doc.api_key:
+          
+        if hasattr(user_doc, "api_key"):
+          pass
+        else:
           user_doc.api_key = frappe.generate_hash(length=18)
           user_doc.save(ignore_permissions=True)
 
