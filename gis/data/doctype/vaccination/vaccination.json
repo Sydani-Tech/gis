@@ -59,13 +59,13 @@
   "column_break_zhcs",
   "response_geolocation",
   "odk_metadata_section",
-  "odk_child_id",
-  "odk_parent_id",
-  "type_of_vaccination_post",
-  "column_break_jvck",
   "vaccinators_name",
   "vaccinators_phone_number",
-  "team_code"
+  "team_code",
+  "column_break_jvck",
+  "type_of_vaccination_post",
+  "odk_child_id",
+  "odk_parent_id"
  ],
  "fields": [
   {
@@ -173,7 +173,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "options": "Draft\nReturned\nSubmitted\nApproved\nDiscarded",
    "permlevel": 2
   },
   {
@@ -423,6 +423,7 @@
   {
    "fieldname": "team_code",
    "fieldtype": "Select",
+   "in_standard_filter": 1,
    "label": "Team Code",
    "options": "\nktc_ktc_nd_001\nktc_ktc_nd_002\nktc_ktc_nd_003\nktc-es_ck_001\nktc-es_ck_002\nktc_dz_gb_001\nktc_dz_gb_002\nktc_dz_dz_001\nktc_sd_em_001\nktc_sd_em_002\nktc_sd_al_001\nktc_bs_mt_001\nktc_bs_mt_002\nktc_bs_aw_001\nkg_ar_tr_001\nkg_ku_rk_001\nkg_ku_rk_002\nkg_ma_gs_001\nkg_ng_kw_001\nkg_us_ua_001\nkg_tk_su_001\nkg_tw_ts_001\nkg_tw_ts_002\nkg_tw_ma_001\nkg_tw_us_001\nkg_tw_tu_001\nkg_tw_uy_001\nkg_tw_uy_002\nmg_bg_uad_001\nmg_bg_uad_002\nmg_bg_uuk_001\nmg_bg_stuf_001\nmg_bg_stuf_002\nmg_be_gan_001\nmg_bo_uk_001\nmg_bo_uk_002\nmg_gu_us_001\nmg_gu_us_002\nmg_gu_wum_003\nmg_ig_us_001\nmg_in_uw_001\nmg_in_utu_001\nrf_kc_uh_001\nrf_kc_uh_002\nrf_tc_gg_001\nrf_tc_up_001\nrf_tw_us_001\nrf_tw_us_002\nrf_tw_ul_001\nrf_tw_ul_002\nrf_tw_ul_003\nrf_tw_um_001\nrf_tw_ug_001\nrf_tw_ts_001",
    "permlevel": 2,
@@ -471,7 +472,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-02-27 14:11:05.260341",
+ "modified": "2025-03-02 16:37:03.197209",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination",

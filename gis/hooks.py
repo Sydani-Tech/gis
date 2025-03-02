@@ -176,13 +176,25 @@ doc_events = {
     "Settlement": {
         "validate": [
             "gis.doc_events.autoset_ward",
-            "gis.doc_events.autoset_nearest_facility"
+            "gis.doc_events.autoset_nearest_facility",
+            "gis.doc_events.update_settlement_field"
         ]
     },
     "Household": {
         "validate": [
             "gis.doc_events.autoset_nearest_facility_household",
             "gis.doc_events.update_household_member_count"
+        ]
+    },
+    "Building": {
+        "validate": [
+            "gis.doc_events.validate_facilities_in_buildings",
+            "gis.doc_events.update_building_geolocation_from_health_facility",
+        ]
+    },
+    "Grid": {
+        "validate": [
+            "gis.doc_events.set_geolocation_of_grids"
         ]
     },
 }

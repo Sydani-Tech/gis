@@ -11,6 +11,9 @@
   "facility_address",
   "column_break_xcpr",
   "geolocation",
+  "longitude",
+  "latitude",
+  "set_geolocation",
   "location_tab",
   "location_section",
   "ward",
@@ -45,7 +48,8 @@
   {
    "fieldname": "geolocation",
    "fieldtype": "Geolocation",
-   "label": "Geolocation"
+   "label": "Geolocation",
+   "reqd": 1
   },
   {
    "fieldname": "location_tab",
@@ -61,6 +65,7 @@
    "fieldname": "ward",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Ward",
    "options": "Ward",
    "reqd": 1
@@ -70,6 +75,7 @@
    "fieldname": "local_government_area",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Local Government Area",
    "options": "Local Government Area",
    "reqd": 1
@@ -78,6 +84,7 @@
    "fetch_from": "ward.state",
    "fieldname": "state",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "State",
    "options": "State",
    "reqd": 1
@@ -88,11 +95,26 @@
    "fieldtype": "Data",
    "label": "Country",
    "reqd": 1
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "set_geolocation",
+   "fieldtype": "Button",
+   "label": "Set Geolocation"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-20 08:25:43.294194",
+ "modified": "2025-03-02 21:30:06.150321",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",

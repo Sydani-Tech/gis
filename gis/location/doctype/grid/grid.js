@@ -6,3 +6,15 @@
 
 // 	},
 // });
+
+frappe.ui.form.on("Grid", {
+    refresh(frm) {
+        frm.set_query("location_type", function () {
+            return {
+                filters: {
+                    name: ["in", ["Country", "State", "Local Government Area", "Ward"]]
+                }
+            };
+        });
+    }
+});

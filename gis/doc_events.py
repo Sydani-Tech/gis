@@ -1,6 +1,7 @@
 
 import frappe
 from frappe.utils import get_datetime, getdate, today, date_diff
+import json
 
 # def update_vaccinations_administered_on_children_record(doc, method):
 #     """
@@ -431,7 +432,14 @@ def update_full_name(doc, method):
         else:
             doc.full_name = f"{first_name} {last_name}"
 
+def update_settlement_field(doc, method):
+    if not doc.settlement:
+        doc.settlement = doc.name_of_settlement
+        frappe.msgprint(f"Updated settlement field: {doc.settlement}")
 
+    if doc.settlement != doc.name_of_settlement:
+        doc.settlement = doc.name_of_settlement
+        frappe.msgprint(f"Updated settlement field: {doc.settlement}")
 
 
 def update_household_member_count(doc, method):
@@ -511,3 +519,87 @@ def update_building_vaccination_status(doc, method):
         # frappe.msgprint(f"Total Vaccinations: {total_vaccinations}, Vaccinated Vaccinations: {vaccination_status}")
         # frappe.msgprint(f"Updated Building {doc.building} with percentage: {combined_percentage}%")
 
+
+
+
+def set_geolocation_of_grids(doc, method):
+    """
+    Fetches the geolocation from the referenced doctype and sets it 
+    to the 'geolocation_kyow' field in the 'Grid' doctype.
+    """
+    # frappe.msgprint(f"Fetching geolocation for {doc.location} from {doc.location_type}")
+    if not doc.location_type or not doc.location:
+        frappe.throw("Both 'Location Type' and 'Location' fields are required.")
+        return  # Exit if required fields are missing
+
+    # Fetch geolocation from the referenced doctype
+    try:
+        location_doc = frappe.get_doc(doc.location_type, doc.location)
+        if hasattr(location_doc, "geolocation"):
+            doc.geolocation_kyow = location_doc.geolocation
+            # frappe.msgprint(f"Geolocation set for {doc.location} from {doc.location_type}")
+        else:
+            frappe.throw(f"Geolocation field not found in {doc.location_type}")
+
+    except frappe.DoesNotExistError:
+        frappe.throw(f"{doc.location_type} '{doc.location}' does not exist.")
+    except Exception as e:
+        frappe.throw(f"Error fetching geolocation: {str(e)}")
+
+
+
+def validate_facilities_in_buildings(doc, method):
+    """
+    Prevents multiple buildings from having the same facility in the 'Grid' doctype.
+    """
+    frappe.msgprint(f"Validating facility in building: {doc.name}")
+    if not doc.health_facility:
+        return  # Skip validation if facility is not set
+
+    # Check if another record exists with the same facility but a different name
+    existing = frappe.db.exists("Building", {"health_facility": doc.health_facility, "name": ["!=", doc.name]})
+
+    if existing:
+        frappe.throw(f"A record with facility '{doc.health_facility}' already exists. Each facility must be unique.")
+
+
+
+@frappe.whitelist()
+def format_geolocation(longitude, latitude):
+    """
+    Converts longitude and latitude into Frappe's GeoJSON Point format.
+    """
+    if not longitude or not latitude:
+        frappe.throw("Longitude and Latitude are required.")
+
+    try:
+        
+        geolocation = json.dumps({
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "type": "Point",
+                       
+                        "coordinates": [longitude, latitude]  # Longitude first, then Latitude
+
+                    }
+                }
+            ]
+        })
+
+
+        return geolocation
+    except ValueError:
+        frappe.throw("Invalid longitude or latitude format.")
+
+
+def update_building_geolocation_from_health_facility(doc, method):
+    if doc.health_facility:
+        health_facility = frappe.get_doc("Facility", doc.health_facility)
+        doc.geolocation = health_facility.geolocation
+        doc.response_geolocation = health_facility.geolocation
+        
+    

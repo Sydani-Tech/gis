@@ -10,9 +10,9 @@
   "ward",
   "local_government_area",
   "state",
+  "get_grid_geocordinates_from_location",
   "location_type",
   "location",
-  "get_grid_geocordinates_from_location",
   "column_break_kpxw",
   "geolocation_kyow",
   "document_types_section",
@@ -26,24 +26,26 @@
    "label": "Enabled"
   },
   {
+   "depends_on": "get_grid_geocordinates_from_location",
    "fieldname": "location_type",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Location Type",
+   "mandatory_depends_on": "get_grid_geocordinates_from_location",
    "options": "DocType"
   },
   {
+   "depends_on": "get_grid_geocordinates_from_location",
    "fieldname": "location",
    "fieldtype": "Dynamic Link",
-   "hidden": 1,
    "label": "Location",
+   "mandatory_depends_on": "get_grid_geocordinates_from_location",
    "options": "location_type"
   },
   {
    "default": "0",
+   "description": "Click here and select the desired location if you intend to copy the polygon of the location to the grid",
    "fieldname": "get_grid_geocordinates_from_location",
    "fieldtype": "Check",
-   "hidden": 1,
    "label": "Get Grid Geocordinates from Location"
   },
   {
@@ -106,7 +108,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-24 22:24:53.348806",
+ "modified": "2025-03-02 16:49:46.414729",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",
