@@ -580,13 +580,8 @@ def fetch_odk_data():
     # odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$top=1"
     odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=1"
     form_id = "Vaccination%20Team%20Tool"
-    username = "admin@sydani.org"
-    password = "@A35dDGaa%1334"
+    username = frappe.get_site_config().get("odk_username")
+    password = frappe.get_site_config().get("odk_password")
 
     return pull_vaccination_data(odk_server_url, form_id, username, password)
-
-
-
-def get_all_grids():
-    return frappe.db.get_all("Grid", fields=["name", "title"])
 
