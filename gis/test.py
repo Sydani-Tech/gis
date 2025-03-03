@@ -34,25 +34,6 @@ def test_fields():
 
 
 
-def test_queries():
-    # Query Household Table for distribution of households by gender
-    household_gender_query = f"""
-      SELECT gender_of_household_head, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND project = 'STRICAN - Phase 2' AND state = 'Federal Capital Territory' AND local_government_area = 'Municipal Area Council-Fct' AND ward = 'Kabusa-Municipal Area Council-Fct' AND settlement = 'Sunshine Homes'
-      GROUP BY gender_of_household_head
-    """
-    household_gender_distribution = frappe.db.sql(household_gender_query, as_dict=True)
-
-    # Calculate percentages
-    total_households = sum(item['count'] for item in household_gender_distribution)
-    for item in household_gender_distribution:
-      item['percentage'] = round((item['count'] / total_households) * 100, 2) if total_households > 0 else 0
-
-    return {
-      'household_gender_distribution': household_gender_distribution
-    }
-
 @frappe.whitelist()
 def update_building_geolocation():
     try:
@@ -106,103 +87,7 @@ def update_building_geolocation():
             "message": f"An error occurred: {str(e)}"
         }
 
-# @frappe.whitelist()
-# def get_building_data(building):
-#     """
-#     Fetch data for a given building, including pictures, approved households, and approved children in those households.
-#     If the building is not residential, fetch vaccination records instead.
 
-#     Args:
-#         building (str): The name of the building.
-
-#     Returns:
-#         dict: Building data with associated households and children or vaccination records.
-#     """
-
-#     # Get the logged-in user
-#     user = frappe.session.user
-#     if user == "Guest":
-#         return {
-#             "message": "You must be logged in to access this data.",
-#             "status": "error"
-#         }
-
-#     # Check if the user has the "Dashboard Viewer" role
-#     user_roles = frappe.get_roles(user)
-#     if "Dashboard Viewer" not in user_roles:
-#         return {
-#             "message": "You do not have the required role to view the map, please contact the project manager.",
-#             "status": "error"
-#         }
-
-#     if not building:
-#         return {
-#             "message": "Building name is required.",
-#             "status": 400
-#         }
-    
-#     # Fetch building details including type and pictures
-#     building_data = frappe.db.get_value(
-#         "Building",
-#         building,
-#         ["building_picture", "building_picture_2", "building_type"],
-#         as_dict=True
-#     )
-
-#     if not building_data:
-#         return {
-#             "message": f"No building found with name: {building}",
-#             "status": 404
-#         }
-
-#     # Fetch approved vaccination records for the building
-#     today = date.today()
-#     vaccinations = frappe.db.sql(
-#         """
-#         SELECT full_name, date_of_birth, vaccination_status, vaccination_date, next_vaccination_date, gender
-#         FROM `tabVaccination`
-#         WHERE building = %(building)s AND status = 'Approved' AND children is NULL
-#         """,
-#         {"building": building},
-#         as_dict=True
-#     )
-
-#     # Fetch approved children for the building
-#     children = frappe.db.sql(
-#         """
-#         SELECT full_name, date_of_birth, vaccination_status, last_vaccination_date, next_vaccination, gender
-#         FROM `tabChild`
-#         WHERE building = %(building)s AND status = 'Approved'
-#         """,
-#         {"building": building},
-#         as_dict=True
-#     )
-
-#     children_and_vaccination_data = [
-#         {
-#             "full_name": record["full_name"],
-#             "vaccination_status": record["vaccination_status"],
-#             "vaccination_date": record["vaccination_date"],
-#             "next_vaccination_date": record["next_vaccination_date"],
-#             "gender": record["gender"],
-#             "age": f"{(today.year - record['date_of_birth'].year) - (1 if today.month < record['date_of_birth'].month or (today.month == record['date_of_birth'].month and today.day < record['date_of_birth'].day) else 0)} years, {((today.month - record['date_of_birth'].month) % 12 if today.day >= record['date_of_birth'].day else (today.month - record['date_of_birth'].month - 1) % 12)} months"
-#                     if record["date_of_birth"] else "Unknown"
-            
-#         }
-#         for record in vaccinations
-#     ]
-
-#     return {
-#         "status": 200,
-#         "data": {
-#             "building": {
-#                 "name": building,
-#                 "building_picture": building_data.get("building_picture"),
-#                 "building_picture_2": building_data.get("building_picture_2"),
-#                 "children_and_vaccination_data": children_and_vaccination_data
-#             }
-#         }
-#     }
 
 
 import frappe
@@ -349,6 +234,31 @@ def fetch_odk_data():
         "ALUKUSU B": "Alukusu B",
         "NDALADA": "Ndalada",
         "UNG. AUDU": "Ung Audu",
+        "CECEKO": "CECEKO",
+        "GABI": "Gabi",
+        "DZANGBODO": "Dzangbodo",
+        "EMITSOWA": "Emitsowa",
+        "ALUKUSU B": "Alukusu B",
+        "MANTUTUN": "Mantuntun",
+        "AMINA WOYE": "Amina Woye",
+        "TUKURA B": "Tukura B",
+        "RIGASA": "Rigasa",
+        "ROAD SAFETY AREA": "Road safety Area",
+        "KANWURI": "Kanwuri",
+        "Masaha": "Masaha",
+        "RIJINYAN NGWAMATSE ": "Rijinyan Ngwamatse",
+        "UNG. AUDU": "Ung Audu",
+        "UNG. SULE A": "Ung Sule A",
+        "Unguwan usman": "Usman A",
+        "TSANGAYA": "Tsangaya",
+        "MAGAMA": "Magama",
+        "UNG. SARKIN TASHA": "Ung Sarkin Tasha",
+        "TUNGA NA UKU": "Tunga Na Uku",
+        "UNG. YANGA": "Ung Yanga",
+        "bakin kasuwa": "Bakin Kasuwa",
+        "MAGANDU SABO": "Magandu Sabo",
+        "UNGUWAN ALHAJI DANLAMI": "Unguwan Alhaji Danlami",
+        "UNG UKATA": "Ung Ukata",
 
         #Vaccines
         "HEP_B0": "HEP B0",

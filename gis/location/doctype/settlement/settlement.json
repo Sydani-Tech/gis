@@ -303,6 +303,7 @@
   {
    "fieldname": "settlement",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Settlement"
   }
  ],
@@ -321,7 +322,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-02-26 04:07:50.006450",
+ "modified": "2025-03-02 23:47:36.905188",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
