@@ -18,7 +18,7 @@
   },
   {
    "fieldname": "key",
-   "fieldtype": "Password",
+   "fieldtype": "Data",
    "label": "key"
   }
  ],
