@@ -596,38 +596,38 @@ def format_geolocation(longitude, latitude):
         frappe.throw("Invalid longitude or latitude format.")
 
 
-# def update_building_geolocation_from_health_facility(doc, method):
-#     if doc.health_facility:
-#         health_facility = frappe.get_doc("Facility", doc.health_facility)
-#         doc.geolocation = health_facility.geolocation
-#         doc.response_geolocation = health_facility.geolocation
-        
-    
 def update_building_geolocation_from_health_facility(doc, method):
     if doc.health_facility:
         health_facility = frappe.get_doc("Facility", doc.health_facility)
+        doc.geolocation = health_facility.geolocation
+        doc.response_geolocation = health_facility.geolocation
         
-        try:
-            # Extract coordinates from the facility's geolocation
-            facility_geolocation = json.loads(health_facility.geolocation)
-            coordinates = facility_geolocation.get("geometry", {}).get("coordinates", [])
+    
+# def update_building_geolocation_from_health_facility(doc, method):
+#     if doc.health_facility:
+#         health_facility = frappe.get_doc("Facility", doc.health_facility)
+        
+#         try:
+#             # Extract coordinates from the facility's geolocation
+#             facility_geolocation = json.loads(health_facility.geolocation)
+#             coordinates = facility_geolocation.get("geometry", {}).get("coordinates", [])
             
-            if coordinates and len(coordinates) == 2:
-                formatted_geolocation = {
-                    "type": "FeatureCollection",
-                    "features": [
-                        {
-                            "type": "Feature",
-                            "properties": {},
-                            "geometry": {
-                                "type": "Point",
-                                "coordinates": coordinates  # Longitude first, then Latitude
-                            }
-                        }
-                    ]
-                }
+#             if coordinates and len(coordinates) == 2:
+#                 formatted_geolocation = {
+#                     "type": "FeatureCollection",
+#                     "features": [
+#                         {
+#                             "type": "Feature",
+#                             "properties": {},
+#                             "geometry": {
+#                                 "type": "Point",
+#                                 "coordinates": coordinates  # Longitude first, then Latitude
+#                             }
+#                         }
+#                     ]
+#                 }
                 
-                doc.geolocation = json.dumps(formatted_geolocation)
-                doc.response_geolocation = json.dumps(formatted_geolocation)
-        except json.JSONDecodeError:
-            frappe.log_error("Invalid JSON format in health facility geolocation", "Geolocation Update Error")
+#                 doc.geolocation = json.dumps(formatted_geolocation)
+#                 doc.response_geolocation = json.dumps(formatted_geolocation)
+#         except json.JSONDecodeError:
+#             frappe.log_error("Invalid JSON format in health facility geolocation", "Geolocation Update Error")

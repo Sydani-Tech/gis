@@ -70,6 +70,7 @@ def update_building_geolocation():
             ]
         })
         
+        
         # Save the changes
         # building.save()
         
