@@ -413,7 +413,7 @@ def update_child_vaccination_status(doc, method):
     # Print final vaccination status
     # frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
 
-    
+#Full name of children in the children and vaccination doctype   
 def update_full_name(doc, method):
     previous_doc = doc.get_doc_before_save()
     
@@ -431,6 +431,20 @@ def update_full_name(doc, method):
             doc.full_name = f"{first_name} {middle_name} {last_name}"
         else:
             doc.full_name = f"{first_name} {last_name}"
+
+#Full name of caregivers in the vaccination doctype   
+def update_full_name_care_givers(doc, method):
+    previous_doc = doc.get_doc_before_save()
+    frappe.msgprint(f"Previous Doc:")
+    # Check if previous_doc exists before accessing its attributes
+    if previous_doc and (
+        previous_doc.care_givers_firstname != doc.care_givers_firstname or
+        previous_doc.care_givers_surname != doc.care_givers_surname
+    ):
+        care_givers_firstname = doc.care_givers_firstname or ""
+        care_givers_surname = doc.care_givers_surname or ""
+            
+        doc.care_givers_name = f"{care_givers_firstname} {care_givers_surname}"
 
 def update_settlement_field(doc, method):
     if not doc.settlement:
@@ -596,38 +610,43 @@ def format_geolocation(longitude, latitude):
         frappe.throw("Invalid longitude or latitude format.")
 
 
+
 def update_building_geolocation_from_health_facility(doc, method):
     if doc.health_facility:
         health_facility = frappe.get_doc("Facility", doc.health_facility)
-        doc.geolocation = health_facility.geolocation
-        doc.response_geolocation = health_facility.geolocation
-        
-    
-# def update_building_geolocation_from_health_facility(doc, method):
-#     if doc.health_facility:
-#         health_facility = frappe.get_doc("Facility", doc.health_facility)
-        
-#         try:
-#             # Extract coordinates from the facility's geolocation
-#             facility_geolocation = json.loads(health_facility.geolocation)
-#             coordinates = facility_geolocation.get("geometry", {}).get("coordinates", [])
+        try:
+            # Parse the health facility geolocation JSON
+            facility_geolocation = json.loads(health_facility.geolocation)
+            coordinates = facility_geolocation.get("geometry", {}).get("coordinates", [])
             
-#             if coordinates and len(coordinates) == 2:
-#                 formatted_geolocation = {
-#                     "type": "FeatureCollection",
-#                     "features": [
-#                         {
-#                             "type": "Feature",
-#                             "properties": {},
-#                             "geometry": {
-#                                 "type": "Point",
-#                                 "coordinates": coordinates  # Longitude first, then Latitude
-#                             }
-#                         }
-#                     ]
-#                 }
+            if coordinates and len(coordinates) == 2:
+                try:
+                    # Ensure that both longitude and latitude are floats
+                    lon = float(coordinates[0])
+                    lat = float(coordinates[1])
+                except ValueError:
+                    frappe.log_error("Coordinates conversion error: {}".format(coordinates), 
+                                       "Geolocation Update Error")
+                    return
+
+                # Create the GeoJSON FeatureCollection with numeric values
+                formatted_geolocation = {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [lon, lat]  # Longitude first, then Latitude
+                            }
+                        }
+                    ]
+                }
                 
-#                 doc.geolocation = json.dumps(formatted_geolocation)
-#                 doc.response_geolocation = json.dumps(formatted_geolocation)
-#         except json.JSONDecodeError:
-#             frappe.log_error("Invalid JSON format in health facility geolocation", "Geolocation Update Error")
+                # Save the formatted geolocation to the building document
+                doc.geolocation = json.dumps(formatted_geolocation)
+                doc.response_geolocation = json.dumps(formatted_geolocation)
+        except json.JSONDecodeError:
+            frappe.log_error("Invalid JSON format in health facility geolocation", 
+                               "Geolocation Update Error")

@@ -18,8 +18,14 @@ frappe.ui.form.on("Vaccination", {
                 frm.set_value('status', 'Approved');
                 frm.save();
             });
-            frm.add_custom_button(__('Return'), function () {
-                frm.set_value('status', 'Returned');
+            frm.add_custom_button(__('Suspend'), function () {
+                frm.set_value('status', 'Suspended');
+                frm.save();
+            });
+        }
+        if ((frm.doc.status === "Suspended") && hasAllowedRoles) {
+            frm.add_custom_button(__('Approve'), function () {
+                frm.set_value('status', 'Approved');
                 frm.save();
             });
         }

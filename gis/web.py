@@ -1116,7 +1116,7 @@ def get_building_data(building):
     building_data = frappe.db.get_value(
         "Building",
         building,
-        ["building_picture", "building_picture_2", "building_type"],
+        ["building_picture", "building_picture_2", "building_type", "establishment_type"],
         as_dict=True
     )
 

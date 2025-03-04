@@ -234,6 +234,7 @@ def fetch_odk_data():
         #Facilities
         "PHC (B) \nAlukusu": "Alukusu Primary Health Center-Sidisaba-Katcha",
         "BHC Katcha": "BHC Katcha-Katcha-Katcha-Niger",
+        "PHC Babangona": "PHC Babangona-Tegina West-Rafi-Niger",
 
         #Settlements
         "ALUKUSU B": "Alukusu B",
@@ -264,6 +265,7 @@ def fetch_odk_data():
         "MAGANDU SABO": "Magandu Sabo",
         "UNGUWAN ALHAJI DANLAMI": "Unguwan Alhaji Danlami",
         "UNG UKATA": "Ung Ukata",
+        "UNGUWAN GALADIMA": "UNGUWAN GALADIMA",
 
         #Vaccines
         "HEP_B0": "HEP B0",
@@ -457,6 +459,7 @@ def fetch_odk_data():
                             vaccination.care_givers_date_of_birth = care_givers_date_of_birth
                             vaccination.last_name = last_name
                             vaccination.first_name = first_name
+                            vaccination.full_name = f"{first_name} {last_name}"
                             vaccination.date_of_birth = date_of_birth
                             vaccination.gender = gender
                             # vaccination.vaccines_taken = vaccines_taken
@@ -487,7 +490,7 @@ def fetch_odk_data():
 
                 return "Data fetched successfully"
             else:
-                return "Error fetching data from ODK server"
+                return "Error fetching data from ODK server" 
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             return "Error: " + str(e)
@@ -497,7 +500,7 @@ def fetch_odk_data():
 
     # Replace the following placeholders with your actual values
     # odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$top=1"
-    odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=10"
+    odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=1"
     form_id = "Vaccination%20Team%20Tool"
     username = frappe.get_site_config().get("odk_username")
     password = frappe.get_site_config().get("odk_password")

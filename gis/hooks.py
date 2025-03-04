@@ -166,6 +166,7 @@ doc_events = {
         "validate": [
             "gis.doc_events.update_full_name",
             "gis.doc_events.process_vaccination_status_and_next_vaccination",
+            "gis.doc_events.update_full_name_care_givers",
             "gis.doc_events.autoset_ward"
         ],
         "on_update": [
