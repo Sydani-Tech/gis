@@ -38,17 +38,20 @@ def test_fields():
 def update_building_geolocation():
     try:
         # Fetch the Building record with the specified name
-        building = frappe.get_doc("Building", "1 - Alukusu Primary Health Center, Sidisaba ward, Katcha LGA, Niger state")
-        # building = frappe.get_doc("Building", "2 - The street wey I belong")
+        # building = frappe.get_doc("Settlement", "Sunshine Homes")
+        building = frappe.get_doc("Ward", "Madara-Kontagora-Niger")
         # Update the geolocation field
-        # print(building.geolocation)
-        print(building.response_geolocation)
+        # print(building.response_geolocation)
+        print(building.geolocation)
         
         # building.response_geolocation = None
         # building.geolocation = None
         
+       
+        # building.geolocation = building.response_geolocation 
+
         #Set the geolocation field in the required GeoJSON format
-        building.response_geolocation = json.dumps({
+        building.geolocation = json.dumps({
             "type": "FeatureCollection",
             "features": [
                 {
@@ -58,8 +61,9 @@ def update_building_geolocation():
                         "type": "Point",
                         # "coordinates": [7.475866, 9.042452]  # Longitude first, then Latitude (Sydani)
                         # "coordinates": [7.4042, 9.1099]  # Longitude first, then Latitude (Gwarinpa)
+                        "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunsine Homes)
                         # "coordinates": [7.4951, 9.0579]  # Longitude first, then Latitude (Asokoro)
-                        "coordinates": [6.1532668192084, 8.99168425242635]  # Longitude first, then Latitude (Alukusu)
+                        # "coordinates": [6.1532668192084, 8.99168425242635]  # Longitude first, then Latitude (Alukusu)
 
                     }
                 }
@@ -67,7 +71,7 @@ def update_building_geolocation():
         })
         
         # Save the changes
-        building.save()
+        # building.save()
         
         # Commit the transaction to the database
         # frappe.db.commit()
@@ -425,49 +429,53 @@ def fetch_odk_data():
                         if existing_record:
                             print(f"Record with odk_child_id {odk_child_id} already exists. Skipping...")
                             continue
+                        try:
+                            # Insert data into Vaccination table
+                            vaccination = frappe.new_doc("Vaccination")
+                            vaccination.vaccination_date = vaccination_date
+                            vaccination.vaccinators_name = vaccinators_name
+                            vaccination.vaccinators_phone_number = vaccinators_phone_number
+                            vaccination.team_code = team_code
+                            vaccination.settlement = settlement
+                            vaccination.grid = grid
+                            vaccination.ward = frappe.db.get_value("Settlement", {"name": settlement}, "ward")
+                            vaccination.local_government_area = frappe.db.get_value("Settlement", {"name": settlement}, "local_government_area")
+                            vaccination.state = frappe.db.get_value("Settlement", {"name": settlement}, "state")
+                            vaccination.country = frappe.db.get_value("Settlement", {"name": settlement}, "country")
+                            vaccination.facility = facility
+                            vaccination.building = frappe.db.get_all("Building", {"health_facility": facility}, ["name"])[0].name, ""
+                            vaccination.type_of_vaccination_post = type_of_vaccination_post
+                            vaccination.geolocation = formatted_geolocation
+                            vaccination.response_geolocation = formatted_geolocation
+                            vaccination.start_time = start_time
+                            vaccination.end_time = end_time
+                            vaccination.odk_parent_id = odk_parent_id
+                            vaccination.care_givers_surname = care_givers_surname
+                            vaccination.care_givers_firstname = care_givers_firstname
+                            vaccination.care_givers_phone_no = care_givers_phone_no
+                            vaccination.care_givers_date_of_birth = care_givers_date_of_birth
+                            vaccination.last_name = last_name
+                            vaccination.first_name = first_name
+                            vaccination.date_of_birth = date_of_birth
+                            vaccination.gender = gender
+                            # vaccination.vaccines_taken = vaccines_taken
+                            for vaccine in vaccines_taken_list:
+                                vaccination.append("last_vaccines_administered", {"vaccine": vaccine})
+                            vaccination.does_the_child_have_a_child_health_card = does_the_child_have_a_child_health_card
+                            vaccination.did_you_administer_the_child_health_card = did_you_administer_the_child_health_card
+                            vaccination.why_were_health_cards_not_given = why_were_health_cards_not_given
+                            vaccination.odk_child_id = odk_child_id
+                            vaccination.status = "Submitted"
+                            vaccination.project = "STRICAN - Phase 2"
+                            vaccination.was_the_child_vaccinated_during_this_program = "Yes"
 
-                        # Insert data into Vaccination table
-                        vaccination = frappe.new_doc("Vaccination")
-                        vaccination.vaccination_date = vaccination_date
-                        vaccination.vaccinators_name = vaccinators_name
-                        vaccination.vaccinators_phone_number = vaccinators_phone_number
-                        vaccination.team_code = team_code
-                        vaccination.settlement = settlement
-                        vaccination.grid = grid
-                        vaccination.ward = frappe.db.get_value("Settlement", {"name": settlement}, "ward")
-                        vaccination.local_government_area = frappe.db.get_value("Settlement", {"name": settlement}, "local_government_area")
-                        vaccination.state = frappe.db.get_value("Settlement", {"name": settlement}, "state")
-                        vaccination.country = frappe.db.get_value("Settlement", {"name": settlement}, "country")
-                        vaccination.facility = facility
-                        vaccination.building = frappe.db.get_all("Building", {"health_facility": facility}, ["name"])[0].name, ""
-                        vaccination.type_of_vaccination_post = type_of_vaccination_post
-                        vaccination.geolocation = formatted_geolocation
-                        vaccination.response_geolocation = formatted_geolocation
-                        vaccination.start_time = start_time
-                        vaccination.end_time = end_time
-                        vaccination.odk_parent_id = odk_parent_id
-                        vaccination.care_givers_surname = care_givers_surname
-                        vaccination.care_givers_firstname = care_givers_firstname
-                        vaccination.care_givers_phone_no = care_givers_phone_no
-                        vaccination.care_givers_date_of_birth = care_givers_date_of_birth
-                        vaccination.last_name = last_name
-                        vaccination.first_name = first_name
-                        vaccination.date_of_birth = date_of_birth
-                        vaccination.gender = gender
-                        # vaccination.vaccines_taken = vaccines_taken
-                        for vaccine in vaccines_taken_list:
-                            vaccination.append("last_vaccines_administered", {"vaccine": vaccine})
-                        vaccination.does_the_child_have_a_child_health_card = does_the_child_have_a_child_health_card
-                        vaccination.did_you_administer_the_child_health_card = did_you_administer_the_child_health_card
-                        vaccination.why_were_health_cards_not_given = why_were_health_cards_not_given
-                        vaccination.odk_child_id = odk_child_id
-                        vaccination.status = "Submitted"
-                        vaccination.project = "STRICAN - Phase 2"
-                        vaccination.was_the_child_vaccinated_during_this_program = "Yes"
-
-                        vaccination.insert(ignore_permissions=True)
-                        vaccination.save()
-                        
+                            vaccination.insert(ignore_permissions=True)
+                            vaccination.save()
+                        except Exception as e:
+                            print(f"Check the data mapping: {e}, settlement: {settlement}, facility: {facility}")
+                            frappe.log_error(f"Check the data mapping: {e}, settlement: {settlement}, facility: {facility}")
+                            return "Error: " + str(e)
+                            
 
                         
                     
@@ -488,7 +496,7 @@ def fetch_odk_data():
 
     # Replace the following placeholders with your actual values
     # odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$top=1"
-    odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=1"
+    odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=10"
     form_id = "Vaccination%20Team%20Tool"
     username = frappe.get_site_config().get("odk_username")
     password = frappe.get_site_config().get("odk_password")

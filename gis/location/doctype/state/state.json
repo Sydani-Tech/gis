@@ -39,7 +39,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-20 08:27:04.635268",
+ "modified": "2025-03-04 06:19:18.527847",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "State",
@@ -116,6 +116,5 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1,
- "track_views": 1
+ "track_changes": 1
 }

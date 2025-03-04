@@ -1,6 +1,5 @@
 {
  "actions": [],
- "allow_rename": 1,
  "creation": "2024-12-17 13:35:39.876293",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -10,6 +9,7 @@
   "ward",
   "local_government_area",
   "state",
+  "project",
   "get_grid_geocordinates_from_location",
   "location_type",
   "location",
@@ -104,11 +104,18 @@
    "label": "Local Government Area",
    "options": "Local Government Area",
    "read_only": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-02 16:49:46.414729",
+ "modified": "2025-03-04 06:24:40.574853",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",
@@ -125,10 +132,33 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1
   }
  ],
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "title_field": "title",
  "track_changes": 1
 }
