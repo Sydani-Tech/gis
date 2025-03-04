@@ -80,7 +80,6 @@
    "description": "Include first and last name of community head",
    "fieldname": "name_of_settlementcommunity_head",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Name of Settlement Community Head",
    "options": "Name",
    "reqd": 1
@@ -162,6 +161,7 @@
   {
    "fieldname": "ward",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Ward",
    "options": "Ward",
@@ -214,7 +214,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "options": "Suspended\nReturned\nSubmitted\nApproved",
    "permlevel": 2
   },
   {
@@ -322,7 +322,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-03-02 23:47:36.905188",
+ "modified": "2025-03-04 11:23:48.457120",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",

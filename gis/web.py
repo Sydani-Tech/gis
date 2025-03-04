@@ -1583,7 +1583,7 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
     # Calculate percentages and update each item in the result
     for item in vdc_periodic_meeting:
         if total_vdc_meetings > 0:
-            item["percentage"] = (item["count"] / total_vdc_meetings) * 100
+            item["percentage"] = round((item["count"] / total_vdc_meetings) * 100, 2)
         else:
             item["percentage"] = 0
 
@@ -1594,21 +1594,9 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
         WHERE status = 'Approved' AND is_there_a_vdc = 'Yes' AND {where_clause}
     """
     vdc_periodic_meeting_count = frappe.db.sql(vdc_periodic_meeting_count_query, tuple(sql_values), as_dict=True)[0]['count']
+    
 
-    # archetype_group_query = f"""
-    #     SELECT archetype_for_rural, archetype_for_urban, COUNT(*) AS count
-    #     FROM `tabSettlement`
-    #     WHERE status = 'Approved' AND {where_clause}
-    #     GROUP BY archetype_for_rural, archetype_for_urban
-    # """
-    # archetype_group_result = frappe.db.sql(archetype_group_query, tuple(sql_values), as_dict=True)
-    # archetype_groups = {}
-    # for record in archetype_group_result:
-    #     archetype = record["archetype_for_rural"] or record["archetype_for_urban"]
-    #     if archetype not in archetype_groups:
-    #         archetype_groups[archetype] = 0
-    #     archetype_groups[archetype] += record["count"]
-    # archetype_percentages = {k: round((v / settlement_count) * 100, 1) for k, v in archetype_groups.items()}
+
 
     archetype_group_query = f"""
     SELECT archetype_for_rural, archetype_for_urban, COUNT(*) AS count

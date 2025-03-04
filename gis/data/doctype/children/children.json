@@ -175,7 +175,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nSubmitted\nReturned\nApproved",
+   "options": "Suspended\nSubmitted\nReturned\nApproved",
    "read_only": 1
   },
   {
@@ -312,7 +312,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-02-26 02:37:07.214454",
+ "modified": "2025-03-04 11:26:28.313790",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Children",

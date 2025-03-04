@@ -293,7 +293,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nReturned\nSubmitted\nApproved",
+   "options": "Suspended\nReturned\nSubmitted\nApproved",
    "permlevel": 2
   },
   {
@@ -406,7 +406,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-02-26 13:48:37.232307",
+ "modified": "2025-03-04 11:25:48.722947",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",
