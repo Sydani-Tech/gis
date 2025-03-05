@@ -137,21 +137,6 @@ fixtures = [
 # Document Events
 # ---------------
 # Hook on document methods and events
-
-# doc_events = {
-# 	# "*": {
-# 	# 	"on_update": "gis.data.doctype.children.children.get_full_name",
-# 		# "on_cancel": "method",
-# 		# "on_trash": "method"
-# 	# }
-#     "Children": {"validate": "gis.doc_events.update_full_name"},
-#     "Children": {"validate": "gis.doc_events.update_child_vaccination_status"},
-#     "Vaccination": {"validate": "gis.doc_events.update_full_name"},
-#     "Vaccination": {"validate": "gis.doc_events.process_vaccination_status_and_next_vaccination"},
-#     "Vaccination": {"validate": "gis.doc_events.autoset_ward"},
-#     "Vaccination": {"on_update": "gis.doc_events.update_vaccinations_administered_on_children_record"},
-# }
-
 doc_events = {
     "Children": {
         "validate": [
@@ -204,7 +189,16 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
+scheduler_events = {
+
+    "hourly_long": [
+		"gis.scheduled_events.fetch_odk_data",
+	],
+	"daily_long": [
+		"gis.scheduled_events.update_approved_records",
+	],
+
+}
 #	"all": [
 #		"gis.tasks.all"
 #	],

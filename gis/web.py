@@ -1116,9 +1116,16 @@ def get_building_data(building):
     building_data = frappe.db.get_value(
         "Building",
         building,
-        ["building_picture", "building_picture_2", "building_type", "establishment_type"],
+        ["building_picture", "building_picture_2", "building_type", "establishment_type", "health_facility", "ward", "local_government_area", "state"],
         as_dict=True
     )
+
+    # Fetch the values of the fields ward, local government area, and state
+    if building_data:
+        building_data["health_facility"] = frappe.db.get_value("Facility", building_data["health_facility"], "facility_name")
+        building_data["ward"] = frappe.db.get_value("Ward", building_data["ward"], "ward")
+        building_data["local_government_area"] = frappe.db.get_value("Local Government Area", building_data["local_government_area"], "local_government_area")
+        building_data["state"] = frappe.db.get_value("State", building_data["state"], "state")
 
     if not building_data:
         return {
@@ -1196,6 +1203,12 @@ def get_building_data(building):
                 "name": building,
                 "building_picture": building_data.get("building_picture"),
                 "building_picture_2": building_data.get("building_picture_2"),
+                "building_type": building_data.get("building_type"),
+                "establishment_type": building_data.get("establishment_type"),
+                "health_facility": building_data["health_facility"],
+                "ward": building_data["ward"],
+                "local_government_area": building_data["local_government_area"],
+                "state": building_data["state"],
                 "children_and_vaccination_data": formatted_data
             }
         }

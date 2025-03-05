@@ -1,225 +1,3 @@
-import frappe
-import random
-from frappe import _
-from frappe.utils.data import today
-import requests
-import json
-from datetime import datetime
-from datetime import date
-
-
-from gis.functions import (
-  is_valid_email,set_error,generate_keys,reset_user_password,
-  set_res,create_user,read_json_as_dict,fetch_db_resource, save_image
-)
-def test_fields2():
-  fields = frappe.db.sql(f""" 
-    SELECT *
-    FROM `tabDocField`
-    WHERE parent = 'Building'
-    """,
-    as_dict=True)
-  
-  return fields 
-
-def test_fields():
-  fields = frappe.db.sql(f""" 
-    SELECT DISTINCT parentfield 
-        FROM `tabDoctype Table` 
-        WHERE parent = 'STRICAN - Phase 2';
-
-    """,
-    as_dict=True)
-  return fields 
-
-
-
-@frappe.whitelist()
-def update_building_geolocation():
-    try:
-        # Fetch the Building record with the specified name
-        # building = frappe.get_doc("Settlement", "Sunshine Homes")
-        building = frappe.get_doc("Facility", "Green Villiage Clinic-Sabon Pegi-Numan-Adamawa")
-        # Update the geolocation field
-        # print(building.response_geolocation)
-        print(building.geolocation)
-        
-        # building.response_geolocation = None
-        # building.geolocation = None
-        
-       
-        # building.geolocation = building.response_geolocation 
-
-        #Set the geolocation field in the required GeoJSON format
-        building.geolocation = json.dumps({
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": {},
-                    "geometry": {
-                        "type": "Point",
-                        # "coordinates": [7.475866, 9.042452]  # Longitude first, then Latitude (Sydani)
-                        # "coordinates": [7.4042, 9.1099]  # Longitude first, then Latitude (Gwarinpa)
-                        "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunsine Homes)
-                        # "coordinates": [7.4951, 9.0579]  # Longitude first, then Latitude (Asokoro)
-                        # "coordinates": [6.1532668192084, 8.99168425242635]  # Longitude first, then Latitude (Alukusu)
-
-                    }
-                }
-            ]
-        })
-        
-        
-        # Save the changes
-        # building.save()
-        
-        # Commit the transaction to the database
-        # frappe.db.commit()
-        
-        return {
-            "status": 200,
-            "message": "Geolocation updated successfully."
-        }
-    except frappe.DoesNotExistError:
-        return {
-            "status": 404,
-            "message": "Building record not found."
-        }
-    except Exception as e:
-        return {
-            "status": 500,
-            "message": f"An error occurred: {str(e)}"
-        }
-
-
-
-
-import frappe
-from datetime import date
-
-@frappe.whitelist()
-def get_building_data(building):
-    """
-    Fetch data for a given building, including pictures, approved households, and approved children in those households.
-    If the building is not residential, fetch vaccination records instead.
-
-    Args:
-        building (str): The name of the building.
-
-    Returns:
-        dict: Building data with associated households and children or vaccination records.
-    """
-
-    # Get the logged-in user
-    user = frappe.session.user
-    if user == "Guest":
-        return {
-            "message": "You must be logged in to access this data.",
-            "status": "error"
-        }
-
-    # Check if the user has the "Dashboard Viewer" role
-    if "Dashboard Viewer" not in frappe.get_roles(user):
-        return {
-            "message": "You do not have the required role to view the map, please contact the project manager.",
-            "status": "error"
-        }
-
-    if not building:
-        return {
-            "message": "Building name is required.",
-            "status": 400
-        }
-    
-    # Fetch building details including type and pictures
-    building_data = frappe.db.get_value(
-        "Building",
-        building,
-        ["building_picture", "building_picture_2", "building_type"],
-        as_dict=True
-    )
-
-    if not building_data:
-        return {
-            "message": f"No building found with name: {building}",
-            "status": 404
-        }
-
-    # Fetch both children and vaccination records in a single query
-    combined_records = frappe.db.sql(
-        """
-        SELECT 
-            full_name, 
-            date_of_birth, 
-            gender, 
-            vaccination_status, 
-            COALESCE(vaccination_date, last_vaccination_date) AS vaccination_date,
-            next_vaccination_date,
-            household
-        FROM (
-            SELECT 
-                full_name, 
-                date_of_birth, 
-                gender, 
-                vaccination_status, 
-                vaccination_date, 
-                next_vaccination_date,
-                NULL AS last_vaccination_date,
-                household
-            FROM `tabVaccination`
-            WHERE building = %(building)s AND status = 'Approved' AND children IS NULL AND building IS NOT NULL
-            
-            UNION ALL
-
-            SELECT 
-                full_name, 
-                date_of_birth, 
-                gender, 
-                vaccination_status, 
-                NULL AS vaccination_date,
-                next_vaccination_date AS next_vaccination_date,
-                last_vaccination_date,
-                household
-            FROM `tabChildren`
-            WHERE building = %(building)s AND status = 'Approved'
-        ) AS combined_data
-        """,
-        {"building": building},
-        as_dict=True
-    )
-
-    # Calculate age and structure data
-    today = date.today()
-    formatted_data = [
-        {
-            "full_name": record["full_name"],
-            "gender": record["gender"],
-            "vaccination_status": record["vaccination_status"],
-            "vaccination_date": record["vaccination_date"],
-            "next_vaccination_date": record["next_vaccination_date"],
-            "date_of_birth": record["date_of_birth"],
-            "age": (
-                f"{(today.year - record['date_of_birth'].year) - (1 if today.month < record['date_of_birth'].month or (today.month == record['date_of_birth'].month and today.day < record['date_of_birth'].day) else 0)} years, "
-                f"{((today.month - record['date_of_birth'].month) % 12 if today.day >= record['date_of_birth'].day else (today.month - record['date_of_birth'].month - 1) % 12)} months"
-                if record["date_of_birth"] else "Unknown"
-            ),
-            "household_head": frappe.db.get_value("Household", record["household"], "name_of_household_head")
-        }
-        for record in combined_records
-    ]
-
-    return {
-        "status": 200,
-        "data": {
-            "building": {
-                "name": building,
-                "building_picture": building_data.get("building_picture"),
-                "building_picture_2": building_data.get("building_picture_2"),
-                "children_and_vaccination_data": formatted_data
-            }
-        }
-    }
 
 import requests
 import frappe
@@ -227,7 +5,23 @@ import datetime
 import re
 
 
-@frappe.whitelist()
+def update_approved_records():
+    approved_vaccinations = frappe.get_all("Vaccination", {"status": "Approved"}, ["name"])
+    for vaccination in approved_vaccinations:
+        doc = frappe.get_doc("Vaccination", vaccination.name)
+        doc.status = "Approved"
+        doc.save()
+    frappe.db.commit()
+
+    approved_children = frappe.get_all("Children", {"status": "Approved"}, ["name"])
+    for child in approved_children:
+        doc = frappe.get_doc("Children", child.name)
+        doc.status = "Approved"
+        doc.save()
+    frappe.db.commit()
+
+
+
 def fetch_odk_data():
     # print("Function fetch_odk_data_program is executed.")
 
@@ -514,6 +308,7 @@ def fetch_odk_data():
                             vaccination.odk_parent_id = odk_parent_id
                             vaccination.care_givers_surname = care_givers_surname
                             vaccination.care_givers_firstname = care_givers_firstname
+                            vaccination.care_givers_name = f"{care_givers_firstname} {care_givers_surname}"
                             vaccination.care_givers_phone_no = care_givers_phone_no
                             vaccination.care_givers_date_of_birth = care_givers_date_of_birth
                             vaccination.last_name = last_name
@@ -521,7 +316,6 @@ def fetch_odk_data():
                             vaccination.full_name = f"{first_name} {last_name}"
                             vaccination.date_of_birth = date_of_birth
                             vaccination.gender = gender
-                            # vaccination.vaccines_taken = vaccines_taken
                             for vaccine in vaccines_taken_list:
                                 vaccination.append("last_vaccines_administered", {"vaccine": vaccine})
                             vaccination.does_the_child_have_a_child_health_card = does_the_child_have_a_child_health_card
@@ -564,8 +358,8 @@ def fetch_odk_data():
             return "Error: " + str(e)
 
     # Replace the following placeholders with your actual values
-    # odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$top=1"
-    odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=5000"
+    # odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*&$top=5000"
+    odk_server_url = "https://odk.sydani.org/v1/projects/31/forms/{FORM_ID}.svc/Submissions?$expand=*"
     form_id = "Vaccination%20Team%20Tool"
     username = frappe.get_site_config().get("odk_username")
     password = frappe.get_site_config().get("odk_password")

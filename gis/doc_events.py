@@ -135,7 +135,9 @@ def process_vaccination_status_and_next_vaccination(doc, method):
     ):
         doc.vaccination_status = "Under Immunized"
     elif (
-        (age_in_weeks >= 3 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
         (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
         (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
         (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
@@ -434,17 +436,11 @@ def update_full_name(doc, method):
 
 #Full name of caregivers in the vaccination doctype   
 def update_full_name_care_givers(doc, method):
-    previous_doc = doc.get_doc_before_save()
-    frappe.msgprint(f"Previous Doc:")
-    # Check if previous_doc exists before accessing its attributes
-    if previous_doc and (
-        previous_doc.care_givers_firstname != doc.care_givers_firstname or
-        previous_doc.care_givers_surname != doc.care_givers_surname
-    ):
-        care_givers_firstname = doc.care_givers_firstname or ""
-        care_givers_surname = doc.care_givers_surname or ""
-            
-        doc.care_givers_name = f"{care_givers_firstname} {care_givers_surname}"
+    
+    care_givers_firstname = doc.care_givers_firstname or ""
+    care_givers_surname = doc.care_givers_surname or ""
+        
+    doc.care_givers_name = f"{care_givers_firstname} {care_givers_surname}"
 
 def update_settlement_field(doc, method):
     if not doc.settlement:
