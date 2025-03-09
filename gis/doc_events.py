@@ -3,57 +3,6 @@ import frappe
 from frappe.utils import get_datetime, getdate, today, date_diff
 import json
 
-# def update_vaccinations_administered_on_children_record(doc, method):
-#     """
-#     Updates the last vaccination date, status, and vaccine child table in the Children record
-#     when a Vaccination record is approved.
-#     """
-#     if doc.status != "Approved" or not doc.children:
-#         # frappe.msgprint("Vaccination status is not approved or children field is missing.")
-#         return
-    
-#     # frappe.msgprint(f"Processing Vaccination for child: {doc.children}, Status: {doc.status}")
-    
-#     approved_vaccinations = frappe.get_all(
-#         "Vaccination",
-#         filters={
-#             "status": "Approved",
-#             "children": doc.children
-#         },
-#         fields=["name", "vaccination_date"]
-#     )
-    
-#     # frappe.msgprint(f"Approved Vaccinations: {approved_vaccinations}")
-    
-#     child_record = frappe.get_doc("Children", doc.children)
-#     current_vaccination_date = get_datetime(doc.vaccination_date)
-    
-#     if len(approved_vaccinations) == 1 or current_vaccination_date >= max(
-#         get_datetime(v["vaccination_date"]) for v in approved_vaccinations
-#     ):
-#         # frappe.msgprint("Updating Children record with latest vaccination data.")
-#         child_record.last_vaccination_date = doc.vaccination_date
-        
-#         existing_vaccines = {vaccine.vaccine for vaccine in child_record.get("last_vaccine_administered")}
-
-#         if not existing_vaccines:
-#             child_record.append("last_vaccine_administered", {
-#                 "vaccine": vaccine.vaccine,
-#                 })
-#             # frappe.msgprint(f"Added vaccine: {vaccine.vaccine} to child record {child_record.name}")
-
-#         else:
-#             for vaccine in doc.get("last_vaccines_administered"):
-#                 if vaccine.vaccine not in existing_vaccines:
-#                     child_record.append("last_vaccine_administered", {
-#                         "vaccine": vaccine.vaccine,
-#                     })
-#                     frappe.msgprint(f"Added vaccine: {vaccine.vaccine} to child record {child_record.name}")
-        
-#         child_record.save()
-#         frappe.msgprint(f"Updated Children record: {child_record.name}")
-
-
 def update_vaccinations_administered_on_children_record(doc, method):
     """
     Updates the last vaccination date, status, and vaccine child table in the Children record
@@ -530,31 +479,65 @@ def update_building_vaccination_status(doc, method):
         # frappe.msgprint(f"Updated Building {doc.building} with percentage: {combined_percentage}%")
 
 
-
+import json
+import frappe
 
 def set_geolocation_of_grids(doc, method):
     """
     Fetches the geolocation from the referenced doctype and sets it 
     to the 'geolocation_kyow' field in the 'Grid' doctype.
     """
-    # frappe.msgprint(f"Fetching geolocation for {doc.location} from {doc.location_type}")
-    if not doc.location_type or not doc.location:
-        frappe.throw("Both 'Location Type' and 'Location' fields are required.")
-        return  # Exit if required fields are missing
+    if doc.get_grid_geocordinates_from_location:
+        if not doc.location_type or not doc.location:
+            frappe.throw("Both 'Location Type' and 'Location' fields are required to copy geolocation.")
+            return  # Exit if required fields are missing
 
-    # Fetch geolocation from the referenced doctype
-    try:
-        location_doc = frappe.get_doc(doc.location_type, doc.location)
-        if hasattr(location_doc, "geolocation"):
-            doc.geolocation_kyow = location_doc.geolocation
-            # frappe.msgprint(f"Geolocation set for {doc.location} from {doc.location_type}")
-        else:
-            frappe.throw(f"Geolocation field not found in {doc.location_type}")
+        try:
+            location_doc = frappe.get_doc(doc.location_type, doc.location)
 
-    except frappe.DoesNotExistError:
-        frappe.throw(f"{doc.location_type} '{doc.location}' does not exist.")
-    except Exception as e:
-        frappe.throw(f"Error fetching geolocation: {str(e)}")
+            # Check if the document has geolocation data
+            if hasattr(location_doc, "geolocation") and location_doc.geolocation:
+                try:
+                    # Parse the geolocation JSON
+                    geolocation_data = json.loads(location_doc.geolocation)
+
+                    # Ensure it has the correct structure
+                    if "geometry" in geolocation_data and "coordinates" in geolocation_data["geometry"]:
+                        geometry_type = geolocation_data["geometry"].get("type", "Polygon")
+                        coordinates = geolocation_data["geometry"]["coordinates"]
+
+                        # Convert to FeatureCollection format
+                        formatted_geolocation = {
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "properties": {},
+                                    "geometry": {
+                                        "type": geometry_type,
+                                        "coordinates": coordinates  # Preserve original coordinates
+                                    }
+                                }
+                            ]
+                        }
+
+                        # Save the formatted geolocation
+                        doc.geolocation_kyow = json.dumps(formatted_geolocation)
+                    
+                    else:
+                        frappe.throw("Invalid geolocation structure: Missing 'geometry' or 'coordinates'.")
+
+                except json.JSONDecodeError:
+                    frappe.throw("Error decoding geolocation JSON.")
+            
+            else:
+                frappe.throw(f"Geolocation field not found or empty in {doc.location_type}")
+
+        except frappe.DoesNotExistError:
+            frappe.throw(f"{doc.location_type} '{doc.location}' does not exist.")
+        except Exception as e:
+            frappe.throw(f"Error fetching geolocation: {str(e)}")
+
 
 
 
@@ -646,3 +629,33 @@ def update_building_geolocation_from_health_facility(doc, method):
         except json.JSONDecodeError:
             frappe.log_error("Invalid JSON format in health facility geolocation", 
                                "Geolocation Update Error")
+
+
+import frappe
+from frappe import _
+
+def validate_grid_assignees_to_avoid_duplicates(doc, method):
+    """Ensure each user is only assigned to one Grid Assignees record across all parent documents."""
+
+    assigned_users = set()  # Track users in the current document
+
+    for row in doc.grid_assignees:  # Assuming 'grid_assignees' is the child table field in the parent doctype
+        if row.user in assigned_users:
+            frappe.throw(_("User {0} is assigned more than once in this document.").format(row.user))
+        assigned_users.add(row.user)
+
+        # Check for existing assignments in other parent documents
+        duplicate = frappe.db.get_value(
+            "Grid Assignees", 
+            {"user": row.user, "parent": ["!=", doc.name]}, 
+            ["parent", "user"], as_dict=True
+        )
+        
+        if duplicate:
+            # Fetch the title from the Grid doctype
+            grid_title = frappe.db.get_value("Grid", duplicate["parent"], "title")
+            
+            frappe.throw(
+                _("User {0} is already assigned in another record: {1} (Title: {2}).")
+                .format(row.user, duplicate["parent"], grid_title)
+            )

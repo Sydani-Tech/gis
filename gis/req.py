@@ -3,6 +3,9 @@ from frappe import _
 import requests
 import json
 
+
+from frappe.utils.password import set_encrypted_password
+
 from gis.functions import (
   is_valid_email,set_error,generate_keys,reset_user_password,
   set_res,create_user,read_json_as_dict,fetch_db_resource
@@ -45,10 +48,85 @@ grid_states, grid_lgas, grid_wards, grid_settlements, grid_households)
 #     return set_res(error=401)
 #     # return {'status': 'Failed', 'message': 'Invalid Email'}
 
+# @frappe.whitelist(allow_guest=True)
+# def login(email, password):
+#     if is_valid_email(email):
+#         try:
+#             login_manager = frappe.auth.LoginManager()
+#             login_manager.authenticate(user=email, pwd=password)
+#             login_manager.post_login()
+#         except frappe.exceptions.AuthenticationError:
+#             frappe.clear_messages()
+#             frappe.response["error"] = {"code": 401, "message": "Authentication Failed"}
+#             return
+
+#         user_doc = frappe.get_doc("User", email)
+
+#         fields = ['key']
+#         filters = {'name': email}
+#         user_key = fetch_db_resource(doc='Sec Keys', fields=fields, filters=filters)
+
+#         # api_secret = frappe.cache().get_value(email)
+#         if user_key:
+#           api_secret = user_key[0]['key']
+#         else:          
+#           api_secret = frappe.generate_hash(length=18)
+#           nk = frappe.get_doc({'doctype': 'Sec Keys', 'usr': email, 'key': api_secret})
+#           nk.save(ignore_permissions=True)
+#           # frappe.cache().set_value(email, api_secret)
+#           user_doc.api_secret = nk.key
+#           user_doc.save(ignore_permissions=True)
+          
+#         if hasattr(user_doc, "api_key"):
+#           pass
+#         else:
+#           user_doc.api_key = frappe.generate_hash(length=18)
+#           user_doc.save(ignore_permissions=True)
+
+#         # user_data = frappe.db.get_value("User", email, ["username", "full_name", "phone","user_image"], as_dict=True)
+#         roles = frappe.permissions.get_roles(user=email)
+#         user_roles = [x for x in roles if x not in ["All", "Guest", "Desk Access"]]
+
+#         frappe.response["message"] = "Success"
+#         frappe.response["home_page"] = "/app"
+#         frappe.response["full_name"] = user_doc.full_name
+#         frappe.response["status"] = 200
+#         frappe.response["user"] = {
+#             "api_key": user_doc.api_key,
+#             "api_secret": api_secret,
+#             "username": user_doc.username,
+#             "email": email,
+#             "roles": user_roles,
+#             "phone": user_doc.phone,
+#             "user_image": user_doc.user_image
+#         }
+
+#         # Prepare response
+#         # frappe.response["message"] = "Success"
+#         # frappe.response["home_page"] = "/app"
+#         # frappe.response["full_name"] = user_data.get("full_name")
+#         # frappe.response["status"] = 200
+#         # frappe.response["user"] = {
+#         #     "api_key": user_doc.api_key,
+#         #     "api_secret": api_secret,
+#         #     "username": user_data.get("username"),
+#         #     "email": email,
+#         #     "roles": user_roles,
+#         #     "phone": user_data.get("phone"),
+#         #     "user_image": user_data.get("user_image")
+#         # }
+#     else:
+#         frappe.response["error"] = {"code": 401, "message": "Invalid Email"}
+
+
+import frappe
+from frappe.utils.password import set_encrypted_password
+
 @frappe.whitelist(allow_guest=True)
 def login(email, password):
     if is_valid_email(email):
         try:
+            # Authenticate User
             login_manager = frappe.auth.LoginManager()
             login_manager.authenticate(user=email, pwd=password)
             login_manager.post_login()
@@ -56,34 +134,40 @@ def login(email, password):
             frappe.clear_messages()
             frappe.response["error"] = {"code": 401, "message": "Authentication Failed"}
             return
-
+        
         user_doc = frappe.get_doc("User", email)
 
+        # Check if API Key already exists
+        if not user_doc.api_key:
+            user_doc.api_key = frappe.generate_hash(length=18)
+            user_doc.save(ignore_permissions=True)
+
+        # Check if API Secret exists in Sec Keys
         fields = ['key']
-        filters = {'name': email}
+        filters = {'usr': email}
         user_key = fetch_db_resource(doc='Sec Keys', fields=fields, filters=filters)
 
-        # api_secret = frappe.cache().get_value(email)
         if user_key:
-          api_secret = user_key[0]['key']
-        else:          
-          api_secret = frappe.generate_hash(length=18)
-          nk = frappe.get_doc({'doctype': 'Sec Keys', 'usr': email, 'key': api_secret})
-          nk.save(ignore_permissions=True)
-          # frappe.cache().set_value(email, api_secret)
-          user_doc.api_secret = nk.key
-          user_doc.save(ignore_permissions=True)
-          
-        if hasattr(user_doc, "api_key"):
-          pass
+            api_secret = user_key[0]['key']
         else:
-          user_doc.api_key = frappe.generate_hash(length=18)
-          user_doc.save(ignore_permissions=True)
+            api_secret = frappe.generate_hash(length=18)
 
-        # user_data = frappe.db.get_value("User", email, ["username", "full_name", "phone","user_image"], as_dict=True)
+            # Store secret securely in User doctype (hashed)
+            set_encrypted_password("User", email, api_secret, "api_secret")
+
+            # Also store in 'Sec Keys' (if needed for other purposes)
+            nk = frappe.get_doc({
+                'doctype': 'Sec Keys',
+                'usr': email,
+                'key': api_secret
+            })
+            nk.insert(ignore_permissions=True)
+
+        # Get user roles
         roles = frappe.permissions.get_roles(user=email)
         user_roles = [x for x in roles if x not in ["All", "Guest", "Desk Access"]]
 
+        # Prepare API Response
         frappe.response["message"] = "Success"
         frappe.response["home_page"] = "/app"
         frappe.response["full_name"] = user_doc.full_name
@@ -97,23 +181,9 @@ def login(email, password):
             "phone": user_doc.phone,
             "user_image": user_doc.user_image
         }
-
-        # Prepare response
-        # frappe.response["message"] = "Success"
-        # frappe.response["home_page"] = "/app"
-        # frappe.response["full_name"] = user_data.get("full_name")
-        # frappe.response["status"] = 200
-        # frappe.response["user"] = {
-        #     "api_key": user_doc.api_key,
-        #     "api_secret": api_secret,
-        #     "username": user_data.get("username"),
-        #     "email": email,
-        #     "roles": user_roles,
-        #     "phone": user_data.get("phone"),
-        #     "user_image": user_data.get("user_image")
-        # }
     else:
         frappe.response["error"] = {"code": 401, "message": "Invalid Email"}
+
 
 
 def users():

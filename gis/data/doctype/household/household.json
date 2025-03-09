@@ -16,8 +16,10 @@
   "is_the_household_head_employed",
   "industry_of_employment",
   "average_monthly_income",
-  "column_break_armw",
   "is_the_household_residing_in_a_rented_apartment",
+  "are_there_any_pregnant_women_in_the_household",
+  "how_many_pregnant_women_are_there",
+  "column_break_armw",
   "how_many_household_members_are_above_18",
   "how_many_household_members_are_between_15_and_18_years",
   "how_many_household_members_are_between_9_and_14_years",
@@ -108,7 +110,7 @@
   {
    "fieldname": "economic_details_section",
    "fieldtype": "Section Break",
-   "label": "Economic Details"
+   "label": "Economic Details and Family Composition"
   },
   {
    "depends_on": "eval:doc.is_the_household_head_employed  === \"Yes\"",
@@ -396,6 +398,20 @@
    "label": "How Far is the Nearest Facility(KM)?",
    "permlevel": 2,
    "read_only": 1
+  },
+  {
+   "fieldname": "are_there_any_pregnant_women_in_the_household",
+   "fieldtype": "Select",
+   "label": "Are there any pregnant women in the household?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.are_there_any_pregnant_women_in_the_household === \"Yes\"",
+   "fieldname": "how_many_pregnant_women_are_there",
+   "fieldtype": "Int",
+   "label": "How many pregnant women are there?",
+   "mandatory_depends_on": "eval:doc.are_there_any_pregnant_women_in_the_household === \"Yes\""
   }
  ],
  "index_web_pages_for_search": 1,
@@ -406,7 +422,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-03-04 11:25:48.722947",
+ "modified": "2025-03-06 22:13:07.054953",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

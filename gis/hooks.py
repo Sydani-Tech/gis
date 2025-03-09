@@ -180,7 +180,8 @@ doc_events = {
     },
     "Grid": {
         "validate": [
-            "gis.doc_events.set_geolocation_of_grids"
+            "gis.doc_events.set_geolocation_of_grids",
+            "gis.doc_events.validate_grid_assignees_to_avoid_duplicates"
         ]
     },
 }
@@ -193,6 +194,7 @@ scheduler_events = {
 
     "hourly_long": [
 		"gis.scheduled_events.fetch_odk_data",
+        "gis.scheduled_events.match_vaccination_to_children"
 	],
 	"daily_long": [
 		"gis.scheduled_events.update_approved_records",

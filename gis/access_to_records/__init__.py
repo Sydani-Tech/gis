@@ -191,7 +191,7 @@ def grids():
     grid_record = frappe.db.sql(
         """
         SELECT DISTINCT parent 
-        FROM `tabAssignees` 
+        FROM `tabGrid Assignees` 
         WHERE user = %(user)s
         """,
         {"user": user},
@@ -206,7 +206,7 @@ def grids():
     
     grids = frappe.db.sql(
         """
-        SELECT * 
+        SELECT *
         FROM `tabGrid` 
         WHERE name = %(grid)s
         """,
@@ -261,6 +261,7 @@ def save_children(**kwargs):
                 "last_name": kwargs["last_name"],
                 "date_of_birth": kwargs["date_of_birth"],
                 "gender": kwargs["gender"],
+                "does_the_child_have_a_vaccination_card": kwargs["does_the_child_have_a_vaccination_card"],
                 # "vaccination_status": kwargs["vaccination_status"],
                 "geolocation": kwargs["geolocation"],
                 "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
@@ -281,6 +282,7 @@ def save_children(**kwargs):
             "last_name": kwargs["last_name"],
             "date_of_birth": kwargs["date_of_birth"],
             "gender": kwargs["gender"],
+            "does_the_child_have_a_vaccination_card": kwargs["does_the_child_have_a_vaccination_card"],
             # "vaccination_status": kwargs["vaccination_status"],
             "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
             "geolocation": kwargs["geolocation"],
@@ -365,6 +367,8 @@ def save_household(**kwargs):
                 "industry_of_employment": kwargs.get("industry_of_employment"),
                 "average_monthly_income": kwargs.get("average_monthly_income"),
                 "is_the_household_residing_in_a_rented_apartment": kwargs["is_the_household_residing_in_a_rented_apartment"],
+                "are_there_any_pregnant_women_in_the_household": kwargs["are_there_any_pregnant_women_in_the_household"],
+                "how_many_pregnant_women_are_there": kwargs.get("how_many_pregnant_women_are_there"),
                 "how_many_household_members_are_above_18": kwargs["how_many_household_members_are_above_18"],
                 "how_many_household_members_are_between_15_and_18_years": kwargs["how_many_household_members_are_between_15_and_18_years"],
                 "how_many_household_members_are_between_9_and_14_years": kwargs["how_many_household_members_are_between_9_and_14_years"],
@@ -400,6 +404,8 @@ def save_household(**kwargs):
                 "industry_of_employment": kwargs.get("industry_of_employment"),
                 "average_monthly_income": kwargs.get("average_monthly_income"),
                 "is_the_household_residing_in_a_rented_apartment": kwargs["is_the_household_residing_in_a_rented_apartment"],
+                "are_there_any_pregnant_women_in_the_household": kwargs["are_there_any_pregnant_women_in_the_household"],
+                "how_many_pregnant_women_are_there": kwargs.get("how_many_pregnant_women_are_there"),
                 "how_many_household_members_are_above_18": kwargs["how_many_household_members_are_above_18"],
                 "how_many_household_members_are_between_15_and_18_years": kwargs["how_many_household_members_are_between_15_and_18_years"],
                 "how_many_household_members_are_between_9_and_14_years": kwargs["how_many_household_members_are_between_9_and_14_years"],

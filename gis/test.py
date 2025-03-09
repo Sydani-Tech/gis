@@ -39,10 +39,11 @@ def update_building_geolocation():
     try:
         # Fetch the Building record with the specified name
         # building = frappe.get_doc("Settlement", "Sunshine Homes")
-        building = frappe.get_doc("Facility", "Green Villiage Clinic-Sabon Pegi-Numan-Adamawa")
+        building = frappe.get_doc("Settlement", "Supervisor Training")
         # Update the geolocation field
         # print(building.response_geolocation)
-        print(building.geolocation)
+        # print(building.geolocation)
+        # print(building.geolocation_kyow)
         
         # building.response_geolocation = None
         # building.geolocation = None
@@ -51,7 +52,8 @@ def update_building_geolocation():
         # building.geolocation = building.response_geolocation 
 
         #Set the geolocation field in the required GeoJSON format
-        building.geolocation = json.dumps({
+        # building.geolocation = json.dumps({
+        building.response_geolocation = json.dumps({
             "type": "FeatureCollection",
             "features": [
                 {
@@ -61,7 +63,8 @@ def update_building_geolocation():
                         "type": "Point",
                         # "coordinates": [7.475866, 9.042452]  # Longitude first, then Latitude (Sydani)
                         # "coordinates": [7.4042, 9.1099]  # Longitude first, then Latitude (Gwarinpa)
-                        "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunsine Homes)
+                        # "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunsine Homes)
+                        "coordinates": [6.553486, 9.591894]  # Longitude first, then Latitude (Haske Hotel, Niger)
                         # "coordinates": [7.4951, 9.0579]  # Longitude first, then Latitude (Asokoro)
                         # "coordinates": [6.1532668192084, 8.99168425242635]  # Longitude first, then Latitude (Alukusu)
 
@@ -72,7 +75,7 @@ def update_building_geolocation():
         
         
         # Save the changes
-        # building.save()
+        building.save()
         
         # Commit the transaction to the database
         # frappe.db.commit()
@@ -572,3 +575,267 @@ def fetch_odk_data():
 
     return pull_vaccination_data(odk_server_url, form_id, username, password)
 
+
+def update_building_geolocation_from_health_facility(doc, method):
+    if doc.health_facility:
+        health_facility = frappe.get_doc("Facility", doc.health_facility)
+        try:
+            # Parse the health facility geolocation JSON
+            facility_geolocation = json.loads(health_facility.geolocation)
+            coordinates = facility_geolocation.get("geometry", {}).get("coordinates", [])
+            
+            if coordinates and len(coordinates) == 2:
+                try:
+                    # Ensure that both longitude and latitude are floats
+                    lon = float(coordinates[0])
+                    lat = float(coordinates[1])
+                except ValueError:
+                    frappe.log_error("Coordinates conversion error: {}".format(coordinates), 
+                                       "Geolocation Update Error")
+                    return
+
+                # Create the GeoJSON FeatureCollection with numeric values
+                formatted_geolocation = {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [lon, lat]  # Longitude first, then Latitude
+                            }
+                        }
+                    ]
+                }
+                
+                # Save the formatted geolocation to the building document
+                doc.geolocation = json.dumps(formatted_geolocation)
+                doc.response_geolocation = json.dumps(formatted_geolocation)
+        except json.JSONDecodeError:
+            frappe.log_error("Invalid JSON format in health facility geolocation", 
+                               "Geolocation Update Error")
+
+@frappe.whitelist()
+def grid_settlements(grid_id):
+    user = frappe.session.user
+
+    grid_settlement = frappe.db.sql(
+        """
+        SELECT 
+            g.name AS grid_id, 
+            g.location AS grid_location, 
+            g.geolocation_kyow AS grid_geolocation, 
+            st.name, 
+            st.type_of_settlement, 
+            st.ward AS ward, 
+            st.local_government_area, 
+            st.state, 
+            st.country
+        FROM `tabGrid` g 
+        JOIN `tabSettlement` st 
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(st.facility_geolocation)
+             )
+        WHERE g.name = %s AND st.status = 'Approved'
+        """,
+        grid_id,
+        as_dict=True
+    )
+
+    unapproved_owner_settlement = frappe.db.sql(
+        """
+        SELECT 
+            g.name AS grid_id, 
+            g.location AS grid_location, 
+            g.geolocation_kyow AS grid_geolocation, 
+            st.name, 
+            st.type_of_settlement, 
+            st.ward AS ward, 
+            st.local_government_area, 
+            st.state, 
+            st.country
+        FROM `tabGrid` g 
+        JOIN `tabSettlement` st 
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(st.facility_geolocation)
+             )
+        WHERE g.name = %s AND st.status IN ('Returned', 'Submitted') AND st.owner = %s
+        """,
+        (grid_id, user),
+        as_dict=True
+    )
+
+
+    settlement = unapproved_owner_settlement + grid_settlement
+
+    return set_res(settlement=settlement)
+
+
+
+@frappe.whitelist()
+def grid_buildings(grid_id):
+    bldngs = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id, 
+            g.location as grid_location, 
+            g.geolocation_kyow as grid_geolocation, 
+            b.name, 
+            b.building_number, 
+            b.building_address,
+            b.settlement, 
+            b.ward, 
+            b.local_government_area, 
+            b.state, 
+            b.country 
+        FROM `tabGrid` g
+        JOIN `tabBuilding` b
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(b.geolocation)
+             ) 
+        WHERE g.name = %s AND b.status = 'Approved'
+        """,
+        (grid_id,),
+        as_dict=True
+    )
+
+    unapproved_owner_buildings = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id, 
+            g.location as grid_location, 
+            g.geolocation_kyow as grid_geolocation, 
+            b.name, 
+            b.building_number, 
+            b.building_address,
+            b.settlement, 
+            b.ward, 
+            b.local_government_area, 
+            b.state, 
+            b.country 
+        FROM `tabGrid` g
+        JOIN `tabBuilding` b
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(b.geolocation)
+             ) 
+        WHERE g.name = %s AND b.status IN ('Returned', 'Submitted') AND b.owner = %s
+        """,
+        (grid_id, frappe.session.user),
+        as_dict=True
+    )
+
+    bldngs = unapproved_owner_buildings + bldngs
+
+    return set_res(buildings=bldngs)
+
+
+@frappe.whitelist()
+def grid_households(grid_id):
+    households = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id,
+            hs.settlement as settlement,  
+            hs.phone_number as phone_number, 
+            hs.name_of_household_head as name_of_household_head, 
+            hs.building as building, 
+            hs.ward as ward, 
+            hs.name as name 
+        FROM `tabGrid` g
+        JOIN `tabHousehold` hs
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(hs.geolocation)
+             ) 
+        WHERE g.name = %s AND hs.status = 'Approved'
+        """,
+        (grid_id,),
+        as_dict=True
+    )
+
+    unapproved_owner_households = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id,
+            hs.settlement as settlement,  
+            hs.phone_number as phone_number, 
+            hs.name_of_household_head as name_of_household_head, 
+            hs.building as building, 
+            hs.ward as ward, 
+            hs.name as name 
+        FROM `tabGrid` g
+        JOIN `tabHousehold` hs
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(hs.geolocation)
+             ) 
+        WHERE g.name = %s AND hs.status IN ('Returned', 'Submitted') AND hs.owner = %s
+        """,
+        (grid_id, frappe.session.user),
+        as_dict=True
+    )
+
+    households = unapproved_owner_households + households
+
+    return set_res(households=households)
+
+import frappe
+from difflib import SequenceMatcher
+
+def find_best_match(vaccination, children_records):
+    """Find the best matching Children record based on full_name similarity."""
+    best_match = None
+    highest_ratio = 0
+    
+    for child in children_records:
+        match_ratio = SequenceMatcher(None, vaccination.full_name, child.full_name).ratio()
+        if match_ratio > highest_ratio:
+            highest_ratio = match_ratio
+            best_match = child
+    
+    return best_match
+
+def has_sufficient_name_match(vaccination_name, child_name):
+    """Check if there is a sufficient match between the names by comparing word occurrences."""
+    vaccination_words = set(vaccination_name.lower().split())
+    child_words = set(child_name.lower().split())
+    common_words = vaccination_words.intersection(child_words)
+
+    return len(common_words) >= 2  # Adjust threshold as needed
+
+def match_vaccination_to_children():
+    """Matches Vaccination records with Children records based on given criteria."""
+    vaccinations = frappe.get_all(
+        "Vaccination", 
+        filters={"status": "Approved", "children": ("is", "not set")},
+        fields=["name", "full_name", "date_of_birth", "gender", "settlement"]
+    )
+    
+    for vaccination in vaccinations:
+        children_records = frappe.get_all(
+            "Children", 
+            filters={
+                "status": "Approved", 
+                "date_of_birth": vaccination["date_of_birth"], 
+                "gender": vaccination["gender"], 
+                "settlement": vaccination["settlement"]
+            },
+            fields=["name", "full_name"]
+        )
+        
+        # Filter based on name similarity using word matching
+        matching_children = [child for child in children_records if has_sufficient_name_match(vaccination["full_name"], child["full_name"])]
+        
+        if not matching_children:
+            continue
+        
+        best_match = find_best_match(vaccination, matching_children)
+        
+        if best_match:
+            frappe.db.set_value("Vaccination", vaccination["name"], "children", best_match["name"])
+            frappe.db.commit()

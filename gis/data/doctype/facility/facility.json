@@ -9,6 +9,7 @@
   "details_section",
   "facility_name",
   "facility_address",
+  "selected_facility",
   "column_break_xcpr",
   "geolocation",
   "longitude",
@@ -99,7 +100,8 @@
   {
    "fieldname": "longitude",
    "fieldtype": "Float",
-   "label": "Longitude"
+   "label": "Longitude",
+   "precision": "6"
   },
   {
    "fieldname": "latitude",
@@ -110,11 +112,17 @@
    "fieldname": "set_geolocation",
    "fieldtype": "Button",
    "label": "Set Geolocation"
+  },
+  {
+   "default": "0",
+   "fieldname": "selected_facility",
+   "fieldtype": "Check",
+   "label": "Selected Facility"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-02 21:30:06.150321",
+ "modified": "2025-03-08 08:14:00.236351",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",

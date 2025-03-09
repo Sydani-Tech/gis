@@ -3,7 +3,63 @@ import requests
 import frappe
 import datetime
 import re
+import json
+from difflib import SequenceMatcher
 
+def find_best_match(vaccination, children_records):
+    """Find the best matching Children record based on full_name similarity."""
+    best_match = None
+    highest_ratio = 0
+    
+    for child in children_records:
+        match_ratio = SequenceMatcher(None, vaccination.full_name, child.full_name).ratio()
+        if match_ratio > highest_ratio:
+            highest_ratio = match_ratio
+            best_match = child
+    
+    return best_match
+
+def has_sufficient_name_match(vaccination_name, child_name):
+    """Check if there is a sufficient match between the names by comparing word occurrences."""
+    vaccination_words = set(vaccination_name.lower().split())
+    child_words = set(child_name.lower().split())
+    common_words = vaccination_words.intersection(child_words)
+
+    return len(common_words) >= 2  # Adjust threshold as needed
+
+def match_vaccination_to_children():
+    """Matches Vaccination records with Children records based on given criteria."""
+    vaccinations = frappe.get_all(
+        "Vaccination", 
+        filters={"status": "Approved", "children": ("is", "not set")},
+        fields=["name", "full_name", "date_of_birth", "gender", "settlement"]
+    )
+    
+    for vaccination in vaccinations:
+        children_records = frappe.get_all(
+            "Children", 
+            filters={
+                "status": "Approved", 
+                "date_of_birth": vaccination["date_of_birth"], 
+                "gender": vaccination["gender"], 
+                "settlement": vaccination["settlement"]
+            },
+            fields=["name", "full_name"]
+        )
+        
+        # Filter based on name similarity using word matching
+        matching_children = [child for child in children_records if has_sufficient_name_match(vaccination["full_name"], child["full_name"])]
+        
+        if not matching_children:
+            continue
+        
+        best_match = find_best_match(vaccination, matching_children)
+        
+        if best_match:
+            frappe.db.set_value("Vaccination", vaccination["name"], "children", best_match["name"])
+            frappe.db.commit()
+
+            
 
 def update_approved_records():
     approved_vaccinations = frappe.get_all("Vaccination", {"status": "Approved"}, ["name"])

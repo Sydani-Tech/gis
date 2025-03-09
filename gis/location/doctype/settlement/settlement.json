@@ -45,7 +45,10 @@
   "start_time",
   "end_time",
   "column_break_pqno",
-  "response_geolocation"
+  "response_geolocation",
+  "longitude",
+  "latitude",
+  "set_geolocation"
  ],
  "fields": [
   {
@@ -305,6 +308,25 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Settlement"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "permlevel": 2,
+   "precision": "6"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "permlevel": 2,
+   "precision": "6"
+  },
+  {
+   "fieldname": "set_geolocation",
+   "fieldtype": "Button",
+   "label": "Set Geolocation"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -322,7 +344,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-03-04 11:23:48.457120",
+ "modified": "2025-03-08 06:41:48.319140",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",

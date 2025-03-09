@@ -67,7 +67,7 @@
    "fieldname": "grid_assignees",
    "fieldtype": "Table",
    "label": "Team Members",
-   "options": "Assignees"
+   "options": "Grid Assignees"
   },
   {
    "fieldname": "title",
@@ -115,7 +115,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-04 06:24:40.574853",
+ "modified": "2025-03-07 07:39:08.402750",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",
@@ -153,6 +153,30 @@
    "report": 1,
    "role": "Supervisor",
    "share": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Enumerator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Outreach Worker",
+   "share": 1,
+   "write": 1
   }
  ],
  "show_title_field_in_link": 1,

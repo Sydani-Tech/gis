@@ -30,7 +30,7 @@ def grid_states(grid_id):
 @frappe.whitelist()
 def grid_lgas(grid_id):
   lgas = frappe.db.sql(f"""
-    SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, l.name as grid_lga, l.state as grid_state, l.country as grid_country 
+    SELECT g.name as grid_id, g.geolocation_kyow as grid_geolocation, l.name as grid_lga, l.state as grid_state, l.country as grid_country 
     FROM `tabGrid` g
     JOIN `tabLocal Government Area` l
     ON ST_Contains(
@@ -45,7 +45,7 @@ def grid_lgas(grid_id):
 @frappe.whitelist()
 def grid_wards(grid_id):
   wards = frappe.db.sql(f"""
-    SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, w.name as name, w.ward, w.local_government_area, w.state, w.country 
+    SELECT g.name as grid_id,  g.geolocation_kyow as grid_geolocation, w.name as name, w.ward, w.local_government_area, w.state, w.country 
     FROM `tabGrid` g 
     JOIN `tabWard` w
     ON ST_Contains(
@@ -59,25 +59,100 @@ def grid_wards(grid_id):
 
 
 
+# @frappe.whitelist()
+# def grid_settlements(grid_id):
+#   settlement = frappe.db.sql(f"""
+#     SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, st.name, st.type_of_settlement, st.ward as ward, st.local_government_area, st.state, st.country
+#     FROM `tabGrid` g 
+#     JOIN `tabSettlement` st
+#     ON ST_Contains(
+#       ST_GeomFromGeoJSON(g.geolocation_kyow),
+#       ST_GeomFromGeoJSON(st.facility_geolocation)
+#     ) 
+#     WHERE g.name = '{grid_id}' AND st.status = 'Approved'
+#   """, as_dict=True)
+
+#   return set_res(settlement=settlement)
+
+
+
 @frappe.whitelist()
 def grid_settlements(grid_id):
-  settlement = frappe.db.sql(f"""
-    SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, st.name, st.type_of_settlement, st.ward as ward, st.local_government_area, st.state, st.country
-    FROM `tabGrid` g 
-    JOIN `tabSettlement` st
-    ON ST_Contains(
-      ST_GeomFromGeoJSON(g.geolocation_kyow),
-      ST_GeomFromGeoJSON(st.facility_geolocation)
-    ) 
-    WHERE g.name = '{grid_id}' AND st.status = 'Approved'
-  """, as_dict=True)
+    user = frappe.session.user
 
-  return set_res(settlement=settlement)
+    grid_settlement = frappe.db.sql(
+        """
+        SELECT 
+            g.name AS grid_id, 
+            g.location AS grid_location, 
+            st.name, 
+            st.type_of_settlement, 
+            st.ward AS ward, 
+            st.local_government_area, 
+            st.state, 
+            st.country
+        FROM `tabGrid` g 
+        JOIN `tabSettlement` st 
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(st.facility_geolocation)
+             )
+        WHERE g.name = %s AND st.status = 'Approved'
+        """,
+        grid_id,
+        as_dict=True
+    )
+
+    # unapproved_owner_settlement = frappe.db.sql(
+    #     """
+    #     SELECT 
+    #         g.name AS grid_id, 
+    #         g.location AS grid_location, 
+    #         st.name, 
+    #         st.type_of_settlement, 
+    #         st.ward AS ward, 
+    #         st.local_government_area, 
+    #         st.state, 
+    #         st.country
+    #     FROM `tabGrid` g 
+    #     JOIN `tabSettlement` st 
+    #       ON ST_Contains(
+    #             ST_GeomFromGeoJSON(g.geolocation_kyow),
+    #             ST_GeomFromGeoJSON(st.facility_geolocation)
+    #          )
+    #     WHERE g.name = %s AND st.status IN ('Returned', 'Submitted') AND st.owner = %s
+    #     """,
+    #     (grid_id, user),
+    #     as_dict=True
+    # )
+
+    settlement = grid_settlement
+    # settlement = unapproved_owner_settlement + grid_settlement
+
+    return set_res(settlement=settlement)
+
+
+# @frappe.whitelist()
+# def grid_facilities(grid_id):
+#   fcs = frappe.db.sql(f"""
+#     SELECT g.name as grid_id, f.name as name, f.facility_name, f.facility_address, f.ward,
+#     f.local_government_area, f.state, f.country 
+#     FROM `tabGrid` g
+#     JOIN `tabFacility` f
+#     ON ST_Contains(
+#       ST_GeomFromGeoJSON(g.geolocation_kyow),
+#       ST_GeomFromGeoJSON(f.geolocation)
+#     ) 
+#     WHERE g.name = '{grid_id}'
+#   """, as_dict=True)
+
+#   return set_res(facilities=fcs)
+
 
 @frappe.whitelist()
 def grid_facilities(grid_id):
   fcs = frappe.db.sql(f"""
-    SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, f.name as name, f.facility_name, f.facility_address, f.ward,
+    SELECT g.name as grid_id, g.location as grid_location, f.name as name, f.facility_name, f.facility_address, f.ward,
     f.local_government_area, f.state, f.country 
     FROM `tabGrid` g
     JOIN `tabFacility` f
@@ -85,56 +160,153 @@ def grid_facilities(grid_id):
       ST_GeomFromGeoJSON(g.geolocation_kyow),
       ST_GeomFromGeoJSON(f.geolocation)
     ) 
-    WHERE g.name = '{grid_id}'
+    WHERE g.name = '{grid_id}' AND f.selected_facility = 1
   """, as_dict=True)
 
   return set_res(facilities=fcs)
 
 
+# @frappe.whitelist()
+# def grid_buildings(grid_id):
+#   bldngs = frappe.db.sql(f"""
+#     SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, b.name, b.building_number, b.building_address,
+#     b.settlement, b.ward, b.local_government_area, b.state, b.country 
+#     FROM `tabGrid` g
+#     JOIN `tabBuilding` b
+#     ON ST_Contains(
+#       ST_GeomFromGeoJSON(g.geolocation_kyow),
+#       ST_GeomFromGeoJSON(b.geolocation)
+#     ) 
+#     WHERE g.name = '{grid_id}' AND b.status = 'Approved'
+#   """, as_dict=True)
+
+#   return set_res(buildings=bldngs)
+
+
 @frappe.whitelist()
 def grid_buildings(grid_id):
-  bldngs = frappe.db.sql(f"""
-    SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, b.name, b.building_number, b.building_address,
-    b.settlement, b.ward, b.local_government_area, b.state, b.country 
-    FROM `tabGrid` g
-    JOIN `tabBuilding` b
-    ON ST_Contains(
-      ST_GeomFromGeoJSON(g.geolocation_kyow),
-      ST_GeomFromGeoJSON(b.geolocation)
-    ) 
-    WHERE g.name = '{grid_id}' AND b.status = 'Approved'
-  """, as_dict=True)
+    bldngs = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id, 
+            g.location as grid_location, 
+            b.name, 
+            b.building_number, 
+            b.building_address,
+            b.settlement, 
+            b.ward, 
+            b.local_government_area, 
+            b.state, 
+            b.country 
+        FROM `tabGrid` g
+        JOIN `tabBuilding` b
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(b.geolocation)
+             ) 
+        WHERE g.name = %s AND b.status = 'Approved'
+        """,
+        (grid_id,),
+        as_dict=True
+    )
 
-  return set_res(buildings=bldngs)
+    unapproved_owner_buildings = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id, 
+            g.location as grid_location, 
+            b.name, 
+            b.building_number, 
+            b.building_address,
+            b.settlement, 
+            b.ward, 
+            b.local_government_area, 
+            b.state, 
+            b.country 
+        FROM `tabGrid` g
+        JOIN `tabBuilding` b
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(b.geolocation)
+             ) 
+        WHERE g.name = %s AND b.status IN ('Returned', 'Submitted') AND b.owner = %s
+        """,
+        (grid_id, frappe.session.user),
+        as_dict=True
+    )
 
+    bldngs = unapproved_owner_buildings + bldngs
+
+    return set_res(buildings=bldngs)
+
+
+
+# @frappe.whitelist()
+# def grid_households(grid_id):
+
+#   households = frappe.db.sql(f"""
+#     SELECT g.name as grid_id,
+#     hs.settlement as settlement,  hs.phone_number as phone_number, hs.name_of_household_head as name_of_household_head, hs.building as building, hs.ward as ward, hs.name as name 
+#     FROM `tabGrid` g
+#     JOIN `tabHousehold` hs
+#     ON ST_Contains(
+#       ST_GeomFromGeoJSON(g.geolocation_kyow),
+#       ST_GeomFromGeoJSON(hs.geolocation)
+#     ) 
+#     WHERE g.name = '{grid_id}' AND hs.status = 'Approved'
+#   """, as_dict=True)
+
+#   return set_res(households=households)
 
 
 @frappe.whitelist()
 def grid_households(grid_id):
-  # bldngs = frappe.db.sql(f"""
-  #   SELECT g.name as grid_id, g.location as grid_location, g.geolocation_kyow as grid_geolocation, hs.name_of_household_head, hs.building as household_building,
-  #   hs.settlement as household_settlement, hs.ward as household_ward, hs.local_government_area as household_lga, hs.state as household_state, hs.country as household_country 
-  #   FROM `tabGrid` g
-  #   JOIN `tabHousehold` hs
-  #   ON ST_Contains(
-  #     ST_GeomFromGeoJSON(g.geolocation_kyow),
-  #     ST_GeomFromGeoJSON(hs.geolocation)
-  #   ) 
-  #   WHERE g.name = '{grid_id}'
-  # """, as_dict=True)
+    households = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id,
+            hs.settlement as settlement,  
+            hs.phone_number as phone_number, 
+            hs.name_of_household_head as name_of_household_head, 
+            hs.building as building, 
+            hs.ward as ward, 
+            hs.name as name 
+        FROM `tabGrid` g
+        JOIN `tabHousehold` hs
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(hs.geolocation)
+             ) 
+        WHERE g.name = %s AND hs.status = 'Approved'
+        """,
+        (grid_id,),
+        as_dict=True
+    )
 
-  households = frappe.db.sql(f"""
-    SELECT g.name as grid_id,
-    hs.settlement as settlement,  hs.phone_number as phone_number, hs.name_of_household_head as name_of_household_head, hs.building as building, hs.ward as ward, hs.name as name 
-    FROM `tabGrid` g
-    JOIN `tabHousehold` hs
-    ON ST_Contains(
-      ST_GeomFromGeoJSON(g.geolocation_kyow),
-      ST_GeomFromGeoJSON(hs.geolocation)
-    ) 
-    WHERE g.name = '{grid_id}' AND hs.status = 'Approved'
-  """, as_dict=True)
+    unapproved_owner_households = frappe.db.sql(
+        """
+        SELECT 
+            g.name as grid_id,
+            hs.settlement as settlement,  
+            hs.phone_number as phone_number, 
+            hs.name_of_household_head as name_of_household_head, 
+            hs.building as building, 
+            hs.ward as ward, 
+            hs.name as name 
+        FROM `tabGrid` g
+        JOIN `tabHousehold` hs
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(hs.geolocation)
+             ) 
+        WHERE g.name = %s AND hs.status IN ('Returned', 'Submitted') AND hs.owner = %s
+        """,
+        (grid_id, frappe.session.user),
+        as_dict=True
+    )
 
-  return set_res(households=households)
+    households = unapproved_owner_households + households
 
-  # ST_GeomFromText(CONCAT('POINT(', b.geolocation, ')'))
+    return set_res(households=households)
+
+

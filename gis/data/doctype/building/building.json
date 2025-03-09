@@ -3,7 +3,7 @@
  "allow_rename": 1,
  "autoname": "format:{building_number} - {building_address}",
  "creation": "2024-12-17 13:35:39.550312",
- "default_view": "Image",
+ "default_view": "List",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -293,7 +293,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-03-04 11:24:31.623832",
+ "modified": "2025-03-06 21:41:54.422108",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
