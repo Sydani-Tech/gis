@@ -178,6 +178,71 @@ def outreach_forms(project):
 
   return project_form
 
+# @frappe.whitelist()
+# def grids():
+#     user = frappe.session.user
+#     if user == "Guest":
+#         return {
+#             "message": "You must be logged in to access this data.",
+#             "status": 401
+#         }
+
+#     # Fetch grid assignees where user matches the logged-in user
+#     grid_record = frappe.db.sql(
+#         """
+#         SELECT DISTINCT parent 
+#         FROM `tabGrid Assignees` 
+#         WHERE user = %(user)s
+#         """,
+#         {"user": user},
+#         as_dict=True
+#     )
+
+#     if not grid_record:
+#         return {
+#             "message": "User does not have an assigned grid, please contact a supervisor.",
+#             "status": 404
+#         }
+    
+#     grids = frappe.db.sql(
+#         """
+#         SELECT *
+#         FROM `tabGrid` 
+#         WHERE name = %(grid)s
+#         """,
+#         {"grid": grid_record[0].parent},
+#         as_dict=True
+#     )
+
+#     # # Extract parent values
+#     # parent_values = [record["parent"] for record in grid_records]
+
+#     # return {
+#     #     "status": 200,
+#     #     "data": {
+#     #         "assigned_projects": parent_values
+#     #     }
+#     # }
+
+
+#     # Extract the parent (Grid name)
+#     # grid_name = grid_record[0]["parent"]
+
+#     # Fetch the geolocation_kyow field value from the Grid doctype
+#     # geolocation = frappe.db.get_value("Grid", grid_name, "geolocation_kyow")
+
+#     # return {
+#     #     "status": 200,
+#     #     "data": {
+#     #         "assigned_grid": grid_name,
+#     #         "grid_geolocation": geolocation
+#     #     }
+#     # }
+
+#     # set_res(data=grids)
+#     set_res(data={'grids': grids, 'assignees': grid_record})
+
+
 @frappe.whitelist()
 def grids():
     user = frappe.session.user
@@ -206,41 +271,18 @@ def grids():
     
     grids = frappe.db.sql(
         """
-        SELECT *
-        FROM `tabGrid` 
-        WHERE name = %(grid)s
+        SELECT g.*, p.project, p.close_data_collection, p.enable_geofencing
+        FROM `tabGrid` g
+        JOIN `tabProject` p ON g.project = p.name
+        WHERE g.name = %(grid)s
         """,
         {"grid": grid_record[0].parent},
         as_dict=True
     )
-
-    # # Extract parent values
-    # parent_values = [record["parent"] for record in grid_records]
-
-    # return {
-    #     "status": 200,
-    #     "data": {
-    #         "assigned_projects": parent_values
-    #     }
-    # }
-
-
-    # Extract the parent (Grid name)
-    # grid_name = grid_record[0]["parent"]
-
-    # Fetch the geolocation_kyow field value from the Grid doctype
-    # geolocation = frappe.db.get_value("Grid", grid_name, "geolocation_kyow")
-
-    # return {
-    #     "status": 200,
-    #     "data": {
-    #         "assigned_grid": grid_name,
-    #         "grid_geolocation": geolocation
-    #     }
-    # }
-
+    
     # set_res(data=grids)
     set_res(data={'grids': grids, 'assignees': grid_record})
+
 
 
 @frappe.whitelist()
@@ -253,12 +295,14 @@ def save_children(**kwargs):
             children = frappe.get_doc("Children", record_name)
         else:
             # Create a new record if 'name' is not provided
+            full_name = f"{kwargs['first_name']} {kwargs.get('middle_name', '')} {kwargs['last_name']}".strip()
             children = frappe.get_doc({
                 "doctype": "Children",
                 "household": kwargs["household"],
                 "first_name": kwargs["first_name"],
                 "middle_name": kwargs.get("middle_name"),
                 "last_name": kwargs["last_name"],
+                "full_name": full_name,
                 "date_of_birth": kwargs["date_of_birth"],
                 "gender": kwargs["gender"],
                 "does_the_child_have_a_vaccination_card": kwargs["does_the_child_have_a_vaccination_card"],
@@ -631,19 +675,28 @@ def save_vaccination(**kwargs):
                 "project": kwargs.get("project"),
             })
 
+        full_name = f"{kwargs['first_name']} {kwargs.get('middle_name', '')} {kwargs['last_name']}".strip()
+        type_of_vaccination_post = kwargs.get("type_of_vaccination_post"),
+        if type_of_vaccination_post == "Mobile Team":
+            building = frappe.get_value("Household", kwargs.get("household"), "building")
+        else:
+            building = frappe.db.get_value("Building", {"health_facility": kwargs.get("facility")}, "name") or ""
+
         # Update fields for both new and existing records
         vaccination.update({
             "first_name": kwargs.get("first_name"),
             "middle_name": kwargs.get("middle_name"),
             "last_name": kwargs.get("last_name"),
+            "full_name": full_name,
             "date_of_birth": kwargs.get("date_of_birth"),
             "gender": kwargs.get("gender"),
-            # "care_givers_name": kwargs.get("care_givers_name"),
+            "care_givers_name": f"{kwargs.get('care_givers_firstname', '')} {kwargs.get('care_givers_surname', '')}".strip(),
             "care_givers_firstname": kwargs.get("care_givers_firstname"),
             "care_givers_surname": kwargs.get("care_givers_surname"),
             "care_givers_date_of_birth": kwargs.get("care_givers_date_of_birth"),
             "care_givers_phone_no": kwargs.get("care_givers_phone_no"),
             "household": kwargs.get("household"),
+            "building": building,
             "was_the_child_vaccinated_during_this_program": kwargs.get("was_the_child_vaccinated_during_this_program"),
             "vaccination_date": kwargs.get("vaccination_date"),
             # "next_vaccination_date": kwargs.get("next_vaccination_date"),
@@ -653,6 +706,7 @@ def save_vaccination(**kwargs):
             "take_a_picture_of_the_health_card": take_a_picture_of_the_health_card,
             "why_were_health_cards_not_given": kwargs.get("why_were_health_cards_not_given"),
             "facility": kwargs.get("facility"),
+            "type_of_vaccination_post": kwargs.get("type_of_vaccination_post"),
             "geolocation": kwargs.get("geolocation"),
             "response_id": kwargs.get("response_id"),
             "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
@@ -899,6 +953,39 @@ def save_vaccination_summary(**kwargs):
             "status": 400,
             "error": str(e)
         }
+
+
+@frappe.whitelist(allow_guest=True)  # Allow external access
+def create_error_log():
+    """API endpoint for external systems to create error logs."""
+    try:
+        # Parse incoming request data
+        data = frappe.local.form_dict
+
+        # Validate required fields
+        required_fields = ["error", "method"]
+        for field in required_fields:
+            if not data.get(field):
+                return {"status": "error", "message": _(f"Missing required field: {field}")}
+
+        # Create the Error Log entry
+        error_log = frappe.get_doc({
+            "doctype": "Error Log",
+            "method": data["method"],
+            "error": data["error"],
+            "trace_id": data.get("trace_id", ""), #Optional reference
+            "reference_doctype": data.get("reference_doctype", ""),  # Optional reference
+            "reference_name": data.get("reference_doc", "")  # Optional reference
+        })
+        error_log.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+        return {"status": "success", "message": _("Error Log created successfully"), "log_id": error_log.name}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error in create_error_log API")
+        return {"status": "error", "message": str(e)}
+
 
 def test_fields():
   fields = frappe.db.sql(f""" 

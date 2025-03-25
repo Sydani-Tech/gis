@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{name_of_settlement}",
  "creation": "2024-12-17 13:35:39.674932",
@@ -344,7 +345,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-03-08 06:41:48.319140",
+ "modified": "2025-03-12 11:46:05.946480",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
@@ -356,6 +357,7 @@
    "delete": 1,
    "email": 1,
    "export": 1,
+   "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,
@@ -368,6 +370,7 @@
    "delete": 1,
    "email": 1,
    "export": 1,
+   "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,

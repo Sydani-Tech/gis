@@ -366,22 +366,15 @@ def update_child_vaccination_status(doc, method):
 
 #Full name of children in the children and vaccination doctype   
 def update_full_name(doc, method):
-    previous_doc = doc.get_doc_before_save()
     
-    # Check if previous_doc exists before accessing its attributes
-    if previous_doc and (
-        previous_doc.first_name != doc.first_name or
-        previous_doc.middle_name != doc.middle_name or
-        previous_doc.last_name != doc.last_name
-    ):
-        first_name = doc.first_name or ""
-        middle_name = doc.middle_name or ""
-        last_name = doc.last_name or ""
+    first_name = doc.first_name or ""
+    middle_name = doc.middle_name or ""
+    last_name = doc.last_name or ""
 
-        if middle_name:
-            doc.full_name = f"{first_name} {middle_name} {last_name}"
-        else:
-            doc.full_name = f"{first_name} {last_name}"
+    if middle_name:
+        doc.full_name = f"{first_name} {middle_name} {last_name}"
+    else:
+        doc.full_name = f"{first_name} {last_name}"
 
 #Full name of caregivers in the vaccination doctype   
 def update_full_name_care_givers(doc, method):
@@ -545,7 +538,7 @@ def validate_facilities_in_buildings(doc, method):
     """
     Prevents multiple buildings from having the same facility in the 'Grid' doctype.
     """
-    frappe.msgprint(f"Validating facility in building: {doc.name}")
+    # frappe.msgprint(f"Validating facility in building: {doc.name}")
     if not doc.health_facility:
         return  # Skip validation if facility is not set
 

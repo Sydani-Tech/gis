@@ -76,6 +76,61 @@ def update_approved_records():
         doc.save()
     frappe.db.commit()
 
+import frappe
+
+def update_building_vaccination_status():
+    """
+    Updates the vaccination status of all buildings where status is 'Approved'
+    based on the vaccination status of children and vaccinations.
+    """
+
+    # Fetch all approved buildings
+    approved_buildings = frappe.get_all(
+        "Building",
+        filters={"status": "Approved"},
+        fields=["name"]
+    )
+
+    for building in approved_buildings:
+        building_name = building["name"]
+
+        # Fetch all approved children in the building
+        children_in_the_building = frappe.get_all(
+            "Children",
+            filters={"status": "Approved", "building": building_name},
+            fields=["name", "vaccination_status"]
+        )
+
+        # Count total children and their vaccinated status
+        total_children = len(children_in_the_building)
+        children_vaccination_status = sum(
+            1 for child in children_in_the_building
+            if child["vaccination_status"] in ["Vaccinated to Age", "Fully Vaccinated (Measles 2)"]
+        )
+
+        # Fetch all approved vaccinations in the building (not linked to children)
+        vaccinations_in_the_building = frappe.get_all(
+            "Vaccination",
+            filters={"status": "Approved", "building": building_name, "children": ""},
+            fields=["name", "vaccination_status"]
+        )
+
+        # Count total vaccinations and vaccinated status
+        total_vaccinations = len(vaccinations_in_the_building)
+        vaccination_status = sum(
+            1 for vaccination in vaccinations_in_the_building
+            if vaccination["vaccination_status"] in ["Vaccinated to Age", "Fully Vaccinated (Measles 2)"]
+        )
+
+        # Calculate the combined percentage
+        combined_percentage = round(
+            ((children_vaccination_status + vaccination_status) / (total_children + total_vaccinations)) * 100
+        ) if (total_children + total_vaccinations) > 0 else 0
+
+        # Update the building record
+        frappe.db.set_value("Building", building_name, "percentage_of_vaccinated_children", combined_percentage)
+
+    frappe.db.commit()
 
 
 def fetch_odk_data():

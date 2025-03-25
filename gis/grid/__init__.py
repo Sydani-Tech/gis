@@ -191,6 +191,7 @@ def grid_buildings(grid_id):
             g.name as grid_id, 
             g.location as grid_location, 
             b.name, 
+            b.geolocation,
             b.building_number, 
             b.building_address,
             b.settlement, 
@@ -216,6 +217,7 @@ def grid_buildings(grid_id):
             g.name as grid_id, 
             g.location as grid_location, 
             b.name, 
+            b.geolocation,
             b.building_number, 
             b.building_address,
             b.settlement, 
@@ -265,6 +267,7 @@ def grid_households(grid_id):
         """
         SELECT 
             g.name as grid_id,
+            hs.geolocation as geolocation,
             hs.settlement as settlement,  
             hs.phone_number as phone_number, 
             hs.name_of_household_head as name_of_household_head, 
@@ -287,6 +290,7 @@ def grid_households(grid_id):
         """
         SELECT 
             g.name as grid_id,
+            hs.geolocation as geolocation,
             hs.settlement as settlement,  
             hs.phone_number as phone_number, 
             hs.name_of_household_head as name_of_household_head, 

@@ -15,6 +15,7 @@
   "location",
   "column_break_kpxw",
   "geolocation_kyow",
+  "grid_area",
   "document_types_section",
   "grid_assignees"
  ],
@@ -111,11 +112,17 @@
    "label": "Project",
    "options": "Project",
    "reqd": 1
+  },
+  {
+   "fieldname": "grid_area",
+   "fieldtype": "Float",
+   "label": "Grid Area (in KM)",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-07 07:39:08.402750",
+ "modified": "2025-03-25 07:08:33.593820",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",

@@ -8,7 +8,7 @@ app_license = "mit"
 
 #Fixtures
 fixtures = [
-    {"dt": "DocType", "filters": [["name", "in", ["Children", "Vaccination", "Vaccination Summary", "Household", "Building", "State", "Local Government Area", "Ward", "Facility", "Settlement", "Grid Doctypes", "Grid Assignees", "Grid", "Project", "Project Team", "Grid Creator", "Serious AEFI Table", "Non Serious AEFI Table", "Non Serious AEFI", "Serious AEFI", "Vaccine Multiselect", "Vaccine", "Sec Keys"]]]},
+    {"dt": "DocType", "filters": [["name", "in", ["Children", "Vaccination", "Vaccination Summary", "Household", "Building", "State", "Local Government Area", "Ward", "Facility", "Settlement", "Grid Doctypes", "Grid Assignees", "Grid", "Project", "Project Team", "Grid Creator", "Serious AEFI Table", "Non Serious AEFI Table", "Non Serious AEFI", "Serious AEFI", "Vaccine Multiselect", "Vaccine", "Sec Keys", "Enumeration Validation Summary", "Records Under Validation"]]]},
     {"dt": "Role", "filters": [["name", "in", ["Enumerator", "Project Team", "Supervisor", "Project Manager", "Outreach Worker", "Dashboard Viewer"]]]},
     {"dt": "Local Government Area"},
     {"dt": "State"},
@@ -181,7 +181,19 @@ doc_events = {
     "Grid": {
         "validate": [
             "gis.doc_events.set_geolocation_of_grids",
-            "gis.doc_events.validate_grid_assignees_to_avoid_duplicates"
+            "gis.doc_events.validate_grid_assignees_to_avoid_duplicates",
+            "gis.square_grid_creator.calculate_grid_area_on_save"
+        ]
+    },
+    "Enumeration Validation Summary": {
+        "on_submit": [
+            "gis.enumeration_validation.update_enumeration_records_from_sample_responses"
+        ],
+        "on_update": [
+            "gis.enumeration_validation.update_enumeration_records_from_sample_responses_on_save"
+        ],
+        "before_submit": [
+            "gis.enumeration_validation.validate_status_is_approved"
         ]
     },
 }
@@ -194,7 +206,8 @@ scheduler_events = {
 
     "hourly_long": [
 		"gis.scheduled_events.fetch_odk_data",
-        "gis.scheduled_events.match_vaccination_to_children"
+        "gis.scheduled_events.match_vaccination_to_children",
+        "gis.scheduled_events.update_building_vaccination_status",
 	],
 	"daily_long": [
 		"gis.scheduled_events.update_approved_records",

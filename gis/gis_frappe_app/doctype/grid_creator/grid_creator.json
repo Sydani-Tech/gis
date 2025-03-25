@@ -8,6 +8,7 @@
   "details_section",
   "location_type",
   "location",
+  "hex_size",
   "preview_grids",
   "create_grids",
   "grid_doctypes_section",
@@ -25,6 +26,7 @@
    "label": "Create Grids"
   },
   {
+   "default": "Ward",
    "fieldname": "location_type",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -48,20 +50,28 @@
   {
    "fieldname": "grid_doctypes_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Grid Doctypes"
   },
   {
    "fieldname": "table_tezw",
    "fieldtype": "Table",
    "label": "Doctypes",
-   "options": "Grid Doctypes",
-   "reqd": 1
+   "options": "Grid Doctypes"
+  },
+  {
+   "description": "The bigger the number, the bigger the grids in the Ward. Range should be between 0.05 to 1",
+   "fieldname": "hex_size",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Grid Size",
+   "precision": "4"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-20 08:27:59.855227",
+ "modified": "2025-03-18 11:23:14.823720",
  "modified_by": "Administrator",
  "module": "GIS frappe app",
  "name": "Grid Creator",
@@ -74,6 +84,16 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Project Team",
    "share": 1,
    "write": 1
   }

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "creation": "2024-12-17 08:22:28.858447",
  "doctype": "DocType",
@@ -288,13 +289,12 @@
    "label": "Location"
   },
   {
-   "fetch_from": "household.building",
-   "fetch_if_empty": 1,
    "fieldname": "building",
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Building",
-   "options": "Building"
+   "options": "Building",
+   "permlevel": 2
   },
   {
    "fieldname": "settlement",
@@ -433,7 +433,7 @@
    "fieldname": "type_of_vaccination_post",
    "fieldtype": "Select",
    "label": "Type of Vaccination Post",
-   "options": "\nOutreach Team\nMobile Team\nSpecial Team",
+   "options": "\nOutreach Team\nMobile Team\nFixed Team\nTemporary\u00a0Fixed\u00a0Post",
    "permlevel": 2,
    "read_only": 1
   },
@@ -472,7 +472,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-03-09 12:13:42.374371",
+ "modified": "2025-03-19 12:43:37.730422",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination",
@@ -483,6 +483,7 @@
    "delete": 1,
    "email": 1,
    "export": 1,
+   "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,
@@ -494,6 +495,7 @@
    "create": 1,
    "email": 1,
    "export": 1,
+   "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,

@@ -1,100 +1,3 @@
-import frappe
-import random
-from frappe import _
-from frappe.utils.data import today
-import requests
-import json
-from datetime import datetime
-from datetime import date
-
-
-from gis.functions import (
-  is_valid_email,set_error,generate_keys,reset_user_password,
-  set_res,create_user,read_json_as_dict,fetch_db_resource, save_image
-)
-def test_fields2():
-  fields = frappe.db.sql(f""" 
-    SELECT *
-    FROM `tabDocField`
-    WHERE parent = 'Building'
-    """,
-    as_dict=True)
-  
-  return fields 
-
-def test_fields():
-  fields = frappe.db.sql(f""" 
-    SELECT DISTINCT parentfield 
-        FROM `tabDoctype Table` 
-        WHERE parent = 'STRICAN - Phase 2';
-
-    """,
-    as_dict=True)
-  return fields 
-
-
-
-@frappe.whitelist()
-def update_building_geolocation():
-    try:
-        # Fetch the Building record with the specified name
-        # building = frappe.get_doc("Settlement", "Sunshine Homes")
-        building = frappe.get_doc("Ward", "Bosso 2 Central-Bosso-Niger")
-        # Update the geolocation field
-        # print(building.response_geolocation)
-        print(building.geolocation)
-        # print(building.geolocation_kyow)
-        
-        # building.response_geolocation = None
-        # building.geolocation = None
-        
-       
-        # building.geolocation = building.response_geolocation 
-
-        # Set the geolocation field in the required GeoJSON format
-        # building.geolocation = json.dumps({
-        # # building.response_geolocation = json.dumps({
-        #     "type": "FeatureCollection",
-        #     "features": [
-        #         {
-        #             "type": "Feature",
-        #             "properties": {},
-        #             "geometry": {
-        #                 "type": "Point",
-        #                 # "coordinates": [7.475866, 9.042452]  # Longitude first, then Latitude (Sydani)
-        #                 # "coordinates": [7.4042, 9.1099]  # Longitude first, then Latitude (Gwarinpa)
-        #                 # "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunsine Homes)
-        #                 # "coordinates": [6.553486, 9.591894]  # Longitude first, then Latitude (Haske Hotel, Niger)
-        #                 # "coordinates": [7.4951, 9.0579]  # Longitude first, then Latitude (Asokoro)
-        #                 # "coordinates": [6.1532668192084, 8.99168425242635]  # Longitude first, then Latitude (Alukusu)
-        #                 "coordinates": [7.14320, 8.93120]  # Longitude first, then Latitude (Grid 1, Gui)
-
-        #             }
-        #         }
-        #     ]
-        # })
-        
-        
-        # Save the changes
-        # building.save()
-        
-        # Commit the transaction to the database
-        # frappe.db.commit()
-        
-        return {
-            "status": 200,
-            "message": "Geolocation updated successfully."
-        }
-    except frappe.DoesNotExistError:
-        return {
-            "status": 404,
-            "message": "Building record not found."
-        }
-    except Exception as e:
-        return {
-            "status": 500,
-            "message": f"An error occurred: {str(e)}"
-        }
 
 import frappe
 import random
@@ -604,65 +507,6 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
 
 
 
-# import frappe
-
-# def update_enumeration_records_from_sample_responses(doc, method):
-#     # Fetch all sample responses linked to the current document
-#     sample_responses = frappe.get_all(
-#         "Enumeration Sample Responses",
-#         filters={"parent": doc.name},
-#         fields=["enumerator", "status"]
-#     )
-
-#     frappe.msgprint(f"Sample responses: {sample_responses}")
-
-#     # Fetch all records under validation linked to the current document
-#     records_under_validation = frappe.get_all(
-#         "Records Under Validation",
-#         filters={"parent": doc.name},
-#         fields=["name", "enumerator", "record"]
-#     )
-
-#     frappe.msgprint(f"Records under validation: {records_under_validation}")
-
-#     # Get a set of enumerators with 'Returned' status
-#     returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Returned"}
-
-#     for record in records_under_validation:
-#         enumerator = record["enumerator"]
-#         building_name = record["record"]  # 'record' represents the building column
-
-#         # Determine new status based on whether the enumerator was marked as Returned
-#         new_status = "Returned" if enumerator in returned_enumerators else "Approved"
-
-#         # Update status in Records Under Validation
-#         frappe.db.set_value("Records Under Validation", record["name"], "status", new_status)
-
-#         # Update Building
-#         frappe.db.set_value("Building", building_name, "status", new_status)
-
-#         # Fetch and update Households
-#         households = frappe.get_all(
-#             "Household",
-#             filters={"building": building_name, "status": "Submitted"},
-#             fields=["name"]
-#         )
-#         for household in households:
-#             frappe.db.set_value("Household", household["name"], "status", new_status)
-
-#         # Fetch and update Children
-#         children = frappe.get_all(
-#             "Children",
-#             filters={"building": building_name, "status": "Submitted"},
-#             fields=["name"]
-#         )
-#         for child in children:
-#             frappe.db.set_value("Children", child["name"], "status", new_status)
-
-#     frappe.db.commit()
-
-import frappe
-
 def update_enumeration_records_from_sample_responses(doc, method):
     # Fetch all sample responses linked to the current document
     sample_responses = frappe.get_all(
@@ -680,7 +524,7 @@ def update_enumeration_records_from_sample_responses(doc, method):
         fields=["name", "enumerator", "record", "status"]
     )
 
-    frappe.msgprint(f"Records under validation: {records_under_validation}")
+    # frappe.msgprint(f"Records under validation: {records_under_validation}")
 
     # Get a set of enumerators with 'Returned' status
     returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Returned"}
@@ -722,17 +566,41 @@ def update_enumeration_records_from_sample_responses(doc, method):
     frappe.db.commit()
 
 
+def update_enumeration_records_from_sample_responses_on_save(doc, method):
+    # Fetch all sample responses linked to the current document
+    sample_responses = frappe.get_all(
+        "Enumeration Sample Responses",
+        filters={"parent": doc.name},
+        fields=["enumerator", "status"]
+    )
 
-def show_child_record():
-    # Fetch the Child record with the specified name
-    child = frappe.get_doc("Children", "j2mc9edkve")
+    # frappe.msgprint(f"Sample responses: {sample_responses}")
 
-    # Print the child's full name
-    print(child.full_name)
+    # Fetch all records under validation linked to the current document
+    records_under_validation = frappe.get_all(
+        "Records Under Validation",
+        filters={"parent": doc.name},
+        fields=["name", "enumerator", "record", "status"]
+    )
 
-    # Print the child's date of birth
-    print(child.date_of_birth)
+    # frappe.msgprint(f"Records under validation: {records_under_validation}")
 
-    print(child.vaccines_taken)
+    # Get a set of enumerators with 'Returned' status
+    returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Returned"}
 
+    for record in records_under_validation:
+        enumerator = record["enumerator"]
+        building_name = record["record"]  # 'record' represents the building column
 
+        # Determine new status based on whether the enumerator was marked as Returned
+        new_status = "Returned" if enumerator in returned_enumerators else "Approved"
+
+        # Update status in Records Under Validation
+        frappe.db.set_value("Records Under Validation", record["name"], "status", new_status)
+
+    # Commit changes after all updates
+    frappe.db.commit()
+
+def validate_status_is_approved(doc, method):
+    if doc.status != "Approved":
+        frappe.throw("Status must be 'Approved' to submit validation.")

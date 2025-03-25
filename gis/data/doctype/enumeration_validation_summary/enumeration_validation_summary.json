@@ -1,0 +1,201 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:Enumeration Validation - {#####}",
+ "creation": "2025-03-19 14:47:51.749273",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "validation_information_section",
+  "validator",
+  "grid",
+  "ward",
+  "local_government_area",
+  "state",
+  "column_break_ennm",
+  "status",
+  "start_time",
+  "end_time",
+  "enumeration_sample_responses_section_section",
+  "enumeration_sample_responses",
+  "section_break_ayph",
+  "records_under_validation",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "validator",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Validator",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ayph",
+   "fieldtype": "Section Break",
+   "label": "Records Validated"
+  },
+  {
+   "fieldname": "records_under_validation",
+   "fieldtype": "Table",
+   "label": "Records Under Validation",
+   "options": "Records Under Validation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "validation_information_section",
+   "fieldtype": "Section Break",
+   "label": "Validation Information"
+  },
+  {
+   "fieldname": "ward",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Ward",
+   "options": "Ward"
+  },
+  {
+   "fieldname": "column_break_ennm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "enumeration_sample_responses_section_section",
+   "fieldtype": "Section Break",
+   "label": "Enumeration Sample Responses"
+  },
+  {
+   "fieldname": "enumeration_sample_responses",
+   "fieldtype": "Table",
+   "label": "Enumeration Sample Responses",
+   "options": "Enumeration Sample Responses"
+  },
+  {
+   "fetch_from": "ward.local_government_area",
+   "fieldname": "local_government_area",
+   "fieldtype": "Link",
+   "label": "Local Government Area",
+   "options": "Local Government Area",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grid",
+   "fieldtype": "Link",
+   "label": "Grid",
+   "link_filters": "[[\"Grid\",\"enabled\",\"=\",1]]",
+   "options": "Grid"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nDiscarded\nCompleted"
+  },
+  {
+   "fetch_from": "ward.state",
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "label": "State",
+   "options": "State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Enumeration Validation Summary",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-03-23 07:54:39.212681",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Enumeration Validation Summary",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Enumeration Validator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Orange",
+   "title": "Pending"
+  },
+  {
+   "color": "Red",
+   "title": "Discarded"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  }
+ ],
+ "track_changes": 1
+}

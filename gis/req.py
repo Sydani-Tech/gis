@@ -12,7 +12,7 @@ from gis.functions import (
 )
 
 from gis.access_to_records import (
-  projects, forms, outreach_forms, grids, save_building, save_settlement, save_household, save_children, save_vaccination, save_vaccination_summary, projects_for_dashboard_viewers
+  projects, forms, outreach_forms, grids, save_building, save_settlement, save_household, save_children, save_vaccination, save_vaccination_summary, create_error_log, projects_for_dashboard_viewers
 )
 
 from gis.grid import (grid_facilities, grid_buildings, 

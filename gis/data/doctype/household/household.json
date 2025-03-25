@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:{response_id}",
  "creation": "2024-10-04 19:36:50.661583",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -37,14 +38,14 @@
   "please_state_why",
   "location_tab",
   "location_section",
-  "geolocation",
   "building",
   "settlement",
   "ward",
-  "column_break_jedq",
   "local_government_area",
   "state",
   "country",
+  "column_break_jedq",
+  "geolocation",
   "comment_tab",
   "comment_section",
   "comment_to_supervisor",
@@ -422,10 +423,11 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-03-06 22:13:07.054953",
+ "modified": "2025-03-16 15:45:20.010356",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-19 19:37:54.080260",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "doctype_name",
+  "record",
+  "settlement",
+  "column_break_bvbq",
+  "enumerator",
+  "status",
+  "section_break_zpnt",
+  "validation_responses"
+ ],
+ "fields": [
+  {
+   "fieldname": "doctype_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Form",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "record",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Record",
+   "options": "doctype_name",
+   "read_only": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Pending\nApproved\nReturned"
+  },
+  {
+   "fieldname": "settlement",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Settlement",
+   "options": "Settlement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_bvbq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "enumerator",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Enumerator",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_zpnt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "validation_responses",
+   "fieldtype": "Small Text",
+   "label": "Validation Responses",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-03-21 06:09:54.278631",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Enumeration Sample Responses",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
