@@ -178,7 +178,7 @@ def autoset_ward(doc, method):
 
 def autoset_nearest_facility(doc, method):
     """
-    Finds the nearest facility within 5 km.
+    Finds the nearest facility within 5000 km.
     """
     response_geolocation = doc.get('response_geolocation')
 

@@ -151,20 +151,25 @@ def fetch_db_resource(stmt=None, var=None, doc=None, fields=None, filters=None):
   return
 
 def save_image(request, field_name, img_name):
+    uploaded_file = request.files[field_name]
 
-  uploaded_file = request.files[field_name]
-  if uploaded_file:
-    save_path = os.path.join(os.path.expanduser('~'), 
-    'frappe-bench/sites/gis.sydani.org/public/files', 
-    img_name)
+    if uploaded_file:
+        # Fetch site_name from site_config.json
+        site_name = frappe.get_site_config().get("site_name", "admin.coveragetracker.com")  # Default fallback
 
-    with open(save_path, 'wb') as new_file:
-      new_file.write(uploaded_file.read())
+        # Construct save path dynamically
+        save_path = os.path.join(os.path.expanduser('~'),
+                                 f'frappe-bench/sites/{site_name}/public/files',
+                                 img_name)
 
-    return f"/files/{img_name}"
-  else:
+        with open(save_path, 'wb') as new_file:
+            new_file.write(uploaded_file.read())
+
+        return f"/files/{img_name}"
+    
     return "";
-  
+
+
 
 # def get_proxies():
 #   proxy_url = 'https://free-proxy-list.net/'

@@ -76,10 +76,79 @@ def grid_wards(grid_id):
 
 
 
+# @frappe.whitelist()
+# def grid_settlements(grid_id):
+#     user = frappe.session.user
+
+#     grid_settlement = frappe.db.sql(
+#         """
+#         SELECT 
+#             g.name AS grid_id, 
+#             g.location AS grid_location, 
+#             st.name, 
+#             st.type_of_settlement, 
+#             st.ward AS ward, 
+#             st.local_government_area, 
+#             st.state, 
+#             st.country
+#         FROM `tabGrid` g 
+#         JOIN `tabSettlement` st 
+#           ON ST_Contains(
+#                 ST_GeomFromGeoJSON(g.geolocation_kyow),
+#                 ST_GeomFromGeoJSON(st.response_geolocation)
+#              )
+#         WHERE g.name = %s AND st.status = 'Approved'
+#         """,
+#         grid_id,
+#         as_dict=True
+#     )
+
+#     # unapproved_owner_settlement = frappe.db.sql(
+#     #     """
+#     #     SELECT 
+#     #         g.name AS grid_id, 
+#     #         g.location AS grid_location, 
+#     #         st.name, 
+#     #         st.type_of_settlement, 
+#     #         st.ward AS ward, 
+#     #         st.local_government_area, 
+#     #         st.state, 
+#     #         st.country
+#     #     FROM `tabGrid` g 
+#     #     JOIN `tabSettlement` st 
+#     #       ON ST_Contains(
+#     #             ST_GeomFromGeoJSON(g.geolocation_kyow),
+#     #             ST_GeomFromGeoJSON(st.response_geolocation)
+#     #          )
+#     #     WHERE g.name = %s AND st.status IN ('Returned', 'Submitted') AND st.owner = %s
+#     #     """,
+#     #     (grid_id, user),
+#     #     as_dict=True
+#     # )
+
+#     settlement = grid_settlement
+#     # settlement = unapproved_owner_settlement + grid_settlement
+
+#     return set_res(settlement=settlement)
+
 @frappe.whitelist()
 def grid_settlements(grid_id):
     user = frappe.session.user
 
+    # Fetch the Ward of the given Grid
+  
+    ward = frappe.db.sql(
+        """
+        SELECT ward FROM `tabGrid` WHERE name = %s
+        """,
+        (grid_id,),
+        as_dict=True
+    )
+
+    if not ward:
+        frappe.throw("No Ward found for the given Grid.")
+
+    # Fetch all approved Settlements in the Ward
     grid_settlement = frappe.db.sql(
         """
         SELECT 
@@ -87,49 +156,20 @@ def grid_settlements(grid_id):
             g.location AS grid_location, 
             st.name, 
             st.type_of_settlement, 
-            st.ward AS ward, 
+            st.ward, 
             st.local_government_area, 
             st.state, 
             st.country
         FROM `tabGrid` g 
         JOIN `tabSettlement` st 
-          ON ST_Contains(
-                ST_GeomFromGeoJSON(g.geolocation_kyow),
-                ST_GeomFromGeoJSON(st.facility_geolocation)
-             )
+          ON g.ward = st.ward
         WHERE g.name = %s AND st.status = 'Approved'
         """,
-        grid_id,
+        (grid_id,),
         as_dict=True
     )
 
-    # unapproved_owner_settlement = frappe.db.sql(
-    #     """
-    #     SELECT 
-    #         g.name AS grid_id, 
-    #         g.location AS grid_location, 
-    #         st.name, 
-    #         st.type_of_settlement, 
-    #         st.ward AS ward, 
-    #         st.local_government_area, 
-    #         st.state, 
-    #         st.country
-    #     FROM `tabGrid` g 
-    #     JOIN `tabSettlement` st 
-    #       ON ST_Contains(
-    #             ST_GeomFromGeoJSON(g.geolocation_kyow),
-    #             ST_GeomFromGeoJSON(st.facility_geolocation)
-    #          )
-    #     WHERE g.name = %s AND st.status IN ('Returned', 'Submitted') AND st.owner = %s
-    #     """,
-    #     (grid_id, user),
-    #     as_dict=True
-    # )
-
-    settlement = grid_settlement
-    # settlement = unapproved_owner_settlement + grid_settlement
-
-    return set_res(settlement=settlement)
+    return set_res(settlement=grid_settlement)
 
 
 # @frappe.whitelist()

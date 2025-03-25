@@ -116,13 +116,13 @@
   {
    "fieldname": "grid_area",
    "fieldtype": "Float",
-   "label": "Grid Area (in KM)",
+   "label": "Grid Area (in Square KM)",
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-25 07:08:33.593820",
+ "modified": "2025-03-25 10:25:45.133867",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",
