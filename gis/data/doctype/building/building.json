@@ -23,6 +23,9 @@
   "location_tab",
   "location_section",
   "geolocation",
+  "longitude",
+  "latitude",
+  "set_geolocation",
   "column_break_sipk",
   "settlement",
   "ward",
@@ -275,6 +278,25 @@
    "label": "Percentage of Vaccinated Children",
    "permlevel": 2,
    "read_only": 1
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "permlevel": 2,
+   "precision": "9"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "permlevel": 2,
+   "precision": "9"
+  },
+  {
+   "fieldname": "set_geolocation",
+   "fieldtype": "Button",
+   "label": "Set Geolocation"
   }
  ],
  "image_field": "building_picture",
@@ -294,7 +316,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-03-21 13:09:30.554567",
+ "modified": "2025-03-27 12:25:21.322413",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",

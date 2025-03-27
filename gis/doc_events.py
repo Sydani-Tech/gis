@@ -652,3 +652,25 @@ def validate_grid_assignees_to_avoid_duplicates(doc, method):
                 _("User {0} is already assigned in another record: {1} (Title: {2}).")
                 .format(row.user, duplicate["parent"], grid_title)
             )
+
+
+def validate_buildings_have_geolocation(doc, method):
+    if doc.status == "Approved":
+        try:
+            # Load geolocation as JSON
+            geolocation_data = json.loads(doc.geolocation)
+
+            # Check if 'features' is empty
+            if (
+                isinstance(geolocation_data, dict) and 
+                "features" in geolocation_data and 
+                isinstance(geolocation_data["features"], list) and 
+                len(geolocation_data["features"]) == 0
+            ):
+                frappe.throw("Geolocation must be set for an Approved Building.")
+        except json.JSONDecodeError:
+            frappe.throw("Invalid geolocation format.")
+
+def validate_vaccination_status_before_approval(doc, method):
+    if (not doc.vaccination_status or doc.vaccination_status == "") and doc.status == "Approved":
+        frappe.throw("Vaccination Status is required before approving the record.")

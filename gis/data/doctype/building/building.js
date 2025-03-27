@@ -12,7 +12,7 @@ frappe.ui.form.on('Building', {
         var userRoles = frappe.user_roles;
         var allowedRoles = ["Supervisor", "Project Team", "System Manager"];
         var hasAllowedRoles = allowedRoles.some(role => userRoles.includes(role));
-        if ((  frm.doc.status === "Submitted" || frm.doc.status === "Draft") && hasAllowedRoles) {
+        if ((frm.doc.status === "Submitted" || frm.doc.status === "Draft") && hasAllowedRoles) {
             frm.add_custom_button(__('Approve'), function () {
                 frm.set_value('status', 'Approved');
                 frm.save();
@@ -22,5 +22,29 @@ frappe.ui.form.on('Building', {
                 frm.save();
             });
         }
+    },
+    set_geolocation: function (frm) {
+
+        if (!frm.doc.longitude || !frm.doc.latitude) {
+            frappe.msgprint(__("Please enter both Longitude and Latitude."));
+            return;
+        }
+
+        frappe.call({
+            method: "gis.doc_events.format_geolocation",
+            args: {
+                longitude: frm.doc.longitude,
+                latitude: frm.doc.latitude
+            },
+            callback: function (response) {
+                if (response.message) {
+                    frm.set_value("geolocation", response.message);
+                    frm.save();
+                }
+            },
+            error: function (err) {
+                frappe.msgprint(__("Failed to format geolocation. Check inputs."));
+            }
+        });
     }
 });

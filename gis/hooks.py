@@ -141,7 +141,8 @@ doc_events = {
     "Children": {
         "validate": [
             "gis.doc_events.update_full_name",
-            "gis.doc_events.update_child_vaccination_status"
+            "gis.doc_events.update_child_vaccination_status",
+            "gis.doc_events.validate_vaccination_status_before_approval",
         ],
         "on_update": [
             "gis.doc_events.update_building_vaccination_status"
@@ -152,7 +153,8 @@ doc_events = {
             "gis.doc_events.update_full_name",
             "gis.doc_events.process_vaccination_status_and_next_vaccination",
             "gis.doc_events.update_full_name_care_givers",
-            "gis.doc_events.autoset_ward"
+            "gis.doc_events.autoset_ward",
+            "gis.doc_events.validate_vaccination_status_before_approval",
         ],
         "on_update": [
             "gis.doc_events.update_vaccinations_administered_on_children_record",
@@ -176,6 +178,7 @@ doc_events = {
         "validate": [
             "gis.doc_events.validate_facilities_in_buildings",
             "gis.doc_events.update_building_geolocation_from_health_facility",
+            "gis.doc_events.validate_buildings_have_geolocation"
         ]
     },
     "Grid": {

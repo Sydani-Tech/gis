@@ -39,7 +39,7 @@ def update_building_geolocation():
     try:
         # Fetch the Building record with the specified name
         # building = frappe.get_doc("Settlement", "Sunshine Homes")
-        building = frappe.get_doc("Ward", "Bosso 2 Central-Bosso-Niger")
+        building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
         # Update the geolocation field
         # print(building.response_geolocation)
         print(building.geolocation)
