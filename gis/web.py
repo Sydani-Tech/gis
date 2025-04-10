@@ -139,7 +139,7 @@ def settlements(ward, lga, state):
         return {"message": "You must be logged in to access this data.", "status": "error"}
 
     # Define fields to fetch
-    fields = ['name', 'name_of_settlement', 'ward', 'local_government_area', 'state']
+    fields = ['name', 'name_of_settlement', 'response_geolocation', 'ward', 'local_government_area', 'state']
 
     # Fetch user permissions where allow = 'Settlement'
     user_permissions = frappe.get_all(

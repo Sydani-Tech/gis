@@ -5,3 +5,5 @@
 tags
 node_modules
 __pycache__
+skip_odk_child_ids.txt
+skip_odk_parent_ids.txt

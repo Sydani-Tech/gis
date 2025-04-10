@@ -164,7 +164,8 @@ doc_events = {
     "Settlement": {
         "validate": [
             "gis.doc_events.autoset_ward",
-            "gis.doc_events.autoset_nearest_facility",
+            "gis.doc_events.autoset_grid",
+            # "gis.doc_events.autoset_nearest_facility",
             "gis.doc_events.update_settlement_field"
         ]
     },
@@ -197,6 +198,11 @@ doc_events = {
         ],
         "before_submit": [
             "gis.enumeration_validation.validate_status_is_approved"
+        ]
+    },
+    "Vaccination Validation Summary": {
+        "before_submit": [
+            "gis.vaccination_validation.process_vaccinations_before_submit"
         ]
     },
 }

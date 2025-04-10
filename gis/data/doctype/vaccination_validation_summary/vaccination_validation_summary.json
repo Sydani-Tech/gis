@@ -2,13 +2,14 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:Enumeration Validation - {#####}",
- "creation": "2025-03-19 14:47:51.749273",
+ "creation": "2025-04-07 14:29:57.228057",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "validation_information_section",
   "validator",
-  "grid",
+  "health_facility",
+  "validation_percentage",
   "ward",
   "local_government_area",
   "state",
@@ -16,13 +17,16 @@
   "status",
   "start_time",
   "end_time",
-  "enumeration_sample_responses_section_section",
-  "enumeration_sample_responses",
   "section_break_ayph",
-  "records_under_validation",
+  "vaccinations_under_validation",
   "amended_from"
  ],
  "fields": [
+  {
+   "fieldname": "validation_information_section",
+   "fieldtype": "Section Break",
+   "label": "Validation Information"
+  },
   {
    "fieldname": "validator",
    "fieldtype": "Link",
@@ -30,59 +34,13 @@
    "in_standard_filter": 1,
    "label": "Validator",
    "options": "User",
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_break_ayph",
-   "fieldtype": "Section Break",
-   "label": "Records Validated"
-  },
-  {
-   "fieldname": "records_under_validation",
-   "fieldtype": "Table",
-   "label": "Records Under Validation",
-   "options": "Records Under Validation",
-   "read_only": 1
-  },
-  {
-   "fieldname": "validation_information_section",
-   "fieldtype": "Section Break",
-   "label": "Validation Information"
+   "reqd": 1
   },
   {
    "fieldname": "ward",
    "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Ward",
    "options": "Ward"
-  },
-  {
-   "fieldname": "column_break_ennm",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "start_time",
-   "fieldtype": "Datetime",
-   "label": "Start Time",
-   "read_only": 1
-  },
-  {
-   "fieldname": "end_time",
-   "fieldtype": "Datetime",
-   "label": "End Time",
-   "read_only": 1
-  },
-  {
-   "fieldname": "enumeration_sample_responses_section_section",
-   "fieldtype": "Section Break",
-   "label": "Enumeration Sample Responses"
-  },
-  {
-   "fieldname": "enumeration_sample_responses",
-   "fieldtype": "Table",
-   "label": "Enumeration Sample Responses",
-   "options": "Enumeration Sample Responses"
   },
   {
    "fetch_from": "ward.local_government_area",
@@ -93,11 +51,16 @@
    "read_only": 1
   },
   {
-   "fieldname": "grid",
+   "fetch_from": "ward.state",
+   "fieldname": "state",
    "fieldtype": "Link",
-   "label": "Grid",
-   "link_filters": "[[\"Grid\",\"enabled\",\"=\",1]]",
-   "options": "Grid"
+   "label": "State",
+   "options": "State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ennm",
+   "fieldtype": "Column Break"
   },
   {
    "default": "Pending",
@@ -109,31 +72,73 @@
    "options": "Pending\nDiscarded\nCompleted"
   },
   {
-   "fetch_from": "ward.state",
-   "fieldname": "state",
-   "fieldtype": "Link",
-   "label": "State",
-   "options": "State",
-   "read_only": 1
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_ayph",
+   "fieldtype": "Section Break",
+   "label": "Records Validated"
   },
   {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "Enumeration Validation Summary",
+   "options": "Vaccination Validation Summary",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Vaccination Validation Summary",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "vaccinations_under_validation",
+   "fieldtype": "Table",
+   "label": "Vaccinations Under Validation",
+   "options": "Vaccinations Under Validation"
+  },
+  {
+   "fieldname": "health_facility",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Health Facility",
+   "link_filters": "[[\"Facility\",\"selected_facility\",\"=\",1]]",
+   "options": "Facility",
+   "reqd": 1
+  },
+  {
+   "fieldname": "validation_percentage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Validation Percentage",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-02 15:18:56.681630",
+ "modified": "2025-04-09 18:42:50.773818",
  "modified_by": "Administrator",
  "module": "Data",
- "name": "Enumeration Validation Summary",
+ "name": "Vaccination Validation Summary",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
@@ -178,7 +183,7 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Enumeration Validator",
+   "role": "Vaccination Validator",
    "share": 1,
    "write": 1
   }

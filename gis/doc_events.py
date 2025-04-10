@@ -55,7 +55,8 @@ def process_vaccination_status_and_next_vaccination(doc, method):
     frappe.msgprint(f"Vaccine Records: {vaccine_records}")
 
     # Format the list into a string in the required format
-    doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
+    # doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
+    doc.vaccines_taken = "[" + ", ".join(f'"{vaccine}"' for vaccine in vaccine_records) + "]"
 
     # Calculate the age in weeks
     date_of_birth = frappe.utils.getdate(doc.date_of_birth)
@@ -170,11 +171,57 @@ def autoset_ward(doc, method):
             doc.local_government_area = ward[0]['local_government_area']
             doc.state = ward[0]['state']
             doc.country = ward[0]['country']
-            # frappe.msgprint(f"Assigned Ward: {ward[0]['name']}")
-            # frappe.msgprint(f"Assigned Ward: {ward[0]['local_government_area']}")
-            # frappe.msgprint(f"Assigned Ward: {ward[0]['state']}")
-            # frappe.msgprint(f"Assigned Ward: {ward[0]['country']}")
-            
+
+
+def autoset_grid(doc, method):
+    frappe.msgprint(f"Processing Grid for Vaccination: {doc.name}")
+
+    response_geolocation = doc.get('response_geolocation')
+    lga = doc.get('local_government_area')
+
+    if not response_geolocation or not response_geolocation.strip():
+        return
+
+    try:
+        geojson = json.loads(response_geolocation)
+        geometry = geojson.get("features", [])[0].get("geometry")
+
+        if geometry and geometry.get("type") == "Point":
+            # Convert coordinate strings to float (important!)
+            point_coords = [float(coord) for coord in geometry["coordinates"]]
+            geometry["coordinates"] = point_coords
+
+            geometry_json = json.dumps(geometry)
+            frappe.msgprint(f"Geometry JSON: {geometry_json}")
+
+            # Look for Grid where Polygon contains the point
+            grid = frappe.db.sql("""
+                SELECT name FROM `tabGrid`
+                WHERE local_government_area = %s
+                AND ST_Intersects(
+                    ST_GeomFromGeoJSON(
+                        CAST(
+                            JSON_UNQUOTE(JSON_EXTRACT(geolocation_kyow, '$.features[0].geometry'))
+                            AS CHAR
+                        )
+                    ),
+                    ST_GeomFromGeoJSON(%s)
+                )
+                LIMIT 1
+            """, (lga, geometry_json), as_dict=True)
+
+            frappe.msgprint(f"Grid: {grid}")
+
+            if grid:
+                doc.grid = grid[0]["name"]
+                frappe.msgprint(f"✅ Assigned Grid: {grid[0]['name']}")
+            else:
+                frappe.msgprint("⚠️ No matching grid found.")
+        else:
+            frappe.msgprint("❌ Invalid point geometry.")
+    except Exception as e:
+        frappe.msgprint(f"🔥 GeoJSON error: {str(e)}")
+          
 
 def autoset_nearest_facility(doc, method):
     """
@@ -302,6 +349,7 @@ def update_child_vaccination_status(doc, method):
     Updates the vaccination status of a child based on administered vaccines and age.
     """
     vaccine_records = []
+    # frappe.msgprint(f"Processing Child Vaccination Status for: {doc.name}")
     
     # Iterate through the child table `last_vaccine_administered`
     for vaccine_entry in doc.get("last_vaccine_administered", []):
@@ -328,6 +376,7 @@ def update_child_vaccination_status(doc, method):
     if not vaccine_records:
         # If no vaccines have been administered
         doc.vaccination_status = "Never Vaccinated"
+       
     
     elif (
         ("PENTA 1" not in vaccine_records and 
@@ -345,17 +394,19 @@ def update_child_vaccination_status(doc, method):
     ):
         # If missing age-appropriate vaccines for "Under Immunized" conditions
         doc.vaccination_status = "Under Immunized"
-    
+
     elif (
-        (age_in_weeks >= 3 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
         (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
         (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
         (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
         (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
         (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
     ):
-        # If age-appropriate vaccines have been administered for "Vaccinated to Age" conditions
         doc.vaccination_status = "Vaccinated to Age"
+
     
     elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
         # If Measles 2 is administered after 60 weeks
@@ -398,26 +449,26 @@ def update_household_member_count(doc, method):
     """
     Updates the total number of people living in the household if any of the household member age groups change.
     """
-    previous_doc = doc.get_doc_before_save()
+    # previous_doc = doc.get_doc_before_save()
 
     # Ensure the previous document state exists before comparison
-    if previous_doc and (
-        previous_doc.how_many_household_members_are_above_18 != doc.how_many_household_members_are_above_18 or
-        previous_doc.how_many_household_members_are_between_15_and_18_years != doc.how_many_household_members_are_between_15_and_18_years or
-        previous_doc.how_many_household_members_are_between_9_and_14_years != doc.how_many_household_members_are_between_9_and_14_years or
-        previous_doc.how_many_household_members_are_between_5_and_8_years != doc.how_many_household_members_are_between_5_and_8_years or
-        previous_doc.how_many_household_members_are_below_5 != doc.how_many_household_members_are_below_5
-    ):
-        # Calculate total household members
-        doc.how_many_people_live_in_the_household = (
-            int(doc.how_many_household_members_are_above_18 or 0) +
-            int(doc.how_many_household_members_are_between_15_and_18_years or 0) +
-            int(doc.how_many_household_members_are_between_9_and_14_years or 0) +
-            int(doc.how_many_household_members_are_between_5_and_8_years or 0) +
-            int(doc.how_many_household_members_are_below_5 or 0)
-        )
+    # if previous_doc and (
+    #     previous_doc.how_many_household_members_are_above_18 != doc.how_many_household_members_are_above_18 or
+    #     previous_doc.how_many_household_members_are_between_15_and_18_years != doc.how_many_household_members_are_between_15_and_18_years or
+    #     previous_doc.how_many_household_members_are_between_9_and_14_years != doc.how_many_household_members_are_between_9_and_14_years or
+    #     previous_doc.how_many_household_members_are_between_5_and_8_years != doc.how_many_household_members_are_between_5_and_8_years or
+    #     previous_doc.how_many_household_members_are_below_5 != doc.how_many_household_members_are_below_5
+    # ):
+    # Calculate total household members
+    doc.how_many_people_live_in_the_household = (
+        int(doc.how_many_household_members_are_above_18 or 0) +
+        int(doc.how_many_household_members_are_between_15_and_18_years or 0) +
+        int(doc.how_many_household_members_are_between_9_and_14_years or 0) +
+        int(doc.how_many_household_members_are_between_5_and_8_years or 0) +
+        int(doc.how_many_household_members_are_below_5 or 0)
+    )
 
-        frappe.msgprint(f"Updated total household members: {doc.how_many_people_live_in_the_household}")
+        # frappe.msgprint(f"Updated total household members: {doc.how_many_people_live_in_the_household}")
 
 
 def update_building_vaccination_status(doc, method):

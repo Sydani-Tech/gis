@@ -296,7 +296,8 @@
   {
    "fieldname": "set_geolocation",
    "fieldtype": "Button",
-   "label": "Set Geolocation"
+   "label": "Set Geolocation",
+   "permlevel": 2
   }
  ],
  "image_field": "building_picture",
@@ -316,7 +317,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-03-27 12:25:21.322413",
+ "modified": "2025-04-10 08:05:16.053257",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
@@ -408,6 +409,16 @@
    "read": 1,
    "report": 1,
    "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Enumeration Validator",
    "share": 1,
    "write": 1
   }

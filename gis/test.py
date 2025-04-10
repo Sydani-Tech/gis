@@ -38,12 +38,12 @@ def test_fields():
 def update_building_geolocation():
     try:
         # Fetch the Building record with the specified name
-        # building = frappe.get_doc("Settlement", "Sunshine Homes")
-        building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
+        building = frappe.get_doc("Grid", "vuha6hqe62")
+        # building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
         # Update the geolocation field
         # print(building.response_geolocation)
-        print(building.geolocation)
-        # print(building.geolocation_kyow)
+        # print(building.geolocation)
+        print(building.geolocation_kyow)
         
         # building.response_geolocation = None
         # building.geolocation = None
@@ -464,7 +464,7 @@ def get_buildings_to_validate_and_save(ward):
         # Save everything to an Enumeration Validation Summary doctype
         summary = frappe.new_doc("Enumeration Validation Summary")
 
-        summary.ward = "City Center 1-Municipal Area Council-Fct"
+        summary.ward = ward
         summary.start_time = frappe.utils.now_datetime()
         summary.validator = frappe.session.user
         summary.status = "Pending"
@@ -474,7 +474,8 @@ def get_buildings_to_validate_and_save(ward):
                 "doctype_name": building["form"],
                 "record": building["name"],
                 "settlement": building["settlement"],
-                "enumerator": building["owner"]
+                "enumerator": building["owner"],
+                "status": "Pending",
             })
 
         for building in buildings_to_validate["selected_buildings"]:
@@ -482,7 +483,8 @@ def get_buildings_to_validate_and_save(ward):
                 "doctype_name": building["form"],
                 "record": building["name"],
                 "settlement": building["settlement"],
-                "enumerator": building["owner"]
+                "enumerator": building["owner"],
+                "status": "Pending",
             })
 
         summary.insert(ignore_permissions=True)

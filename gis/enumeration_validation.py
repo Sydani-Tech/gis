@@ -119,6 +119,7 @@ def get_builing_validation_questions(building_name):
                 "options": item["options"] if "options" in item else []
             }
 
+    import ast
     # Fetch all Children where status is "Submitted" for the selected Household
     children = frappe.db.sql("""
         SELECT name, first_name, last_name, full_name, gender, date_of_birth, vaccines_taken
@@ -126,8 +127,18 @@ def get_builing_validation_questions(building_name):
         WHERE household = %s AND status = 'Submitted'
     """, household["name"], as_dict=True)
     
-    # frappe.msgprint(children)
-    
+    # for child in children:
+    #     vaccines_str = child.get("vaccines_taken", "[]")
+    #     child["vaccines_taken"] = reformat_vaccines_taken(vaccines_str)
+
+    for child in children:
+        vaccines_str = child.get("vaccines_taken", "").strip("[]").strip()
+        if vaccines_str:
+            parsed_list = [v.strip() for v in vaccines_str.split(",")]
+            child["vaccines_taken"] = parsed_list
+        else:
+            child["vaccines_taken"] = []
+
 
     if not children:
         return responses  # No child found, return what we have
@@ -147,6 +158,16 @@ def get_builing_validation_questions(building_name):
 
     return responses
 
+def reformat_vaccines_taken(vaccines_str):
+            # Remove the surrounding brackets
+            content = vaccines_str.strip('[]')
+            if not content:
+                return '[]'
+            # Split the string into items, trim whitespace, and enclose each in double quotes
+            items = ['"{}"'.format(item.strip()) for item in content.split(',')]
+            # Join the items with commas and enclose in square brackets
+            return '[{}]'.format(', '.join(items))
+
 import frappe
 import math
 import itertools
@@ -161,9 +182,7 @@ def get_buildings(grid=None, ward=None):
     :param ward: The Ward filter (optional).
     :return: Dictionary containing all buildings and the systematically selected buildings.
     """
-
-    if not grid and not ward:
-        return {"error": "Please provide either Grid or Ward as a filter."}
+    
 
     # Fetch all Approved Settlements in the selected Grid or Ward
     settlement_filters = {"status": "Approved"}
@@ -172,9 +191,16 @@ def get_buildings(grid=None, ward=None):
     if ward:
         settlement_filters["ward"] = ward
 
-    
-
-    settlements = frappe.db.get_list("Settlement", filters=settlement_filters, fields=["name"])
+    settlements = frappe.db.sql("""
+        SELECT name
+        FROM `tabSettlement`
+        WHERE status = 'Approved'
+        {grid_filter}
+        {ward_filter}
+    """.format(
+        grid_filter=f"AND grid = '{grid}'" if grid else "",
+        ward_filter=f"AND ward = '{ward}'" if ward else ""
+    ), as_dict=True)
 
     if not settlements:
         return {"error": "No approved settlements found with the given filter."}
@@ -189,7 +215,18 @@ def get_buildings(grid=None, ward=None):
     if ward:
         building_filters["ward"] = ward
 
-    buildings = frappe.db.get_list("Building", filters=building_filters, fields=["name", "settlement", "owner"])
+    # buildings = frappe.db.get_list("Building", filters=building_filters, fields=["name", "settlement", "owner", "geolocation"])
+
+    buildings = frappe.db.sql("""
+        SELECT name, settlement, owner, geolocation
+        FROM `tabBuilding`
+        WHERE status = 'Submitted'
+        {grid_filter}
+        {ward_filter}
+    """.format(
+        grid_filter=f"AND grid = '{grid}'" if grid else "",
+        ward_filter=f"AND ward = '{ward}'" if ward else ""
+    ), as_dict=True)
     # print("Total Buildings: ", len(buildings))
 
     if not buildings:
@@ -255,6 +292,11 @@ def get_buildings(grid=None, ward=None):
             break
 
     return {
+        # "message": "Buildings fetched successfully.",
+        # "status": 200,
+        # "settlement": settlement_names,
+        # "total_valid_buildings": total_valid,
+        # "total_buildings": len(buildings),
         "all_buildings": [{"form": "Building", **b} for b in buildings],
         "selected_buildings": [{"form": "Building", **b} for b in selected_buildings]
     }
@@ -326,14 +368,15 @@ def get_building_details(building_name):
             "data": builing_validation_questions
         }
     except Exception as e:
+        import traceback
         return {
             "message": f"Error fetching data: {str(e)}",
-            "status": "error"
+            "status": "error",
+            "traceback": traceback.format_exc()
         }
 
-
 @frappe.whitelist()
-def get_buildings_to_validate_and_save(ward):
+def get_buildings_to_validate_and_save(grid=None, ward=None):
 
     # Get the logged-in user
     user = frappe.session.user
@@ -344,7 +387,7 @@ def get_buildings_to_validate_and_save(ward):
     user_roles = frappe.get_roles(user)
     if "Enumeration Validator" not in user_roles:
         return {
-            "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
+            "message": "You do not have the required role to perform enumeration validation, please contact your Supervisor.",
             "status": 401
         }
     
@@ -359,48 +402,74 @@ def get_buildings_to_validate_and_save(ward):
             "message": "You already have a pending validation summary. Please complete it before starting a new one.",
             "status": 400
         }
-   
-    try:
-        buildings_to_validate = get_buildings(ward=ward)
-        # frappe.msgprint(buildings_to_validate)
+    
 
-        # Save everything to an Enumeration Validation Summary doctype
+    try:
+
+        # Ensure only one of grid or ward is supplied
+        if (grid and ward) or (not grid and not ward):
+            return {
+                "message": "Please provide either Grid or Ward, but not both.",
+                "status": 400
+            }
+
+        # Get buildings to validate
+        buildings_to_validate = get_buildings(grid=grid, ward=ward)
+
+        # Create and save Enumeration Validation Summary
         summary = frappe.new_doc("Enumeration Validation Summary")
 
-        summary.ward = "City Center 1-Municipal Area Council-Fct"
+        if grid:
+            # Fetch the ward value from the Grid doctype
+            grid_doc = frappe.get_doc("Grid", grid)
+            summary.grid = grid
+            summary.ward = grid_doc.ward
+        else:
+            summary.ward = ward
+
         summary.start_time = frappe.utils.now_datetime()
         summary.validator = frappe.session.user
         summary.status = "Pending"
 
-        for building in buildings_to_validate["all_buildings"]:
+        # Append all buildings
+        for building in buildings_to_validate.get("all_buildings", []):
             summary.append("records_under_validation", {
-                "doctype_name": building["form"],
-                "record": building["name"],
-                "settlement": building["settlement"],
-                "enumerator": building["owner"]
+                "doctype_name": building.get("form"),
+                "record": building.get("name"),
+                "settlement": building.get("settlement"),
+                "enumerator": building.get("owner"),
+                "status": "Pending",
             })
 
-        for building in buildings_to_validate["selected_buildings"]:
+        # Append selected buildings
+        for building in buildings_to_validate.get("selected_buildings", []):
             summary.append("enumeration_sample_responses", {
-                "doctype_name": building["form"],
-                "record": building["name"],
-                "settlement": building["settlement"],
-                "enumerator": building["owner"]
+                "doctype_name": building.get("form"),
+                "record": building.get("name"),
+                "settlement": building.get("settlement"),
+                "enumerator": building.get("owner"),
+                "geolocation": building.get("geolocation"),
+                "status": "Pending",
             })
 
         summary.insert(ignore_permissions=True)
         summary.save()
 
-    
         return {
             "message": "Enumeration validation data saved successfully.",
-            "status": 200
+            "status": 200,
+            "buildings_to_validate": buildings_to_validate,
         }
+
     except Exception as e:
+        # frappe.log_error(f"Error in get_buildings_to_validate_and_save: {str(e)}", "Error")
+        import traceback
         return {
             "message": f"Error fetching data: {str(e)}",
-            "status": "error"
-        }
+            "status": "error",
+            "ward": ward,
+            "traceback": traceback.format_exc()
+        }   
 
 @frappe.whitelist()
 def get_wards_to_validate():
@@ -413,7 +482,7 @@ def get_wards_to_validate():
     user_roles = frappe.get_roles(user)
     if "Enumeration Validator" not in user_roles:
         return {
-            "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
+            "message": "You do not have the required role to perform enumeration validation, please contact your Supervisor.",
             "status": 401
         }
 
@@ -436,16 +505,66 @@ def get_wards_to_validate():
             fields=['name', 'ward']
         )
 
-    allowed_wards = frappe.get_all(
-    'Ward', 
-    filters={'local_government_area': ['in', ['Borgu-Niger', 'Bosso-Niger', 'Mokwa-Niger', 'Rijau-Niger', 'Shiroro-Niger', 'Wushishi-Niger']]},
-    fields=['name', 'ward']
-        )
+    # If no user permissions, fetch all wards in the specified local government areas
+    else:
+        allowed_wards = frappe.get_all(
+        'Ward', 
+        filters={'local_government_area': ['in', ['Borgu-Niger', 'Bosso-Niger', 'Mokwa-Niger', 'Rijau-Niger', 'Shiroro-Niger', 'Wushishi-Niger']]},
+        fields=['name', 'ward']
+            )
 
     return {
         "message": "Wards fetched successfully.",
         "status": 200,
         "data": allowed_wards
+    }
+
+@frappe.whitelist()
+def get_grids_to_validate():
+    # Get the logged-in user
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+    
+    # Check if the user has the "Dashboard Viewer" role
+    user_roles = frappe.get_roles(user)
+    if "Enumeration Validator" not in user_roles:
+        return {
+            "message": "You do not have the required role to perform enumeration validation, please contact your Supervisor.",
+            "status": 401
+        }
+
+
+    # Initialize filters
+    filters = {}
+    # Check User Permissions for the provided user
+    user_permissions = frappe.get_all(
+        'User Permission',
+        filters={'user': user, 'allow': 'Grid'},
+        fields=['for_value']
+    )
+
+    if user_permissions:
+        # Extract the list of allowed wards from user permissions
+        allowed_grids = [permission['for_value'] for permission in user_permissions]
+        allowed_grids = frappe.get_all(
+            'Grid',
+            filters={'name': ['in', allowed_grids]},
+            fields=['name', "title", 'ward']
+        )
+
+    # If no user permissions, fetch all wards in the specified local government areas
+    else:
+        return {
+            "message": "No grid has been assigned to you, choose a Ward to validate instead or reach out to your supervisor.",
+            "status": 401
+            
+        }
+
+    return {
+        "message": "Grids fetched successfully.",
+        "status": 200,
+        "data": allowed_grids
     }
 
 import frappe
@@ -587,13 +706,16 @@ def update_enumeration_records_from_sample_responses_on_save(doc, method):
 
     # Get a set of enumerators with 'Returned' status
     returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Returned"}
+    approved_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Approved"}
+    pending_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Pending"}
 
     for record in records_under_validation:
         enumerator = record["enumerator"]
         building_name = record["record"]  # 'record' represents the building column
 
         # Determine new status based on whether the enumerator was marked as Returned
-        new_status = "Returned" if enumerator in returned_enumerators else "Approved"
+        # new_status = "Returned" if enumerator in returned_enumerators else "Approved"
+        new_status = "Returned" if enumerator in returned_enumerators else "Approved" if enumerator in approved_enumerators else "Pending"
 
         # Update status in Records Under Validation
         frappe.db.set_value("Records Under Validation", record["name"], "status", new_status)
@@ -604,3 +726,11 @@ def update_enumeration_records_from_sample_responses_on_save(doc, method):
 def validate_status_is_approved(doc, method):
     if doc.status != "Approved":
         frappe.throw("Status must be 'Approved' to submit validation.")
+
+
+def test_get_buildings():
+    # ward = "City Center 1-Municipal Area Council-Fct"
+    ward = None
+    grid = "us9fgj3j87"
+    result = get_buildings(ward=ward, grid=grid)
+    print(result)

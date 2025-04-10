@@ -225,7 +225,8 @@
    "in_standard_filter": 1,
    "label": "Settlement",
    "options": "Settlement",
-   "permlevel": 2
+   "permlevel": 2,
+   "reqd": 1
   },
   {
    "fetch_from": "building.ward",
@@ -423,7 +424,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-03-16 15:45:20.010356",
+ "modified": "2025-04-08 12:36:17.697809",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",
@@ -506,6 +507,16 @@
    "read": 1,
    "report": 1,
    "role": "Project Team",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Enumeration Validator",
    "share": 1,
    "write": 1
   }

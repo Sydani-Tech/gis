@@ -418,7 +418,13 @@ def save_household(**kwargs):
                 "how_many_household_members_are_between_9_and_14_years": kwargs["how_many_household_members_are_between_9_and_14_years"],
                 "how_many_household_members_are_between_5_and_8_years": kwargs["how_many_household_members_are_between_5_and_8_years"],
                 "how_many_household_members_are_below_5": kwargs["how_many_household_members_are_below_5"],
-                "how_many_people_live_in_the_household": kwargs["how_many_household_members_are_below_5"] + kwargs["how_many_household_members_are_between_5_and_8_years"] + kwargs["how_many_household_members_are_between_9_and_14_years"] + kwargs["how_many_household_members_are_between_15_and_18_years"] + kwargs["how_many_household_members_are_above_18"],
+                "how_many_people_live_in_the_household": sum([
+                    kwargs["how_many_household_members_are_below_5"],
+                    kwargs["how_many_household_members_are_between_5_and_8_years"],
+                    kwargs["how_many_household_members_are_between_9_and_14_years"],
+                    kwargs["how_many_household_members_are_between_15_and_18_years"],
+                    kwargs["how_many_household_members_are_above_18"]
+                ]),
                 "most_common_illness_within_the_last_year": kwargs["most_common_illness_within_the_last_year"],
                 "if_others_specify": kwargs.get("if_others_specify"),
                 # "what_is_the_nearest_facility": kwargs["what_is_the_nearest_facility"],
@@ -456,8 +462,13 @@ def save_household(**kwargs):
                 "how_many_household_members_are_between_9_and_14_years": kwargs["how_many_household_members_are_between_9_and_14_years"],
                 "how_many_household_members_are_between_5_and_8_years": kwargs["how_many_household_members_are_between_5_and_8_years"],
                 "how_many_household_members_are_below_5": kwargs["how_many_household_members_are_below_5"],
-                "how_many_people_live_in_the_household": kwargs["how_many_household_members_are_below_5"] + kwargs["how_many_household_members_are_between_5_and_8_years"] + kwargs["how_many_household_members_are_between_9_and_14_years"] + kwargs["how_many_household_members_are_between_15_and_18_years"] + kwargs["how_many_household_members_are_above_18"],
-
+                "how_many_people_live_in_the_household": sum([
+                    kwargs["how_many_household_members_are_below_5"],
+                    kwargs["how_many_household_members_are_between_5_and_8_years"],
+                    kwargs["how_many_household_members_are_between_9_and_14_years"],
+                    kwargs["how_many_household_members_are_between_15_and_18_years"],
+                    kwargs["how_many_household_members_are_above_18"]
+                ]),
                 "most_common_illness_within_the_last_year": kwargs["most_common_illness_within_the_last_year"],
                 "if_others_specify": kwargs.get("if_others_specify"),
                 # "what_is_the_nearest_facility": kwargs["what_is_the_nearest_facility"],
