@@ -174,7 +174,7 @@ def autoset_ward(doc, method):
 
 
 def autoset_grid(doc, method):
-    frappe.msgprint(f"Processing Grid for Vaccination: {doc.name}")
+    # frappe.msgprint(f"Processing Grid for Vaccination: {doc.name}")
 
     response_geolocation = doc.get('response_geolocation')
     lga = doc.get('local_government_area')
@@ -192,7 +192,7 @@ def autoset_grid(doc, method):
             geometry["coordinates"] = point_coords
 
             geometry_json = json.dumps(geometry)
-            frappe.msgprint(f"Geometry JSON: {geometry_json}")
+            # frappe.msgprint(f"Geometry JSON: {geometry_json}")
 
             # Look for Grid where Polygon contains the point
             grid = frappe.db.sql("""
@@ -210,7 +210,7 @@ def autoset_grid(doc, method):
                 LIMIT 1
             """, (lga, geometry_json), as_dict=True)
 
-            frappe.msgprint(f"Grid: {grid}")
+            # frappe.msgprint(f"Grid: {grid}")
 
             if grid:
                 doc.grid = grid[0]["name"]

@@ -221,10 +221,14 @@ def grids(ward, lga, state):
     )
 
     # Sort settlements alphabetically by name
+    # if grids:
+    #     grids = sorted(grids, key=lambda x: x['title'])
+
     if grids:
-        grids = sorted(grids, key=lambda x: x['name'])
-        # Limit to the first 20 results
-        # settlements = settlements[:20]
+    # Sort by the numeric part of the grid title
+        import re
+        grids = sorted(grids, key=lambda x: int(re.search(r'\d+', x['title']).group()) if re.search(r'\d+', x['title']) else float('inf'))
+
         set_res(grids=grids)
     else:
         set_res(message="No Grids found.")
