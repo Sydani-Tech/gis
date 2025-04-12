@@ -189,21 +189,32 @@ def grid_settlements(grid_id):
 #   return set_res(facilities=fcs)
 
 
+# @frappe.whitelist()
+# def grid_facilities(grid_id):
+#   fcs = frappe.db.sql(f"""
+#     SELECT g.name as grid_id, g.location as grid_location, f.name as name, f.facility_name, f.facility_address, f.ward,
+#     f.local_government_area, f.state, f.country 
+#     FROM `tabGrid` g
+#     JOIN `tabFacility` f
+#     ON ST_Contains(
+#       ST_GeomFromGeoJSON(g.geolocation_kyow),
+#       ST_GeomFromGeoJSON(f.geolocation)
+#     ) 
+#     WHERE g.name = '{grid_id}' AND f.selected_facility = 1
+#   """, as_dict=True)
+
+#   return set_res(facilities=fcs)
+
 @frappe.whitelist()
 def grid_facilities(grid_id):
-  fcs = frappe.db.sql(f"""
-    SELECT g.name as grid_id, g.location as grid_location, f.name as name, f.facility_name, f.facility_address, f.ward,
-    f.local_government_area, f.state, f.country 
-    FROM `tabGrid` g
-    JOIN `tabFacility` f
-    ON ST_Contains(
-      ST_GeomFromGeoJSON(g.geolocation_kyow),
-      ST_GeomFromGeoJSON(f.geolocation)
-    ) 
-    WHERE g.name = '{grid_id}' AND f.selected_facility = 1
-  """, as_dict=True)
-
-  return set_res(facilities=fcs)
+    fcs = frappe.db.sql(f"""
+      SELECT g.name as grid_id, g.location as grid_location, g.ward, g.local_government_area, f.name as name, f.facility_name, f.facility_address, f.ward,
+      f.local_government_area, f.state, f.country 
+      FROM `tabGrid` g
+      JOIN `tabFacility` f
+      WHERE g.name = '{grid_id}' AND f.selected_facility = 1 AND f.ward = g.ward
+    """, as_dict=True)
+    return set_res(facilities=fcs)
 
 
 # @frappe.whitelist()

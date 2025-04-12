@@ -408,29 +408,33 @@ def save_household(**kwargs):
                 "phone_number": kwargs["phone_number"],
                 "educational_level_of_household_head": kwargs["educational_level_of_household_head"],
                 "is_the_household_head_employed": kwargs["is_the_household_head_employed"],
-                "industry_of_employment": kwargs.get("industry_of_employment"),
-                "average_monthly_income": kwargs.get("average_monthly_income"),
+                "industry_of_employment": kwargs["industry_of_employment"] if kwargs["is_the_household_head_employed"] == "Yes" else "",
+                "average_monthly_income": kwargs["average_monthly_income"] if kwargs["is_the_household_head_employed"] == "Yes" else "",
+                # "industry_of_employment": kwargs.get("industry_of_employment"),
+                # "average_monthly_income": kwargs.get("average_monthly_income"),
                 "is_the_household_residing_in_a_rented_apartment": kwargs["is_the_household_residing_in_a_rented_apartment"],
                 "are_there_any_pregnant_women_in_the_household": kwargs["are_there_any_pregnant_women_in_the_household"],
-                "how_many_pregnant_women_are_there": kwargs.get("how_many_pregnant_women_are_there"),
+                "how_many_pregnant_women_are_there": kwargs["how_many_pregnant_women_are_there"] if kwargs["are_there_any_pregnant_women_in_the_household"] == "Yes" else 0,
+                # "how_many_pregnant_women_are_there": kwargs.get("how_many_pregnant_women_are_there"),
                 "how_many_household_members_are_above_18": kwargs["how_many_household_members_are_above_18"],
                 "how_many_household_members_are_between_15_and_18_years": kwargs["how_many_household_members_are_between_15_and_18_years"],
                 "how_many_household_members_are_between_9_and_14_years": kwargs["how_many_household_members_are_between_9_and_14_years"],
                 "how_many_household_members_are_between_5_and_8_years": kwargs["how_many_household_members_are_between_5_and_8_years"],
                 "how_many_household_members_are_below_5": kwargs["how_many_household_members_are_below_5"],
                 "how_many_people_live_in_the_household": sum([
-                    kwargs["how_many_household_members_are_below_5"],
-                    kwargs["how_many_household_members_are_between_5_and_8_years"],
-                    kwargs["how_many_household_members_are_between_9_and_14_years"],
-                    kwargs["how_many_household_members_are_between_15_and_18_years"],
-                    kwargs["how_many_household_members_are_above_18"]
+                    int(kwargs.get("how_many_household_members_are_below_5", 0)),
+                    int(kwargs.get("how_many_household_members_are_between_5_and_8_years", 0)),
+                    int(kwargs.get("how_many_household_members_are_between_9_and_14_years", 0)),
+                    int(kwargs.get("how_many_household_members_are_between_15_and_18_years", 0)),
+                    int(kwargs.get("how_many_household_members_are_above_18", 0))
                 ]),
                 "most_common_illness_within_the_last_year": kwargs["most_common_illness_within_the_last_year"],
                 "if_others_specify": kwargs.get("if_others_specify"),
                 # "what_is_the_nearest_facility": kwargs["what_is_the_nearest_facility"],
                 # "how_far_is_the_nearest_facility": kwargs["how_far_is_the_nearest_facility"],
                 "do_you_take_your_childchildren_to_the_facility_for_ri_services": kwargs["do_you_take_your_childchildren_to_the_facility_for_ri_services"],
-                "please_state_why": kwargs.get("please_state_why"),
+                "please_state_why": kwargs["please_state_why"] if kwargs["do_you_take_your_childchildren_to_the_facility_for_ri_services"] == "No" else "",
+                # "please_state_why": kwargs.get("please_state_why"),
                 # "geolocation": kwargs["geolocation"],
                 "building": kwargs["building"],
                 "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
@@ -463,11 +467,11 @@ def save_household(**kwargs):
                 "how_many_household_members_are_between_5_and_8_years": kwargs["how_many_household_members_are_between_5_and_8_years"],
                 "how_many_household_members_are_below_5": kwargs["how_many_household_members_are_below_5"],
                 "how_many_people_live_in_the_household": sum([
-                    kwargs["how_many_household_members_are_below_5"],
-                    kwargs["how_many_household_members_are_between_5_and_8_years"],
-                    kwargs["how_many_household_members_are_between_9_and_14_years"],
-                    kwargs["how_many_household_members_are_between_15_and_18_years"],
-                    kwargs["how_many_household_members_are_above_18"]
+                    int(kwargs.get("how_many_household_members_are_below_5", 0)),
+                    int(kwargs.get("how_many_household_members_are_between_5_and_8_years", 0)),
+                    int(kwargs.get("how_many_household_members_are_between_9_and_14_years", 0)),
+                    int(kwargs.get("how_many_household_members_are_between_15_and_18_years", 0)),
+                    int(kwargs.get("how_many_household_members_are_above_18", 0))
                 ]),
                 "most_common_illness_within_the_last_year": kwargs["most_common_illness_within_the_last_year"],
                 "if_others_specify": kwargs.get("if_others_specify"),
@@ -604,7 +608,8 @@ def save_settlement(**kwargs):
                 "names_of_other_influential_members_within_settlement": kwargs["names_of_other_influential_members_within_settlement"],
                 "name_of_nearest_facility_to_settlement": kwargs["name_of_nearest_facility_to_settlement"],
                 "is_there_a_vdc": kwargs["is_there_a_vdc"],
-                "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"],
+                "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"] if kwargs["is_there_a_vdc"] == "Yes" else "",
+                # "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"],
                 # "ward": kwargs["ward"],
                 "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
                 "response_id": kwargs["response_id"],
@@ -629,7 +634,8 @@ def save_settlement(**kwargs):
                 "names_of_other_influential_members_within_settlement": kwargs["names_of_other_influential_members_within_settlement"],
                 "name_of_nearest_facility_to_settlement": kwargs["name_of_nearest_facility_to_settlement"],
                 "is_there_a_vdc": kwargs["is_there_a_vdc"],
-                "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"],
+                "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"] if kwargs["is_there_a_vdc"] == "Yes" else "",
+                # "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"],
                 # "ward": kwargs["ward"],
                 "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
                 "response_id": kwargs["response_id"],
@@ -1015,6 +1021,3 @@ def get_f():
     SELECT * FROM `tabSettlement`
   """, as_dict=True)
   return f
-
-
-

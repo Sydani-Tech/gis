@@ -327,7 +327,8 @@
   {
    "fieldname": "set_geolocation",
    "fieldtype": "Button",
-   "label": "Set Geolocation"
+   "label": "Set Geolocation",
+   "permlevel": 2
   }
  ],
  "index_web_pages_for_search": 1,
@@ -345,7 +346,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-03-31 07:18:04.008791",
+ "modified": "2025-04-12 19:21:52.218957",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
