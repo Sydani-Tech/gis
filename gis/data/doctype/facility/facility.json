@@ -106,7 +106,8 @@
   {
    "fieldname": "latitude",
    "fieldtype": "Float",
-   "label": "Latitude"
+   "label": "Latitude",
+   "precision": "6"
   },
   {
    "fieldname": "set_geolocation",
@@ -121,8 +122,21 @@
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-04-09 18:38:40.136289",
+ "links": [
+  {
+   "link_doctype": "Building",
+   "link_fieldname": "health_facility"
+  },
+  {
+   "link_doctype": "Vaccination",
+   "link_fieldname": "facility"
+  },
+  {
+   "link_doctype": "Vaccination Validation Summary",
+   "link_fieldname": "health_facility"
+  }
+ ],
+ "modified": "2025-04-14 16:15:11.477261",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",

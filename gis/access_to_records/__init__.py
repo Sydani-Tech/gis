@@ -695,7 +695,15 @@ def save_vaccination(**kwargs):
                 "project": kwargs.get("project"),
             })
 
-        full_name = f"{kwargs['first_name']} {kwargs.get('middle_name', '')} {kwargs['last_name']}".strip()
+        first_name = kwargs.get("first_name", "").strip()
+        middle_name = kwargs.get("middle_name", "").strip()
+        last_name = kwargs.get("last_name", "").strip()
+        care_givers_firstname = kwargs.get("care_givers_firstname", "").strip()
+        care_givers_surname = kwargs.get("care_givers_surname", "").strip()
+
+        # Filter out any empty strings to avoid double spaces
+        full_name = " ".join(filter(None, [first_name, middle_name, last_name]))
+        # full_name = f"{kwargs['first_name']} {kwargs.get('middle_name', '')} {kwargs['last_name']}".strip()
         type_of_vaccination_post = kwargs.get("type_of_vaccination_post"),
         if type_of_vaccination_post == "Mobile Team":
             building = frappe.get_value("Household", kwargs.get("household"), "building")
@@ -704,15 +712,20 @@ def save_vaccination(**kwargs):
 
         # Update fields for both new and existing records
         vaccination.update({
-            "first_name": kwargs.get("first_name"),
-            "middle_name": kwargs.get("middle_name"),
-            "last_name": kwargs.get("last_name"),
+            # "first_name": kwargs.get("first_name"),
+            # "middle_name": kwargs.get("middle_name"),
+            # "last_name": kwargs.get("last_name"),
+            "first_name": first_name,
+            "middle_name": middle_name,
+            "last_name": last_name,
             "full_name": full_name,
             "date_of_birth": kwargs.get("date_of_birth"),
             "gender": kwargs.get("gender"),
-            "care_givers_name": f"{kwargs.get('care_givers_firstname', '')} {kwargs.get('care_givers_surname', '')}".strip(),
-            "care_givers_firstname": kwargs.get("care_givers_firstname"),
-            "care_givers_surname": kwargs.get("care_givers_surname"),
+            "care_givers_name": f"{kwargs.get('care_givers_firstname', '').strip()}{kwargs.get('care_givers_surname', '').strip()}",
+            # "care_givers_firstname": kwargs.get("care_givers_firstname"),
+            # "care_givers_surname": kwargs.get("care_givers_surname"),
+            "care_givers_firstname": care_givers_firstname,
+            "care_givers_surname": care_givers_surname,
             "care_givers_date_of_birth": kwargs.get("care_givers_date_of_birth"),
             "care_givers_phone_no": kwargs.get("care_givers_phone_no"),
             "household": kwargs.get("household"),

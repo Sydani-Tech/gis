@@ -428,12 +428,14 @@ def update_full_name(doc, method):
         doc.full_name = f"{first_name} {last_name}"
 
 #Full name of caregivers in the vaccination doctype   
+
 def update_full_name_care_givers(doc, method):
-    
-    care_givers_firstname = doc.care_givers_firstname or ""
-    care_givers_surname = doc.care_givers_surname or ""
-        
-    doc.care_givers_name = f"{care_givers_firstname} {care_givers_surname}"
+    care_givers_firstname = (doc.care_givers_firstname or "").strip()
+    care_givers_surname = (doc.care_givers_surname or "").strip()
+
+    # Join only non-empty values with a single space
+    doc.care_givers_name = " ".join(filter(None, [care_givers_firstname, care_givers_surname]))
+
 
 def update_settlement_field(doc, method):
     if not doc.settlement:
