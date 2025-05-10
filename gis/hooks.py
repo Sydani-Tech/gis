@@ -203,7 +203,10 @@ doc_events = {
     "Vaccination Validation Summary": {
         "before_submit": [
             "gis.vaccination_validation.process_vaccinations_before_submit"
-        ]
+        ],
+        "validate": [
+            "gis.vaccination_validation.process_vaccinations_before_save"
+        ],
     },
 }
 

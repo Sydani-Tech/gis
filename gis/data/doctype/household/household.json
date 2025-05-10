@@ -200,6 +200,7 @@
    "fieldname": "building",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Building",
    "options": "Building",
    "reqd": 1
@@ -424,7 +425,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-04-08 12:36:17.697809",
+ "modified": "2025-04-29 10:18:34.544363",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

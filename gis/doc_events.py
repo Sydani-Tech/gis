@@ -68,88 +68,191 @@ def process_vaccination_status_and_next_vaccination(doc, method):
     frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
 
     # Set vaccination_status based on conditions
+    # if not vaccine_records:
+    #     doc.vaccination_status = "Never Vaccinated"
+    # elif (
+    #     ("PENTA 1" not in vaccine_records and 
+    #      "PENTA 2" not in vaccine_records and 
+    #      "PENTA 3" not in vaccine_records) and age_in_weeks > 6
+    # ):
+    #     doc.vaccination_status = "Zero Dose"
+    # elif (
+    #     (age_in_weeks >= 10 and ("PENTA 2" not in vaccine_records and "PENTA 3" not in vaccine_records)) or
+    #     (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
+    #     (age_in_weeks >= 36 and "VIT A" not in vaccine_records) or
+    #     (age_in_weeks >= 48 and "Measles 1" not in vaccine_records) or
+    #     (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
+    # ):
+    #     doc.vaccination_status = "Under Immunized"
+    # elif (
+    #     (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
+    #     (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
+    #     (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
+    #     (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
+    #     (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
+    #     (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
+    #     (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
+    #     (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
+    # ):
+    #     doc.vaccination_status = "Vaccinated to Age"
+    # elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
+    #     doc.vaccination_status = "Fully Vaccinated (Measles 2)"
+
+
+    # Set vaccination_status based on conditions
     if not vaccine_records:
+        # If no vaccines have been administered
         doc.vaccination_status = "Never Vaccinated"
+
     elif (
         ("PENTA 1" not in vaccine_records and 
          "PENTA 2" not in vaccine_records and 
          "PENTA 3" not in vaccine_records) and age_in_weeks > 6
     ):
         doc.vaccination_status = "Zero Dose"
+
     elif (
-        (age_in_weeks >= 10 and ("PENTA 2" not in vaccine_records and "PENTA 3" not in vaccine_records)) or
+        (age_in_weeks >= 0 and "BCG" not in vaccine_records) or
+        (age_in_weeks >= 0 and "HEP B0" not in vaccine_records) or
+        (age_in_weeks >= 0 and "OPV 0" not in vaccine_records) or
+        (age_in_weeks >= 6 and "PENTA 1" not in vaccine_records) or
+        (age_in_weeks >= 10 and "PENTA 2" not in vaccine_records) or
         (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
-        (age_in_weeks >= 36 and "VIT A" not in vaccine_records) or
-        (age_in_weeks >= 48 and "Measles 1" not in vaccine_records) or
+        (age_in_weeks >= 24 and "VIT A" not in vaccine_records) or
+        (age_in_weeks >= 36 and "Measles 1" not in vaccine_records) or
         (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
     ):
-        doc.vaccination_status = "Under Immunized"
+        # If missing age-appropriate vaccines for "Under Immunized" conditions
+        doc.vaccination_status = "Under Immunized" 
+    
     elif (
-        (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
-        (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
-        (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
-        (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
-        (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
-        (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
-        (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
-        (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 24 and age_in_weeks <= 48 and "VIT A" in vaccine_records and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 36 and age_in_weeks <= 60 and "Measles 1" in vaccine_records and "VIT A" in vaccine_records and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records)
     ):
         doc.vaccination_status = "Vaccinated to Age"
-    elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
+
+    elif (
+        ("BCG" in vaccine_records) and
+        ("HEP B0" in vaccine_records) and
+        ("OPV 0" in vaccine_records) and
+        ("PENTA 1" in vaccine_records) and
+        ("PENTA 2" in vaccine_records) and
+        ("PENTA 3" in vaccine_records) and
+        ("VIT A" in vaccine_records) and
+        ("Measles 1" in vaccine_records) and
+        ("Measles 2" in vaccine_records)
+    ):
         doc.vaccination_status = "Fully Vaccinated (Measles 2)"
+    
+    # Print final vaccination status
+    frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
+
 
     # Determine the next vaccination date based on administered vaccines
     vaccination_date = frappe.utils.getdate(doc.vaccination_date)
     frappe.msgprint(f"Vaccination Date: {vaccination_date}")
 
-    if set(vaccine_records).issubset({"BCG", "HEP B0", "OPV 0"}):
-        doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 42)  # 6 weeks
+    # if set(vaccine_records).issubset({"BCG", "HEP B0", "OPV 0"}):
+    #     doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 42)  # 6 weeks
         
-    elif (
-        "PENTA 1" in vaccine_records or "ROTA 1" in vaccine_records or "PCV 1" in vaccine_records or 
-        "OPV 1" in vaccine_records or "IPV 1" in vaccine_records
-    ):
-        if not (
-            "PENTA 2" in vaccine_records or "ROTA 2" in vaccine_records or "PCV 2" in vaccine_records or 
-            "OPV 2" in vaccine_records or "PENTA 3" in vaccine_records or "ROTA 3" in vaccine_records or 
-            "PCV 3" in vaccine_records or "OPV 3" in vaccine_records or "IPV 2" in vaccine_records or 
-            "VIT A" in vaccine_records or "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or 
-            "Men A" in vaccine_records or "Measles 2" in vaccine_records
-        ):
-            doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 28)  # 4 weeks
-    elif (
-        "PENTA 2" in vaccine_records or "ROTA 2" in vaccine_records or "PCV 2" in vaccine_records or "OPV 2" in vaccine_records
-    ):
-        if not (
-            "PENTA 3" in vaccine_records or "ROTA 3" in vaccine_records or "PCV 3" in vaccine_records or 
-            "OPV 3" in vaccine_records or "IPV 2" in vaccine_records or "VIT A" in vaccine_records or 
-            "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or "Men A" in vaccine_records or 
-            "Measles 2" in vaccine_records
-        ):
-            doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 28)  # 4 weeks
-    elif (
-        "PENTA 3" in vaccine_records or "ROTA 3" in vaccine_records or "PCV 3" in vaccine_records or "OPV 3" in vaccine_records or "IPV 2" in vaccine_records
-    ):
-        if not (
-            "VIT A" in vaccine_records or "Men A" in vaccine_records or 
-            "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or "Measles 2" in vaccine_records
-        ):
-            doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 154)  # 22 weeks
-    elif "VIT A" in vaccine_records:
-        if not (
-            "Men A" in vaccine_records or "Measles 1" in vaccine_records or 
-            "Yellow Fever" in vaccine_records or "Measles 2" in vaccine_records
-        ):
-            doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 84)  # 12 weeks
-    elif (
-        "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or "MEN A" in vaccine_records
-    ):
-        if not (
-            "Measles 2" in vaccine_records
-        ):
-            doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 84)  # 12 weeks
-    elif "Measles 2" in vaccine_records:
-        doc.next_vaccination_date = None
+    # elif (
+    #     "PENTA 1" in vaccine_records or "ROTA 1" in vaccine_records or "PCV 1" in vaccine_records or 
+    #     "OPV 1" in vaccine_records or "IPV 1" in vaccine_records
+    # ):
+    #     if not (
+    #         "PENTA 2" in vaccine_records or "ROTA 2" in vaccine_records or "PCV 2" in vaccine_records or 
+    #         "OPV 2" in vaccine_records or "PENTA 3" in vaccine_records or "ROTA 3" in vaccine_records or 
+    #         "PCV 3" in vaccine_records or "OPV 3" in vaccine_records or "IPV 2" in vaccine_records or 
+    #         "VIT A" in vaccine_records or "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or 
+    #         "Men A" in vaccine_records or "Measles 2" in vaccine_records
+    #     ):
+    #         doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 28)  # 4 weeks
+    # elif (
+    #     "PENTA 2" in vaccine_records or "ROTA 2" in vaccine_records or "PCV 2" in vaccine_records or "OPV 2" in vaccine_records
+    # ):
+    #     if not (
+    #         "PENTA 3" in vaccine_records or "ROTA 3" in vaccine_records or "PCV 3" in vaccine_records or 
+    #         "OPV 3" in vaccine_records or "IPV 2" in vaccine_records or "VIT A" in vaccine_records or 
+    #         "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or "Men A" in vaccine_records or 
+    #         "Measles 2" in vaccine_records
+    #     ):
+    #         doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 28)  # 4 weeks
+    # elif (
+    #     "PENTA 3" in vaccine_records or "ROTA 3" in vaccine_records or "PCV 3" in vaccine_records or "OPV 3" in vaccine_records or "IPV 2" in vaccine_records
+    # ):
+    #     if not (
+    #         "VIT A" in vaccine_records or "Men A" in vaccine_records or 
+    #         "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or "Measles 2" in vaccine_records
+    #     ):
+    #         doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 154)  # 22 weeks
+    # elif "VIT A" in vaccine_records:
+    #     if not (
+    #         "Men A" in vaccine_records or "Measles 1" in vaccine_records or 
+    #         "Yellow Fever" in vaccine_records or "Measles 2" in vaccine_records
+    #     ):
+    #         doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 84)  # 12 weeks
+    # elif (
+    #     "Measles 1" in vaccine_records or "Yellow Fever" in vaccine_records or "MEN A" in vaccine_records
+    # ):
+    #     if not (
+    #         "Measles 2" in vaccine_records
+    #     ):
+    #         doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 84)  # 12 weeks
+    # elif "Measles 2" in vaccine_records:
+    #     doc.next_vaccination_date = None
+
+
+
+    # Define vaccine stages
+    vaccine_stages = {
+        "BCG": 0, "HEP B0": 0, "OPV 0": 0,
+        "PENTA 1": 1, "ROTA 1": 1, "PCV 1": 1, "OPV 1": 1, "IPV 1": 1,
+        "PENTA 2": 2, "ROTA 2": 2, "PCV 2": 2, "OPV 2": 2,
+        "PENTA 3": 3, "ROTA 3": 3, "PCV 3": 3, "OPV 3": 3, "IPV 2": 3,
+        "VIT A": 4, "Yellow Fever": 4, "Men A": 4, "MEN A": 4,
+        "Measles 1": 5,
+        "Measles 2": 6,
+    }
+
+    # Define how many days after each stage
+    next_vaccine_days = {
+        0: 42,   # 6 weeks
+        1: 28,   # 4 weeks
+        2: 28,   # 4 weeks
+        3: 70,  # 10 weeks
+        4: 84,   # 12 weeks
+        5: 168, # 24 weeks
+        6: None, # No next vaccination
+    }
+
+    # Initialize
+    highest_stage = -1
+    highest_stage_vaccine = None
+
+    # Loop through vaccine records
+    for vaccine in vaccine_records:
+        vaccine_name = vaccine.strip()
+        stage = vaccine_stages.get(vaccine_name)
+        if stage is not None and stage > highest_stage:
+            highest_stage = stage
+            highest_stage_vaccine = vaccine_name
+
+    # Set next vaccination date
+    if highest_stage >= 0:
+        days_to_add = next_vaccine_days.get(highest_stage)
+        if days_to_add:
+            doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, days_to_add)
+            frappe.msgprint(f"Next vaccination date calculated based on '{highest_stage_vaccine}' (Stage {highest_stage}).")
+        else:
+            doc.next_vaccination_date = None
+            frappe.msgprint(f"No next vaccination scheduled after '{highest_stage_vaccine}' (Stage {highest_stage}).")
+    else:
+        frappe.msgprint("No recognized vaccines found to calculate next vaccination date.")
+
 
 
 def autoset_ward(doc, method):
@@ -344,6 +447,79 @@ def autoset_nearest_facility_household(doc, method):
 
 
 
+# def update_child_vaccination_status(doc, method):
+#     """
+#     Updates the vaccination status of a child based on administered vaccines and age.
+#     """
+#     vaccine_records = []
+#     # frappe.msgprint(f"Processing Child Vaccination Status for: {doc.name}")
+    
+#     # Iterate through the child table `last_vaccine_administered`
+#     for vaccine_entry in doc.get("last_vaccine_administered", []):
+#         if vaccine_entry.get("vaccine"):
+#             # Append the value of `vaccine` to the list
+#             vaccine_records.append(vaccine_entry.get("vaccine"))
+    
+#     # Print vaccine records for debugging
+#     # frappe.msgprint(f"Vaccine Records: {vaccine_records}")
+    
+#     # Format the list into a string in the required format
+#     doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
+    
+#     # Calculate the age in weeks
+#     date_of_birth = getdate(doc.date_of_birth)
+#     current_date = getdate(today())
+#     age_in_days = date_diff(current_date, date_of_birth)
+#     age_in_weeks = age_in_days // 7
+    
+#     # Print age for debugging
+#     # frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
+    
+#     # Set vaccination_status based on conditions
+#     if not vaccine_records:
+#         # If no vaccines have been administered
+#         doc.vaccination_status = "Never Vaccinated"
+       
+    
+#     elif (
+#         ("PENTA 1" not in vaccine_records and 
+#          "PENTA 2" not in vaccine_records and 
+#          "PENTA 3" not in vaccine_records) and age_in_weeks > 6
+#     ):
+#         doc.vaccination_status = "Zero Dose"
+    
+#     elif (
+#         (age_in_weeks >= 10 and ("PENTA 2" not in vaccine_records and "PENTA 3" not in vaccine_records)) or
+#         (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
+#         (age_in_weeks >= 36 and "VIT A" not in vaccine_records) or
+#         (age_in_weeks >= 48 and "Measles 1" not in vaccine_records) or
+#         (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
+#     ):
+#         # If missing age-appropriate vaccines for "Under Immunized" conditions
+#         doc.vaccination_status = "Under Immunized"
+
+#     elif (
+#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
+#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
+#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
+#         (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
+#         (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
+#         (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
+#         (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
+#         (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
+#     ):
+#         doc.vaccination_status = "Vaccinated to Age"
+
+    
+#     elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
+#         # If Measles 2 is administered after 60 weeks
+#         doc.vaccination_status = "Fully Vaccinated (Measles 2)"
+    
+#     # Print final vaccination status
+#     # frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
+
+
+
 def update_child_vaccination_status(doc, method):
     """
     Updates the vaccination status of a child based on administered vaccines and age.
@@ -358,7 +534,7 @@ def update_child_vaccination_status(doc, method):
             vaccine_records.append(vaccine_entry.get("vaccine"))
     
     # Print vaccine records for debugging
-    # frappe.msgprint(f"Vaccine Records: {vaccine_records}")
+    frappe.msgprint(f"Vaccine Records: {vaccine_records}")
     
     # Format the list into a string in the required format
     doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
@@ -370,50 +546,62 @@ def update_child_vaccination_status(doc, method):
     age_in_weeks = age_in_days // 7
     
     # Print age for debugging
-    # frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
+    frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
     
     # Set vaccination_status based on conditions
     if not vaccine_records:
         # If no vaccines have been administered
         doc.vaccination_status = "Never Vaccinated"
-       
-    
+
     elif (
         ("PENTA 1" not in vaccine_records and 
          "PENTA 2" not in vaccine_records and 
          "PENTA 3" not in vaccine_records) and age_in_weeks > 6
     ):
         doc.vaccination_status = "Zero Dose"
-    
+
     elif (
-        (age_in_weeks >= 10 and ("PENTA 2" not in vaccine_records and "PENTA 3" not in vaccine_records)) or
+        (age_in_weeks >= 0 and "BCG" not in vaccine_records) or
+        (age_in_weeks >= 0 and "HEP B0" not in vaccine_records) or
+        (age_in_weeks >= 0 and "OPV 0" not in vaccine_records) or
+        (age_in_weeks >= 6 and "PENTA 1" not in vaccine_records) or
+        (age_in_weeks >= 10 and "PENTA 2" not in vaccine_records) or
         (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
-        (age_in_weeks >= 36 and "VIT A" not in vaccine_records) or
-        (age_in_weeks >= 48 and "Measles 1" not in vaccine_records) or
+        (age_in_weeks >= 24 and "VIT A" not in vaccine_records) or
+        (age_in_weeks >= 36 and "Measles 1" not in vaccine_records) or
         (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
     ):
         # If missing age-appropriate vaccines for "Under Immunized" conditions
-        doc.vaccination_status = "Under Immunized"
+        doc.vaccination_status = "Under Immunized" 
 
     elif (
-        (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
-        (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
-        (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
-        (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
-        (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
-        (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
-        (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
-        (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
+        ("BCG" in vaccine_records) and
+        ("HEP B0" in vaccine_records) and
+        ("OPV 0" in vaccine_records) and
+        ("PENTA 1" in vaccine_records) and
+        ("PENTA 2" in vaccine_records) and
+        ("PENTA 3" in vaccine_records) and
+        ("VIT A" in vaccine_records) and
+        ("Measles 1" in vaccine_records) and
+        ("Measles 2" in vaccine_records)
+    ):
+        doc.vaccination_status = "Fully Vaccinated (Measles 2)"
+    
+    elif (
+        (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 24 and age_in_weeks <= 48 and "VIT A" in vaccine_records and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
+        (age_in_weeks >= 36 and age_in_weeks <= 60 and "Measles 1" in vaccine_records and "VIT A" in vaccine_records and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records)
     ):
         doc.vaccination_status = "Vaccinated to Age"
 
-    
-    elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
-        # If Measles 2 is administered after 60 weeks
-        doc.vaccination_status = "Fully Vaccinated (Measles 2)"
+   
     
     # Print final vaccination status
-    # frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
+    frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
+
 
 #Full name of children in the children and vaccination doctype   
 def update_full_name(doc, method):

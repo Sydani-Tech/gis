@@ -85,7 +85,6 @@
    "fieldname": "name_of_settlementcommunity_head",
    "fieldtype": "Data",
    "label": "Name of Settlement Community Head",
-   "options": "Name",
    "reqd": 1
   },
   {
@@ -104,15 +103,13 @@
    "fieldname": "name_of_disease_surveillance_community_informant",
    "fieldtype": "Data",
    "label": "Name of Disease surveillance Community informant",
-   "options": "Name",
    "reqd": 1
   },
   {
    "description": "Include first and last name of influential members",
    "fieldname": "names_of_other_influential_members_within_settlement",
    "fieldtype": "Data",
-   "label": "Names of other influential members within settlement",
-   "options": "Name"
+   "label": "Names of other influential members within settlement"
   },
   {
    "fieldname": "name_of_nearest_facility_to_settlement",
@@ -346,7 +343,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-04-12 19:21:52.218957",
+ "modified": "2025-05-09 13:09:51.723660",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",

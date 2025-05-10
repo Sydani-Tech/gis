@@ -209,8 +209,7 @@
    "fieldname": "end_time",
    "fieldtype": "Datetime",
    "label": "End Time",
-   "permlevel": 2,
-   "read_only": 1
+   "permlevel": 2
   },
   {
    "fieldname": "geolocation",
@@ -319,7 +318,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-04-14 16:15:36.510831",
+ "modified": "2025-05-06 11:13:16.147909",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",

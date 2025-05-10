@@ -547,6 +547,18 @@ def save_building(**kwargs):
                 "geolocation": kwargs["geolocation"],
             })
         else:
+
+            # Construct building name from input
+            building_name = f"{kwargs['building_number']} - {kwargs['building_address']}"
+
+            # Check if the building already exists
+            existing_building = frappe.db.get_value("Building", {"name": building_name})
+            if existing_building:
+                return {
+                    "message": "This Building has already been saved. A Building with the same name already exists.",
+                    "status": 400
+                }
+
             # Create a new record if 'name' is not provided
             building = frappe.get_doc({
                 "doctype": "Building",
@@ -621,6 +633,14 @@ def save_settlement(**kwargs):
                 "response_geolocation": kwargs["response_geolocation"],
             })
         else:
+
+            #Check if the settlement name already exists
+            existing_settlement = frappe.db.get_value("Settlement", {"name": kwargs["name_of_settlement"]})
+            if existing_settlement:
+                return {
+                    "message": "This Settlement has already been saved. A Settlement with the same name already exists.",
+                    "status": 400
+                }
             # Create a new record if 'name' is not provided
             settlement = frappe.get_doc({
                 "doctype": "Settlement",

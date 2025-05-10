@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:Enumeration Validation - {#####}",
+ "autoname": "format:Vaccination Validation - {#####}",
  "creation": "2025-04-07 14:29:57.228057",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,14 +9,14 @@
   "validation_information_section",
   "validator",
   "health_facility",
-  "validation_percentage",
   "ward",
   "local_government_area",
   "state",
   "column_break_ennm",
   "status",
-  "start_time",
-  "end_time",
+  "validation_percentage",
+  "start_date",
+  "end_date",
   "section_break_ayph",
   "vaccinations_under_validation",
   "amended_from"
@@ -37,15 +37,19 @@
    "reqd": 1
   },
   {
+   "fetch_from": "health_facility.ward",
    "fieldname": "ward",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Ward",
-   "options": "Ward"
+   "options": "Ward",
+   "read_only": 1
   },
   {
    "fetch_from": "ward.local_government_area",
    "fieldname": "local_government_area",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Local Government Area",
    "options": "Local Government Area",
    "read_only": 1
@@ -54,6 +58,7 @@
    "fetch_from": "ward.state",
    "fieldname": "state",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "State",
    "options": "State",
    "read_only": 1
@@ -70,18 +75,6 @@
    "in_standard_filter": 1,
    "label": "Status",
    "options": "Pending\nDiscarded\nCompleted"
-  },
-  {
-   "fieldname": "start_time",
-   "fieldtype": "Datetime",
-   "label": "Start Time",
-   "reqd": 1
-  },
-  {
-   "fieldname": "end_time",
-   "fieldtype": "Datetime",
-   "label": "End Time",
-   "reqd": 1
   },
   {
    "fieldname": "section_break_ayph",
@@ -130,12 +123,24 @@
    "in_list_view": 1,
    "label": "Validation Percentage",
    "read_only": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-09 18:42:50.773818",
+ "modified": "2025-05-07 11:31:23.540722",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Summary",

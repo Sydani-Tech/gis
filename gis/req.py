@@ -184,6 +184,43 @@ def login(email, password):
     else:
         frappe.response["error"] = {"code": 401, "message": "Invalid Email"}
 
+import frappe
+
+def generate_missing_api_secrets_for_users():
+    target_roles = ["Enumerator", "Vaccinator", "Enumeration Validator", "Vaccination Validator"]
+    
+    # Get all users with the required role profiles
+    users = frappe.get_all(
+        "User",
+        filters={"role_profile_name": ["in", target_roles], "enabled": 1, "name": "st4@mctt.com"},
+        fields=["name", "api_key", "api_secret"]
+    )
+    print(users)
+    for user in users:
+        email = user.name
+
+        # Check if the user already has an api_secret
+        if user.api_secret:
+            continue  # Skip if api_secret already exists
+
+        # Generate the api_secret using the existing frappe method
+        result = frappe.call("frappe.core.doctype.user.user.generate_keys", user=email)
+        api_secret = result.get("api_secret")
+
+        # Now update Sec Keys with the api_secret
+        if frappe.db.exists("Sec Keys", {"usr": email}):
+            frappe.db.set_value("Sec Keys", {"usr": email}, "key", api_secret)
+        else:
+            frappe.get_doc({
+                "doctype": "Sec Keys",
+                "usr": email,
+                "key": api_secret
+            }).insert(ignore_permissions=True)
+
+        frappe.db.commit()  # Commit per user to avoid partial updates
+
+
+
 
 
 def users():

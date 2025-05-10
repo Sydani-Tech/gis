@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{facility_name}-{ward}",
  "creation": "2024-12-17 13:35:39.787879",
@@ -136,7 +137,7 @@
    "link_fieldname": "health_facility"
   }
  ],
- "modified": "2025-04-14 16:15:11.477261",
+ "modified": "2025-05-10 12:03:52.040178",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",
@@ -148,6 +149,7 @@
    "delete": 1,
    "email": 1,
    "export": 1,
+   "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,

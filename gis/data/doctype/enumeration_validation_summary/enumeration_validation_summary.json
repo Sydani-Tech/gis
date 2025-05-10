@@ -14,8 +14,8 @@
   "state",
   "column_break_ennm",
   "status",
-  "start_time",
-  "end_time",
+  "start_date",
+  "end_date",
   "enumeration_sample_responses_section_section",
   "enumeration_sample_responses",
   "section_break_ayph",
@@ -30,7 +30,7 @@
    "in_standard_filter": 1,
    "label": "Validator",
    "options": "User",
-   "read_only": 1
+   "reqd": 1
   },
   {
    "fieldname": "section_break_ayph",
@@ -55,23 +55,12 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Ward",
-   "options": "Ward"
+   "options": "Ward",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_ennm",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "start_time",
-   "fieldtype": "Datetime",
-   "label": "Start Time",
-   "read_only": 1
-  },
-  {
-   "fieldname": "end_time",
-   "fieldtype": "Datetime",
-   "label": "End Time",
-   "read_only": 1
   },
   {
    "fieldname": "enumeration_sample_responses_section_section",
@@ -95,6 +84,7 @@
   {
    "fieldname": "grid",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Grid",
    "link_filters": "[[\"Grid\",\"enabled\",\"=\",1]]",
    "options": "Grid"
@@ -125,12 +115,24 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-02 15:18:56.681630",
+ "modified": "2025-05-06 09:55:26.827524",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Validation Summary",

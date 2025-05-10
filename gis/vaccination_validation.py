@@ -72,7 +72,7 @@ def get_vaccination_validation_questions(vaccination_name):
 import frappe
 
 @frappe.whitelist()
-def get_vaccinations(health_facility=None, start_time=None, end_time=None):
+def get_vaccinations(health_facility=None, start_date=None, end_date=None):
     
     """
     Fetches vaccinations based on the provided health facility.
@@ -80,19 +80,19 @@ def get_vaccinations(health_facility=None, start_time=None, end_time=None):
 
     if not health_facility:
         return {"error": "Please provide a health facility."}
-    if not start_time:
-        return {"error": "Please provide a start time."}
-    if not end_time:
-        return {"error": "Please provide an end time."}
+    if not start_date:
+        return {"error": "Please provide a start date."}
+    if not end_date:
+        return {"error": "Please provide an end date."}
        
     
     vaccinations = frappe.db.sql("""
-        SELECT name, facility, owner, full_name, last_name, first_name, date_of_birth, gender, vaccines_taken
+        SELECT name, facility, owner, full_name, last_name, first_name, date_of_birth, gender, vaccination_date, vaccines_taken
         FROM `tabVaccination`
         WHERE status = 'Submitted'
         AND facility = %s
-        AND creation BETWEEN %s AND %s
-    """, (health_facility, start_time, end_time), as_dict=True)
+        AND vaccination_date BETWEEN %s AND %s
+    """, (health_facility, start_date, end_date), as_dict=True)
 
 
     # Check if any vaccinations were found
@@ -152,103 +152,6 @@ def get_vaccination_validation_summaries():
 
     }
 
-
-# @frappe.whitelist()
-# def get_buildings_to_validate_and_save(grid=None, ward=None):
-
-#     # Get the logged-in user
-#     user = frappe.session.user
-#     if user == "Guest":
-#         return {"message": "You must be logged in to access this data.", "status": 401}
-    
-#     # Check if the user has the "Dashboard Viewer" role
-#     user_roles = frappe.get_roles(user)
-#     if "Enumeration Validator" not in user_roles:
-#         return {
-#             "message": "You do not have the required role to perform enumeration validation, please contact your Supervisor.",
-#             "status": 401
-#         }
-    
-#     existing_summaries = frappe.get_all(
-#         "Enumeration Validation Summary",
-#         filters={"validator": user, "status": ["in", ["Pending"]]},
-#         fields=["name"]
-#     )
-
-#     if existing_summaries:
-#         return {
-#             "message": "You already have a pending validation summary. Please complete it before starting a new one.",
-#             "status": 400
-#         }
-    
-
-#     try:
-
-#         # Ensure only one of grid or ward is supplied
-#         if (grid and ward) or (not grid and not ward):
-#             return {
-#                 "message": "Please provide either Grid or Ward, but not both.",
-#                 "status": 400
-#             }
-
-#         # Get buildings to validate
-#         buildings_to_validate = get_buildings(grid=grid, ward=ward)
-
-#         # Create and save Enumeration Validation Summary
-#         summary = frappe.new_doc("Enumeration Validation Summary")
-
-#         if grid:
-#             # Fetch the ward value from the Grid doctype
-#             grid_doc = frappe.get_doc("Grid", grid)
-#             summary.grid = grid
-#             summary.ward = grid_doc.ward
-#         else:
-#             summary.ward = ward
-
-#         summary.start_time = frappe.utils.now_datetime()
-#         summary.validator = frappe.session.user
-#         summary.status = "Pending"
-
-#         # Append all buildings
-#         for building in buildings_to_validate.get("all_buildings", []):
-#             summary.append("records_under_validation", {
-#                 "doctype_name": building.get("form"),
-#                 "record": building.get("name"),
-#                 "settlement": building.get("settlement"),
-#                 "enumerator": building.get("owner"),
-#                 "status": "Pending",
-#             })
-
-#         # Append selected buildings
-#         for building in buildings_to_validate.get("selected_buildings", []):
-#             summary.append("enumeration_sample_responses", {
-#                 "doctype_name": building.get("form"),
-#                 "record": building.get("name"),
-#                 "settlement": building.get("settlement"),
-#                 "enumerator": building.get("owner"),
-#                 "geolocation": building.get("geolocation"),
-#                 "status": "Pending",
-#             })
-
-#         summary.insert(ignore_permissions=True)
-#         summary.save()
-
-#         return {
-#             "message": "Enumeration validation data saved successfully.",
-#             "status": 200,
-#             "buildings_to_validate": buildings_to_validate,
-#         }
-
-#     except Exception as e:
-#         # frappe.log_error(f"Error in get_buildings_to_validate_and_save: {str(e)}", "Error")
-#         import traceback
-#         return {
-#             "message": f"Error fetching data: {str(e)}",
-#             "status": "error",
-#             "ward": ward,
-#             "traceback": traceback.format_exc()
-#         }   
-
 @frappe.whitelist()
 def get_facilities_to_validate():
     # Get the logged-in user
@@ -296,6 +199,164 @@ def get_facilities_to_validate():
         "data": allowed_facilities
     }
 
+
+@frappe.whitelist()
+def create_vaccination_validation_summary(health_facility=None, start_date=None, end_date=None):
+
+    # Get the logged-in user
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+    
+    # Check if the user has the "Dashboard Viewer" role
+    user_roles = frappe.get_roles(user)
+    if "Vaccination Validator" not in user_roles:
+        return {
+            "message": "You do not have the required role to perform vaccination validation, please contact your Supervisor.",
+            "status": 401
+        }
+    
+    # Check if ward is provided
+    if not health_facility:
+        return {
+            "message": "Select a Health Facility to create a validation summary.",
+            "status": 400
+        }
+    
+    # Check if start date is provided
+    if not start_date:
+        return {
+            "message": "Select a Start Date to create a validation summary.",
+            "status": 400
+        }
+    
+    # Check if end date is provided
+    if not end_date:
+        return {
+            "message": "Select an End Date to create a validation summary.",
+            "status": 400
+        }
+    
+    
+    
+    existing_summaries = frappe.get_all(
+        "Vaccination Validation Summary",
+        filters={"validator": user, "status": ["in", ["Pending"]]},
+        fields=["name"]
+    )
+
+    # if existing_summaries:
+    #     return {
+    #         "message": "You already have a pending validation summary. Please complete it before starting a new one.",
+    #         "status": 400
+    #     }
+    
+
+    try:
+
+        # Get buildings to validate
+        vaccinations_to_validate = get_vaccinations(health_facility=health_facility, start_date=start_date, end_date=end_date)
+
+        # Create and save Vaccination Validation Summary
+        vaccination_validation_summary = frappe.new_doc("Vaccination Validation Summary")
+        vaccination_validation_summary.health_facility = health_facility
+        vaccination_validation_summary.validator = frappe.session.user
+        vaccination_validation_summary.start_date = start_date
+        vaccination_validation_summary.end_date = end_date
+        vaccination_validation_summary.status = "Pending"
+        vaccination_validation_summary.ward = frappe.get_value("Facility", health_facility, "ward")
+
+        # Append all vaccinations to validate
+        for vaccination in vaccinations_to_validate.get("vaccinations", []):
+            vaccination_validation_summary.append("vaccinations_under_validation", {
+                "first_name": vaccination.get("first_name"),
+                "last_name": vaccination.get("last_name"),
+                "gender": vaccination.get("gender"),
+                "date_of_birth": vaccination.get("date_of_birth"),
+                "full_name": vaccination.get("full_name"),
+                "vaccination": vaccination.get("name"),
+                "vaccination_date": vaccination.get("vaccination_date"),
+                "vaccines_administered": vaccination.get("vaccines_taken"),
+                "vaccinator": vaccination.get("owner"),
+                "status": "Pending",
+            })
+        vaccination_validation_summary.insert(ignore_permissions=True)
+        vaccination_validation_summary.save()
+        return {
+            "message": "Vaccination validation data saved successfully.",
+            "status": 200,
+            "vaccinations_to_validate": vaccinations_to_validate,
+        }
+
+    except Exception as e:
+        # frappe.log_error(f"Error in create_vaccination_validation_summary: {str(e)}", "Error")
+        import traceback
+        return {
+            "message": f"Error fetching data: {str(e)}",
+            "status": 500,
+            "health_facility": health_facility,
+            "start_date": start_date,
+            "end_date": end_date,
+            "vaccination_validation_summary": vaccination_validation_summary,
+            "traceback": traceback.format_exc()
+        }
+
+@frappe.whitelist()
+def submit_vaccine_validation_responses(doc_name, vaccinations):
+    """
+    Update child table records for a given parent document.
+
+    Args:
+    - doc_name (str): Name of the parent document.
+    - vaccinations (list): List of dicts containing:
+        - vaccination (str): vaccination name
+        - status (str): Status to update
+        - validation_answers (str): Response after validation exercise
+
+    Returns:
+    - JSON response with success or failure message.
+    """
+    if isinstance(vaccinations, str):
+        # Convert JSON string to list if needed (for REST API compatibility)
+        import json
+        vaccinations = json.loads(vaccinations)
+
+    try:
+        # Fetch the parent document
+        parent_doc = frappe.get_doc("Vaccination Validation Summary", doc_name)
+
+        # Check if the child table exists
+        if not hasattr(parent_doc, "vaccinations_under_validation"):
+            return {"error": "Child table not found in parent document."}
+
+        updated_vaccinations = []  # Track updated rows
+
+        # Create a mapping of vaccinations for quick lookup
+        vaccinations_map = {b["vaccination"]: b for b in vaccinations}
+
+        # Iterate over child table records
+        for row in parent_doc.vaccinations_under_validation:
+            if row.vaccination in vaccinations_map:  # Match vaccination name
+                row.status = vaccinations_map[row.vaccination]["status"]
+                row.validation_answers = vaccinations_map[row.vaccination]["validation_answers"]
+                updated_vaccinations.append(row.vaccination)  # Track updated vaccination names
+
+        # Save updates
+        parent_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        return {
+            "message": f"Successfully updated {len(vaccinations_map)} vaccinations in {doc_name}.",
+            "vaccinations_map": vaccinations_map,
+        }
+
+    except frappe.DoesNotExistError:
+        return {"error": f"Vaccination Validation Summary {doc_name} not found."}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
 def process_vaccinations_before_submit(doc, method):
     pending_rows = []
     approved_count = 0
@@ -317,7 +378,8 @@ def process_vaccinations_before_submit(doc, method):
 
     # 4. Set the validation percentage on the main document
     if total_rows > 0:
-        doc.validation_percentage = math.ceil((approved_count / total_rows) * 100)
+        # doc.validation_percentage = math.ceil((approved_count / total_rows) * 100)
+        doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
     else:
         doc.validation_percentage = 0.0
 
@@ -335,3 +397,22 @@ def process_vaccinations_before_submit(doc, method):
             vaccination_doc.save()
         except frappe.DoesNotExistError:
             frappe.throw(f"Vaccination record not found: {row.vaccination}")
+
+def process_vaccinations_before_save(doc, method):
+    pending_rows = []
+    approved_count = 0
+    total_rows = len(doc.vaccinations_under_validation)
+
+    # 1. Check for pending rows and count approved
+    for i, row in enumerate(doc.vaccinations_under_validation, start=1):
+        if row.status == "Pending":
+            pending_rows.append(str(i))
+        elif row.status == "Approved":
+            approved_count += 1
+
+    # 2. Set the validation percentage on the main document
+    if total_rows > 0:
+        # doc.validation_percentage = math.ceil((approved_count / total_rows) * 100)
+        doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
+    else:
+        doc.validation_percentage = 0

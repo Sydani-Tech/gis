@@ -7,11 +7,12 @@
  "engine": "InnoDB",
  "field_order": [
   "vaccination_detail_section",
-  "last_name",
   "first_name",
-  "column_break_worc",
+  "last_name",
   "date_of_birth",
+  "column_break_worc",
   "gender",
+  "vaccination_date",
   "vaccines_administered",
   "information_section",
   "vaccination",
@@ -94,7 +95,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "date_of_birth",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -125,12 +126,21 @@
    "in_standard_filter": 1,
    "label": "Vaccines Administered",
    "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "vaccination_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Vaccination Date",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-09 21:09:59.637780",
+ "modified": "2025-05-07 11:34:23.637761",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccinations Under Validation",
