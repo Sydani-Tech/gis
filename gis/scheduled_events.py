@@ -131,7 +131,26 @@ def update_building_vaccination_status():
         frappe.db.set_value("Building", building_name, "percentage_of_vaccinated_children", combined_percentage)
 
     frappe.db.commit()
+def set_enumerated_vaccination_status():
+    """
+    Maintains the original vaccination status of Children.
+    """
 
+    # Fetch all children with a null enumerated vaccination status
+    children = frappe.db.sql(
+        """
+        SELECT name, vaccination_status, enumerated_vaccination_status
+        FROM `tabChildren`
+        WHERE enumerated_vaccination_status IS Null
+        """
+    )
+
+    for child in children:
+        enumerated_vaccination_status = child[1]
+        child_name = child[0]
+        # Update the enumerated vaccination status
+        frappe.db.set_value("Children", child_name, "enumerated_vaccination_status", enumerated_vaccination_status)
+    frappe.db.commit()
 
 def fetch_odk_data():
     # print("Function fetch_odk_data_program is executed.")

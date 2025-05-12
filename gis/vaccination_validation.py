@@ -97,14 +97,14 @@ def get_vaccinations(health_facility=None, start_date=None, end_date=None):
 
     # Check if any vaccinations were found
     if not vaccinations:
-        return {"error": "No vaccinations found."}
+        return {"error": "No vaccinations found for the provided criteria. Try extending the date range."}
 
     return {
         "vaccinations": vaccinations
     }
 
 @frappe.whitelist()
-def get_vaccination_validation_summaries():
+def get_vaccination_validation_summaries(name=None):
     """
     Fetches all Vaccination Validation Summaries for the logged-in user.
     """
@@ -119,21 +119,41 @@ def get_vaccination_validation_summaries():
         return {"error": "You do not have the required role to access this data."}
     
 
-    results = frappe.db.sql("""
-        SELECT 
-            parent.name, 
-            parent.health_facility,             
-            parent.validator, 
-            parent.status,
-            parent.start_time,
-            parent.end_time,
-            parent.ward, 
-            parent.local_government_area, 
-            parent.state, 
-            parent.modified
-        FROM `tabVaccination Validation Summary` AS parent
-        WHERE parent.validator = %s
-    """, (user,), as_dict=True)
+    if name:
+        # Fetch a specific Vaccination Validation Summary
+        results = frappe.db.sql("""
+            SELECT 
+                parent.name, 
+                parent.health_facility,             
+                parent.validator, 
+                parent.status,
+                parent.start_date,
+                parent.end_date,
+                parent.ward, 
+                parent.local_government_area, 
+                parent.state, 
+                parent.modified
+            FROM `tabVaccination Validation Summary` AS parent
+            WHERE parent.name = %s AND parent.validator = %s
+        """, (name, user), as_dict=True)
+
+    else:
+        # Fetch all Vaccination Validation Summaries for the logged-in user
+        results = frappe.db.sql("""
+            SELECT 
+                parent.name, 
+                parent.health_facility,             
+                parent.validator, 
+                parent.status,
+                parent.start_time,
+                parent.end_time,
+                parent.ward, 
+                parent.local_government_area, 
+                parent.state, 
+                parent.modified
+            FROM `tabVaccination Validation Summary` AS parent
+            WHERE parent.validator = %s
+        """, (user,), as_dict=True)
 
     # Add child records as a dictionary under each parent
     for row in results:
@@ -257,6 +277,16 @@ def create_vaccination_validation_summary(health_facility=None, start_date=None,
         # Get buildings to validate
         vaccinations_to_validate = get_vaccinations(health_facility=health_facility, start_date=start_date, end_date=end_date)
 
+        # Check if any vaccinations were found
+        if "error" in vaccinations_to_validate:
+            return {
+                "message": vaccinations_to_validate["error"],
+                "status": 400,
+                "health_facility": health_facility,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+
         # Create and save Vaccination Validation Summary
         vaccination_validation_summary = frappe.new_doc("Vaccination Validation Summary")
         vaccination_validation_summary.health_facility = health_facility
@@ -283,8 +313,9 @@ def create_vaccination_validation_summary(health_facility=None, start_date=None,
         vaccination_validation_summary.insert(ignore_permissions=True)
         vaccination_validation_summary.save()
         return {
-            "message": "Vaccination validation data saved successfully.",
+            "message": "Vaccination validation data created successfully.",
             "status": 200,
+            "Vaccination Validation Summary": vaccination_validation_summary.name,
             "vaccinations_to_validate": vaccinations_to_validate,
         }
 

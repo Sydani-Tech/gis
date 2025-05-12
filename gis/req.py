@@ -184,18 +184,17 @@ def login(email, password):
     else:
         frappe.response["error"] = {"code": 401, "message": "Invalid Email"}
 
-import frappe
 
 def generate_missing_api_secrets_for_users():
-    target_roles = ["Enumerator", "Vaccinator", "Enumeration Validator", "Vaccination Validator"]
+    target_roles = ["Enumerator", "Vaccinator", "Enumeration Validator", "Vaccination Validator", "Dashboard Viewer"]
     
     # Get all users with the required role profiles
     users = frappe.get_all(
         "User",
-        filters={"role_profile_name": ["in", target_roles], "enabled": 1, "name": "st4@mctt.com"},
+        filters={"role_profile_name": ["in", target_roles], "enabled": 1},
         fields=["name", "api_key", "api_secret"]
     )
-    print(users)
+    # Iterate through each user and generate api_secret if it doesn't exist
     for user in users:
         email = user.name
 

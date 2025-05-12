@@ -333,7 +333,7 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
     }
 
 @frappe.whitelist()
-def get_enumeration_validation_summaries():
+def get_enumeration_validation_summaries(name=None):
     """
     Fetches all Enumeration Validation Summaries for the logged-in user.
     """
@@ -342,20 +342,45 @@ def get_enumeration_validation_summaries():
     if user == "Guest":
         return {"error": "You must be logged in to access this data."}
 
-    
-
-    results = frappe.db.sql("""
-        SELECT 
-            parent.name, 
-            parent.ward, 
-            parent.local_government_area, 
-            parent.state, 
-            parent.validator, 
-            parent.status,
-            parent.modified
-        FROM `tabEnumeration Validation Summary` AS parent
-        WHERE parent.validator = %s
-    """, (user,), as_dict=True)
+    # Check if the user has the "Enumeration Validator" role
+    user_roles = frappe.get_roles(user)
+    if "Enumeration Validator" not in user_roles:
+        return {
+            "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
+            "status": 401
+        }
+    # If a name is provided, fetch that specific summary
+    if name:
+        results = frappe.db.sql("""
+            SELECT 
+                parent.name, 
+                parent.ward, 
+                parent.local_government_area, 
+                parent.state, 
+                parent.validator, 
+                parent.status,
+                parent.modified
+            FROM `tabEnumeration Validation Summary` AS parent
+            WHERE parent.name = %s AND parent.validator = %s
+        """, (name, user), as_dict=True)
+        if not results:
+            return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
+    else:
+        # Fetch all summaries for the logged-in user
+        results = frappe.db.sql("""
+            SELECT 
+                parent.name, 
+                parent.ward, 
+                parent.local_government_area, 
+                parent.state, 
+                parent.validator, 
+                parent.status,
+                parent.modified
+            FROM `tabEnumeration Validation Summary` AS parent
+            WHERE parent.validator = %s
+        """, (user,), as_dict=True)
+        if not results:
+            return {"message": "No Enumeration Validation summaries found for theuser. Please contact your supervisor.", "status": 404}
 
     # Add child records as a dictionary under each parent
     for row in results:
@@ -444,12 +469,6 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
             "status": 400
         }
     
-    # if not ward:
-    #     return {
-    #         "message": "Ward is required to fetch buildings.",
-    #         "status": 400
-    #     }
-    
     existing_summaries = frappe.get_all(
         "Enumeration Validation Summary",
         filters={"validator": user, "status": ["in", ["Pending"]]},
@@ -528,6 +547,7 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
         return {
             "message": "Enumeration validation data saved successfully.",
             "status": 200,
+            "Enumeration Validation Summary": summary.name,
             "buildings_to_validate": buildings_to_validate,
         }
 
