@@ -220,7 +220,7 @@ scheduler_events = {
 		# "gis.scheduled_events.fetch_odk_data",
         "gis.scheduled_events.match_vaccination_to_children",
         "gis.scheduled_events.update_building_vaccination_status",
-        "gis.scheduled_events.generate_missing_api_secrets_for_users",
+        "gis.req.generate_missing_api_secrets_for_users",
         "gis.scheduled_events.set_enumerated_vaccination_status",
 	],
 	"daily_long": [
