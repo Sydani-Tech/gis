@@ -137,6 +137,14 @@ def get_vaccination_validation_summaries(name=None):
             WHERE parent.name = %s AND parent.validator = %s
         """, (name, user), as_dict=True)
 
+        if results:
+            ward_name = frappe.get_value("Ward", results[0].ward, "ward")
+            lga_name = frappe.get_value("Local Government Area", results[0].local_government_area, "local_government_area")
+            results[0]["ward_name"] = ward_name
+            results[0]["local_government_area_name"] = lga_name
+        else:
+            return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
+
     else:
         # Fetch all Vaccination Validation Summaries for the logged-in user
         results = frappe.db.sql("""
@@ -145,15 +153,29 @@ def get_vaccination_validation_summaries(name=None):
                 parent.health_facility,             
                 parent.validator, 
                 parent.status,
-                parent.start_time,
-                parent.end_time,
+                parent.start_date,
+                parent.end_date,
                 parent.ward, 
                 parent.local_government_area, 
                 parent.state, 
                 parent.modified
             FROM `tabVaccination Validation Summary` AS parent
             WHERE parent.validator = %s
+            ORDER BY parent.creation DESC
         """, (user,), as_dict=True)
+
+        if results:
+
+            for row in results:
+                health_facility_name = frappe.get_value("Facility", row.health_facility, "facility_name")
+                ward_name = frappe.get_value("Ward", row.ward, "ward")
+                lga_name = frappe.get_value("Local Government Area", row.local_government_area, "local_government_area")
+
+                row["health_facility_name"] = health_facility_name
+                row["ward_name"] = ward_name
+                row["local_government_area_name"] = lga_name
+        else:
+            return {"message": "No Enumeration Validation summaries found for the user. Please contact your supervisor.", "status": 404}
 
     # Add child records as a dictionary under each parent
     for row in results:
@@ -163,6 +185,13 @@ def get_vaccination_validation_summaries(name=None):
             fields=["vaccination", "full_name", "status AS vaccination_validation_status"],
             ignore_permissions=True
         )
+
+        for vaccination_record in child_records:
+
+            if row.get("status") == "Pending":
+                vaccination_questions = get_vaccination_validation_questions(vaccination_record["vaccination"])
+                vaccination_record["vaccination_questions"] = vaccination_questions
+
         row["vaccinations"] = child_records  # Assign child records under 'vaccinations'
 
     return {

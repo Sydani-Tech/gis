@@ -318,7 +318,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-05-06 11:13:16.147909",
+ "modified": "2025-05-15 16:04:17.948180",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
@@ -355,8 +355,7 @@
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "create": 1,
@@ -399,8 +398,7 @@
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "email": 1,

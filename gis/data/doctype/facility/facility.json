@@ -137,7 +137,7 @@
    "link_fieldname": "health_facility"
   }
  ],
- "modified": "2025-05-10 12:03:52.040178",
+ "modified": "2025-05-15 15:26:58.525135",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",
@@ -176,8 +176,7 @@
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "email": 1,

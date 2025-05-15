@@ -77,7 +77,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-30 12:06:07.686700",
+ "modified": "2025-05-15 15:27:58.794468",
  "modified_by": "Administrator",
  "module": "GIS frappe app",
  "name": "Project",
@@ -103,6 +103,15 @@
    "read": 1,
    "report": 1,
    "role": "Project Team",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Supervisor",
    "share": 1
   }
  ],

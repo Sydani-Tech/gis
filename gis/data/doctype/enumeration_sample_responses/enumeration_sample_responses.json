@@ -73,7 +73,7 @@
   },
   {
    "fieldname": "validation_responses",
-   "fieldtype": "Small Text",
+   "fieldtype": "Text Editor",
    "label": "Validation Responses",
    "read_only": 1
   },
@@ -97,7 +97,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-06 09:47:04.894175",
+ "modified": "2025-05-14 06:37:14.540517",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Sample Responses",

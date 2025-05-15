@@ -349,7 +349,25 @@ def get_enumeration_validation_summaries(name=None):
             "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
             "status": 401
         }
-    # If a name is provided, fetch that specific summary
+    # # If a name is provided, fetch that specific summary
+    # if name:
+    #     results = frappe.db.sql("""
+    #         SELECT 
+    #             parent.name, 
+    #             parent.ward, 
+    #             parent.local_government_area, 
+    #             parent.state, 
+    #             parent.validator, 
+    #             parent.status,
+    #             parent.modified
+    #         FROM `tabEnumeration Validation Summary` AS parent
+    #         WHERE parent.name = %s AND parent.validator = %s
+    #     """, (name, user), as_dict=True)
+
+    #     if not results:
+    #         return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
+
+
     if name:
         results = frappe.db.sql("""
             SELECT 
@@ -363,26 +381,45 @@ def get_enumeration_validation_summaries(name=None):
             FROM `tabEnumeration Validation Summary` AS parent
             WHERE parent.name = %s AND parent.validator = %s
         """, (name, user), as_dict=True)
-        if not results:
+
+        if results:
+            ward_name = frappe.get_value("Ward", results[0].ward, "ward")
+            lga_name = frappe.get_value("Local Government Area", results[0].local_government_area, "local_government_area")
+            results[0]["ward_name"] = ward_name
+            results[0]["local_government_area_name"] = lga_name
+        else:
             return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
+
     else:
         # Fetch all summaries for the logged-in user
         results = frappe.db.sql("""
-            SELECT 
-                parent.name, 
-                parent.ward, 
-                parent.local_government_area, 
-                parent.state, 
-                parent.validator, 
-                parent.status,
-                parent.modified
-            FROM `tabEnumeration Validation Summary` AS parent
-            WHERE parent.validator = %s
-        """, (user,), as_dict=True)
-        if not results:
-            return {"message": "No Enumeration Validation summaries found for theuser. Please contact your supervisor.", "status": 404}
+                    SELECT 
+                        parent.name, 
+                        parent.ward, 
+                        parent.local_government_area, 
+                        parent.state, 
+                        parent.validator, 
+                        parent.status,
+                        parent.modified
+                    FROM `tabEnumeration Validation Summary` AS parent
+                    WHERE parent.validator = %s
+                    ORDER BY parent.creation DESC
+                """, (user,), as_dict=True)
+        
+        if results:
+
+            for row in results:
+                ward_name = frappe.get_value("Ward", row.ward, "ward")
+                lga_name = frappe.get_value("Local Government Area", row.local_government_area, "local_government_area")
+
+                row["ward_name"] = ward_name
+                row["local_government_area_name"] = lga_name
+        else:
+            return {"message": "No Enumeration Validation summaries found for the user. Please contact your supervisor.", "status": 404}
+
 
     # Add child records as a dictionary under each parent
+
     for row in results:
         child_records = frappe.db.get_list(
             "Enumeration Sample Responses",
@@ -390,7 +427,15 @@ def get_enumeration_validation_summaries(name=None):
             fields=["record AS building_name", "status AS building_validation_status", "geolocation AS building_geolocation"],
             ignore_permissions=True
         )
+        for building in child_records:
+
+            if row.get("status") == "Pending":
+                building_details = get_building_details(building["building_name"])
+                building_questions = building_details.get("data", {}) if building_details else {}
+                building["building_questions"] = building_questions
+
         row["buildings"] = child_records  # Assign child records under 'buildings'
+
 
     return {
         "message": "Enumeration Validation Summaries fetched successfully.",
@@ -697,7 +742,14 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
         for row in parent_doc.enumeration_sample_responses:
             if row.record in buildings_map:  # Match building
                 row.status = buildings_map[row.record]["status"]
+                # validation_message = prettify_validation_responses(buildings_map[row.record]["validation_responses"])
+                
+                # row.validation_responses = validation_message
                 row.validation_responses = buildings_map[row.record]["validation_responses"]
+
+                # sample_row = parent_doc.enumeration_sample_responses[0]
+                # message = prettify_validation_responses(sample_row.validation_responses)
+
                 updated_buildings.append(row.record)
 
         # Save updates
@@ -715,6 +767,91 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
         return {"error": str(e)}
 
 
+# def prettify_validation_responses(validation_responses):
+#     if not validation_responses:
+#         return "No responses available."
+
+#     prettified_message = ""
+
+#     for idx, response in enumerate(validation_responses):
+#         question = response.get("question", "Unknown question")
+#         original_value = response.get("value", "N/A")
+#         validated_value = response.get("updatedValue")
+#         validation_verdict = response.get("booleanValue")
+#         # response_type = response.get("type")
+#         # options = response.get("options", [])
+
+#         # Add spacing between questions
+#         if idx > 0:
+#             prettified_message += "<br><br>"
+
+#         # Header (question in bold)
+#         prettified_message += f"<strong>{question}</strong><br>"
+
+#         # Value
+#         prettified_message += f"• Original Value: {original_value}<br>"
+
+#         # Boolean Value as human-friendly label
+#         if validation_verdict is not None:
+#             status_text = "Correct" if validation_verdict else "Incorrect"
+#             prettified_message += f"• Validation Verdict: {status_text}<br>"
+
+#         # Updated Value (if exists)
+#         if validated_value:
+#             prettified_message += f"• Validated Value: {validated_value}<br>"
+
+       
+
+#         # # Type
+#         # prettified_message += f"• Type: {response_type}<br>"
+
+#         # # Options (if present and non-empty)
+#         # if options:
+#         #     prettified_message += f"• Options: {', '.join(options)}<br>"
+
+#     return prettified_message
+
+
+def prettify_validation_responses(validation_responses):
+    prettified_message = ""
+
+    for item in validation_responses:
+        question = item.get("question", "")
+        original_value = item.get("value", "")
+        verdict = "Correct" if not item.get("booleanValue") else "InCorrect"
+        color = "#28a745" if verdict == "Correct" else "#dc3545"  # green/red
+
+        prettified_message += (
+            f"<p style='margin-bottom: 1em;'>"
+            f"<strong>{question}</strong><br>"
+            f"• <strong>Original Value:</strong> {original_value}<br>"
+            f"• <strong>Validation Verdict:</strong> "
+            f"<span style='color: {color}; font-weight: bold;'>{verdict}</span>"
+            f"</p>"
+        )
+
+    return prettified_message
+
+
+#script to test the prettify_validation_responses function
+def test_prettify_validation_responses():
+    validation_responses = [
+        [
+            {"question": "Does the building number match with the enumerated data?", "value": "5", "updatedValue": None, "type": "Data", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Does the building address match with the enumerated data?", "value": "345 Pineview Plaza", "updatedValue": None, "type": "Data", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Does the number of households in this building as reported by enumerator match the observed number?", "value": "2", "updatedValue": None, "type": "Int", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Does the name of the head of household match with the enumerated data?", "value": "Amaka Onyeka", "updatedValue": None, "type": "Data", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Is this the correct number of under 5 children in the household?", "value": "2", "updatedValue": None, "type": "Int", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Is this the correct first name of one of the under 5 children in the household?", "value": "Chidinma", "updatedValue": None, "type": "Data", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Is this the correct last name of the same under 5 child in the household?", "value": "Nwachukwu", "updatedValue": None, "type": "Data", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Is this the correct gender of the child?", "value": "Female", "updatedValue": None, "type": "Select", "options": ["Male", "Female"], "booleanValue": True, "buildingId": None},
+            {"question": "Is this the correct date of birth of the child?", "value": "2022-03-29", "updatedValue": None, "type": "Date", "options": [], "booleanValue": True, "buildingId": None},
+            {"question": "Are these the correct vaccines that have been taken by the child?", "value": "[OPV 0, OPV 1, OPV 3]", "updatedValue": None, "type": "Table", "options": [], "booleanValue": True, "buildingId": None}
+        ]
+    ]
+
+    result = prettify_validation_responses(validation_responses[0])  # Send the actual list of dicts
+    print(result)
 
 def update_enumeration_records_from_sample_responses(doc, method):
     # Fetch all sample responses linked to the current document

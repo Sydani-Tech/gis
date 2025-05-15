@@ -343,7 +343,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-05-09 13:09:51.723660",
+ "modified": "2025-05-15 16:03:57.382882",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
@@ -377,15 +377,13 @@
    "write": 1
   },
   {
-   "create": 1,
    "email": 1,
    "export": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "create": 1,
@@ -439,8 +437,7 @@
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "email": 1,

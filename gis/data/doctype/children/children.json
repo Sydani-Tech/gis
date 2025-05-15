@@ -336,7 +336,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-05-12 00:58:57.795852",
+ "modified": "2025-05-15 16:03:36.202135",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Children",
@@ -366,15 +366,13 @@
    "write": 1
   },
   {
-   "create": 1,
    "email": 1,
    "export": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "create": 1,
@@ -418,8 +416,7 @@
    "read": 1,
    "report": 1,
    "role": "Supervisor",
-   "share": 1,
-   "write": 1
+   "share": 1
   },
   {
    "email": 1,
