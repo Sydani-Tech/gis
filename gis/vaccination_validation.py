@@ -57,7 +57,7 @@ def get_vaccination_validation_questions(vaccination_name):
     if not vaccination:
         return {"error": f"Vaccination '{vaccination_name}' not found"}
 
-    # Continue with building the response
+    # Continue with thevaccination response
     for key, item in QUESTIONS.items():
         if item["doctype"] == "Vaccination":
             responses[key] = {
@@ -138,8 +138,10 @@ def get_vaccination_validation_summaries(name=None):
         """, (name, user), as_dict=True)
 
         if results:
+            health_facility_name = frappe.get_value("Facility", results[0].health_facility, "facility_name")
             ward_name = frappe.get_value("Ward", results[0].ward, "ward")
             lga_name = frappe.get_value("Local Government Area", results[0].local_government_area, "local_government_area")
+            results[0]["health_facility_name"] = health_facility_name
             results[0]["ward_name"] = ward_name
             results[0]["local_government_area_name"] = lga_name
         else:
@@ -179,21 +181,25 @@ def get_vaccination_validation_summaries(name=None):
 
     # Add child records as a dictionary under each parent
     for row in results:
-        child_records = frappe.db.get_list(
-            "Vaccinations Under Validation",
-            filters={"parent": row["name"]},
-            fields=["vaccination", "full_name", "status AS vaccination_validation_status"],
-            ignore_permissions=True
-        )
 
-        for vaccination_record in child_records:
+        if row.get("status") == "Pending":
+            child_records = frappe.db.get_list(
+                "Vaccinations Under Validation",
+                filters={"parent": row["name"]},
+                fields=["vaccination", "full_name", "gender", "date_of_birth", "vaccines_administered", "status AS vaccination_validation_status"],
+                ignore_permissions=True
+            )
 
-            if row.get("status") == "Pending":
+            for vaccination_record in child_records:
                 vaccination_questions = get_vaccination_validation_questions(vaccination_record["vaccination"])
                 vaccination_record["vaccination_questions"] = vaccination_questions
 
-        row["vaccinations"] = child_records  # Assign child records under 'vaccinations'
+            row["vaccinations"] = child_records  # Assign child records under 'vaccinations'
 
+        #else return empty list
+        else:
+            row["vaccinations"] = []
+            
     return {
         "message": "Enumeration Validation Summaries fetched successfully.",
         "status": 200,
@@ -341,11 +347,15 @@ def create_vaccination_validation_summary(health_facility=None, start_date=None,
             })
         vaccination_validation_summary.insert(ignore_permissions=True)
         vaccination_validation_summary.save()
+
+        validation_summary = get_vaccination_validation_summaries(name=vaccination_validation_summary.name)
+
         return {
             "message": "Vaccination validation data created successfully.",
             "status": 200,
-            "Vaccination Validation Summary": vaccination_validation_summary.name,
-            "vaccinations_to_validate": vaccinations_to_validate,
+            # "Vaccination Validation Summary": vaccination_validation_summary.name,
+            # "vaccinations_to_validate": vaccinations_to_validate,
+            "validation_summary": validation_summary,
         }
 
     except Exception as e:

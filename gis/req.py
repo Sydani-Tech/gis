@@ -632,29 +632,82 @@ def get_user_records(project, form=None, status=None):
     else:
         set_res(message="No records found")
 
-# def get_doctype():
-#   # CHARACTER_MAXIMUM_LENGTH,
-#   # NUMERIC_PRECISION,
-#   stmt = f""" 
-#     SELECT
-#       TABLE_NAME,
-#       COLUMN_NAME,
-#       DATA_TYPE,
-#       NUMERIC_SCALE,
-#       COLUMN_TYPE,
-#       COLUMN_KEY,
-#       EXTRA
-#     FROM
-#       INFORMATION_SCHEMA.COLUMNS
-#     WHERE 
-#       TABLE_NAME = 'tabBuilding'
-#   """
 
-#   doc = frappe.db.sql(stmt, as_dict=True)
-#   for field in doc:
-#     print(field)
-#     print(" ")
+@frappe.whitelist()
+def get_user_location(longitude, latitude):
 
-def cr():
-  r = frappe.db.sql("select * from `tabFacility` where name = 'Anguwan Fatika Primary Health Center-Unguwar Fatika-Zaria-Kaduna'", as_dict=True)
-  print(r[0]['geolocation'])
+    """
+    Get the grid, Ward, LGA that contains the given longitude and latitude.
+    """
+    if not longitude or not latitude:
+            return {"status": "error", "message": "Missing longitude or latitude."}
+
+    try:
+
+        # Construct GeoJSON Point
+        point_geojson = json.dumps({
+            "type": "Point",
+            "coordinates": [float(longitude), float(latitude)]
+        })
+
+        # Query Grid that contains the point
+        grid = frappe.db.sql("""
+            SELECT name, title FROM `tabGrid`
+            WHERE enabled = 1 AND ST_Intersects(
+                ST_GeomFromGeoJSON(
+                    CAST(
+                        JSON_UNQUOTE(JSON_EXTRACT(geolocation_kyow, '$.features[0].geometry')) AS CHAR
+                    )
+                ),
+                ST_GeomFromGeoJSON(%s)
+            )
+            LIMIT 1
+        """, (point_geojson), as_dict=True)
+
+    
+
+       #Query Ward that contains the point
+        ward = frappe.db.sql("""
+        SELECT 
+            name, 
+            ward, 
+            local_government_area, 
+            state 
+        FROM `tabWard`
+        WHERE ST_Intersects(
+            ST_GeomFromGeoJSON(
+                JSON_UNQUOTE(
+                    JSON_EXTRACT(geolocation, '$.geometry')
+                )
+            ),
+            ST_GeomFromGeoJSON(%s)
+        )
+        LIMIT 1
+        """, (point_geojson,), as_dict=True)
+
+        lga = frappe.get_value(
+            "Local Government Area", 
+            ward[0]['local_government_area'] if ward else None, 
+            ["name", "local_government_area", "state", "country"], 
+            as_dict=True
+        ) if ward else None
+
+        return {
+            "message": "Geo lookup successful",
+            "status": 200,
+            "grid": grid[0]['title'] if grid else None,
+            "ward": ward[0]['ward'] if ward else None,
+            "lga": lga['local_government_area'] if lga else None,
+            "state": ward[0]['state'] if ward else None,
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": f"Geo lookup failed: {str(e)}"}
+
+
+
+
+
+# def cr():
+#   r = frappe.db.sql("select * from `tabFacility` where name = 'Anguwan Fatika Primary Health Center-Unguwar Fatika-Zaria-Kaduna'", as_dict=True)
+#   print(r[0]['geolocation'])

@@ -93,7 +93,6 @@
    "default": "Pending",
    "fieldname": "status",
    "fieldtype": "Select",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
    "options": "Pending\nDiscarded\nCompleted"
@@ -119,12 +118,14 @@
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Start Date",
    "reqd": 1
   },
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "End Date",
    "reqd": 1
   }
@@ -132,7 +133,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-15 15:22:07.339944",
+ "modified": "2025-05-19 17:54:20.934513",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Validation Summary",

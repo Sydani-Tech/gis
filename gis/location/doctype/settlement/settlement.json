@@ -121,7 +121,8 @@
    "fieldname": "distance_from_settlement_to_facility",
    "fieldtype": "Float",
    "label": "Distance from Settlement to Facility (KM)",
-   "permlevel": 2
+   "permlevel": 2,
+   "read_only": 1
   },
   {
    "fetch_from": "name_of_nearest_facility_to_settlement.geolocation",
@@ -160,6 +161,7 @@
    "label": "Location"
   },
   {
+   "fetch_from": "name_of_nearest_facility_to_settlement.ward",
    "fieldname": "ward",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -343,7 +345,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-05-15 16:03:57.382882",
+ "modified": "2025-06-02 12:54:46.250724",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",

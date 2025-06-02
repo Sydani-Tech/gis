@@ -5,6 +5,7 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
+  "vaccination_grid",
   "title",
   "ward",
   "local_government_area",
@@ -126,11 +127,17 @@
    "fieldtype": "Float",
    "label": "Grid Area (in Square KM)",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "vaccination_grid",
+   "fieldtype": "Check",
+   "label": "Vaccination Grid"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-15 16:11:44.343747",
+ "modified": "2025-05-27 11:59:39.204377",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Grid",

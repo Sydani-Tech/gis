@@ -326,60 +326,94 @@ def autoset_grid(doc, method):
         frappe.msgprint(f"🔥 GeoJSON error: {str(e)}")
           
 
-def autoset_nearest_facility(doc, method):
+# def autoset_nearest_facility(doc, method):
+#     """
+#     Finds the nearest facility within 5000 km.
+#     """
+#     response_geolocation = doc.get('response_geolocation')
+
+#     # Debug: Check if response_geolocation is present
+#     if response_geolocation is None or (isinstance(response_geolocation, str) and not response_geolocation.strip()):
+#         frappe.msgprint("No valid response_geolocation provided, skipping ward and facility assignment.")
+#         return
+
+#     frappe.msgprint(f"Processing geolocation: {response_geolocation}")
+
+#     try:
+#         # Fetch the nearest facility within 5000000 meters (5000 km)
+#         facility = frappe.db.sql(f"""
+#             SELECT facility_name, name, geolocation, 
+#                    ST_Distance_Sphere(
+#                        ST_GeomFromGeoJSON(geolocation),
+#                        ST_GeomFromGeoJSON(
+#                            JSON_EXTRACT(
+#                                JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
+#                                '$'
+#                            )
+#                        )
+#                    ) as distance
+#             FROM `tabFacility`
+#             WHERE ST_Distance_Sphere(
+#                       ST_GeomFromGeoJSON(geolocation),
+#                       ST_GeomFromGeoJSON(
+#                           JSON_EXTRACT(
+#                               JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
+#                               '$'
+#                           )
+#                       )
+#                   ) <= 5000000
+#             ORDER BY distance ASC
+#             LIMIT 1
+#         """, as_dict=True)
+
+#         if facility:
+#             nearest_facility = facility[0]['name']
+#             distance_km = round(facility[0]['distance'] / 1000, 3)  # Convert meters to kilometers
+            
+#             # doc.name_of_nearest_facility_to_settlement = nearest_facility
+#             doc.distance_from_settlement_to_facility = distance_km
+
+#             frappe.msgprint(f"Nearest Facility: {nearest_facility}, Distance: {distance_km} km")
+#         else:
+#             frappe.msgprint("No facility found within 5000 km.")
+
+#     except Exception as e:
+#         frappe.msgprint(f"Error in assigning facility: {str(e)}", indicator="red")
+
+def calculate_distance_between_facility_and_settlement(doc, method):
     """
-    Finds the nearest facility within 5000 km.
+    Calculates the distance between the facility and settlement.
     """
     response_geolocation = doc.get('response_geolocation')
+    facility_geolocation = doc.get('facility_geolocation')
 
     # Debug: Check if response_geolocation is present
-    if response_geolocation is None or (isinstance(response_geolocation, str) and not response_geolocation.strip()):
-        frappe.msgprint("No valid response_geolocation provided, skipping ward and facility assignment.")
+    if not response_geolocation or not facility_geolocation:
+        frappe.msgprint("No valid settlement or facility geolocation provided, skipping distance calculation.")
         return
 
-    frappe.msgprint(f"Processing geolocation: {response_geolocation}")
-
     try:
-        # Fetch the nearest facility within 5000000 meters (5000 km)
-        facility = frappe.db.sql(f"""
-            SELECT facility_name, name, geolocation, 
-                   ST_Distance_Sphere(
-                       ST_GeomFromGeoJSON(geolocation),
-                       ST_GeomFromGeoJSON(
+        # Calculate distance using ST_Distance_Sphere
+        distance = frappe.db.sql(f"""
+            SELECT ST_Distance_Sphere(
+                ST_GeomFromGeoJSON('{facility_geolocation}'),
+                ST_GeomFromGeoJSON(
                            JSON_EXTRACT(
                                JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
                                '$'
                            )
                        )
-                   ) as distance
-            FROM `tabFacility`
-            WHERE ST_Distance_Sphere(
-                      ST_GeomFromGeoJSON(geolocation),
-                      ST_GeomFromGeoJSON(
-                          JSON_EXTRACT(
-                              JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
-                              '$'
-                          )
-                      )
-                  ) <= 5000000
-            ORDER BY distance ASC
-            LIMIT 1
+            ) as distance
         """, as_dict=True)
 
-        if facility:
-            nearest_facility = facility[0]['name']
-            distance_km = round(facility[0]['distance'] / 1000, 3)  # Convert meters to kilometers
-            
-            doc.name_of_nearest_facility_to_settlement = nearest_facility
-            doc.distance_from_settlement_to_facility = distance_km
-
-            frappe.msgprint(f"Nearest Facility: {nearest_facility}, Distance: {distance_km} km")
+        if distance:
+            doc.distance_from_settlement_to_facility = round(distance[0]['distance'] / 1000, 3)  # Convert meters to kilometers
+            frappe.msgprint(f"Distance from Settlement to Facility: {doc.distance_from_settlement_to_facility} km")
         else:
-            frappe.msgprint("No facility found within 5000 km.")
+            frappe.msgprint("Could not calculate distance.")
 
     except Exception as e:
-        frappe.msgprint(f"Error in assigning facility: {str(e)}", indicator="red")
-
+        frappe.msgprint(f"Error in calculating distance: {str(e)}", indicator="red")
 
 
 def autoset_nearest_facility_household(doc, method):

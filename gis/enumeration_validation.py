@@ -5,6 +5,12 @@ from datetime import datetime, timedelta
 
 # Predefined questions with Doctype, Field, and Expected Data Type
 QUESTIONS = {
+    "building_response_geolocation": {
+        "question": "Please take your current geolocation by pressing the button below",
+        "doctype": "Building",
+        "field": "geolocation",
+        "type": "Geolocation"
+    },
     "building_number_match": {
         "question": "Does the building number match with the enumerated data?",
         "doctype": "Building",
@@ -94,7 +100,6 @@ def get_builing_validation_questions(building_name):
                 "question": item["question"],
                 "value": building.get(item["field"]),
                 "type": item["type"],
-                # "options": item.get("options", [])
                 "options": item["options"] if "options" in item else []
             }
 
@@ -128,9 +133,6 @@ def get_builing_validation_questions(building_name):
         WHERE household = %s AND status = 'Submitted'
     """, household["name"], as_dict=True)
     
-    # for child in children:
-    #     vaccines_str = child.get("vaccines_taken", "[]")
-    #     child["vaccines_taken"] = reformat_vaccines_taken(vaccines_str)
 
     for child in children:
         vaccines_str = child.get("vaccines_taken", "").strip("[]").strip()
@@ -217,19 +219,6 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
         building_filters["grid"] = grid
     if ward:
         building_filters["ward"] = ward
-
-    # # buildings = frappe.db.get_list("Building", filters=building_filters, fields=["name", "settlement", "owner", "geolocation"])
-
-    # buildings = frappe.db.sql("""
-    #     SELECT name, settlement, owner, geolocation, building_picture, building_picture_2
-    #     FROM `tabBuilding`
-    #     WHERE status = 'Submitted'
-    #     {grid_filter}
-    #     {ward_filter}
-    # """.format(
-    #     grid_filter=f"AND grid = '{grid}'" if grid else "",
-    #     ward_filter=f"AND ward = '{ward}'" if ward else ""
-    # ), as_dict=True)
 
     # Assume start_date and end_date are passed as date strings: "YYYY-MM-DD"
     start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
@@ -349,25 +338,8 @@ def get_enumeration_validation_summaries(name=None):
             "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
             "status": 401
         }
-    # # If a name is provided, fetch that specific summary
-    # if name:
-    #     results = frappe.db.sql("""
-    #         SELECT 
-    #             parent.name, 
-    #             parent.ward, 
-    #             parent.local_government_area, 
-    #             parent.state, 
-    #             parent.validator, 
-    #             parent.status,
-    #             parent.modified
-    #         FROM `tabEnumeration Validation Summary` AS parent
-    #         WHERE parent.name = %s AND parent.validator = %s
-    #     """, (name, user), as_dict=True)
-
-    #     if not results:
-    #         return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
-
-
+    
+    # Check if a specific name is provided
     if name:
         results = frappe.db.sql("""
             SELECT 
@@ -421,20 +393,24 @@ def get_enumeration_validation_summaries(name=None):
     # Add child records as a dictionary under each parent
 
     for row in results:
-        child_records = frappe.db.get_list(
-            "Enumeration Sample Responses",
-            filters={"parent": row["name"]},
-            fields=["record AS building_name", "status AS building_validation_status", "geolocation AS building_geolocation"],
-            ignore_permissions=True
-        )
-        for building in child_records:
 
-            if row.get("status") == "Pending":
+        if row.get("status") == "Pending":
+            child_records = frappe.db.get_list(
+                "Enumeration Sample Responses",
+                filters={"parent": row["name"]},
+                fields=["record AS building_name", "status AS building_validation_status", "geolocation AS building_geolocation"],
+                ignore_permissions=True
+            )
+            for building in child_records:
                 building_details = get_building_details(building["building_name"])
                 building_questions = building_details.get("data", {}) if building_details else {}
                 building["building_questions"] = building_questions
 
-        row["buildings"] = child_records  # Assign child records under 'buildings'
+            row["buildings"] = child_records  # Assign child records under 'buildings'
+
+        #else return empty list
+        else:
+            row["buildings"] = []
 
 
     return {
@@ -528,17 +504,6 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
     
 
     try:
-
-        # Ensure only one of grid or ward is supplied
-        # if (grid and ward) or (not grid and not ward):
-        # if (grid and ward):
-        #     return {
-        #         "message": "Please provide either Grid or Ward, but not both.",
-        #         "status": 400
-        #     }
-
-        # Get buildings to validate
-        # buildings_to_validate = get_buildings(grid=grid, ward=ward)
         buildings_to_validate = get_buildings(ward=ward, start_date=start_date, end_date=end_date)
 
         # Early exit if no buildings were found
@@ -550,14 +515,6 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
 
         # Create and save Enumeration Validation Summary
         summary = frappe.new_doc("Enumeration Validation Summary")
-
-        # if grid:
-        #     # Fetch the ward value from the Grid doctype
-        #     grid_doc = frappe.get_doc("Grid", grid)
-        #     summary.grid = grid
-        #     summary.ward = grid_doc.ward
-        # else:
-        #     summary.ward = ward
 
         summary.ward = ward
         summary.validator = frappe.session.user
@@ -572,6 +529,7 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
                 "record": building.get("name"),
                 "settlement": building.get("settlement"),
                 "enumerator": building.get("owner"),
+                "geolocation": building.get("geolocation"),
                 "status": "Pending",
             })
 
@@ -583,17 +541,21 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
                 "settlement": building.get("settlement"),
                 "enumerator": building.get("owner"),
                 "geolocation": building.get("geolocation"),
+                "response_geolocation": building.get("geolocation"),
                 "status": "Pending",
             })
 
         summary.insert(ignore_permissions=True)
         summary.save()
 
+        validation_summary = get_enumeration_validation_summaries(name=summary.name)
+
         return {
-            "message": "Enumeration validation data saved successfully.",
+            "message": "Enumeration validation data created successfully.",
             "status": 200,
             "Enumeration Validation Summary": summary.name,
             "buildings_to_validate": buildings_to_validate,
+            "validation_summary": validation_summary
         }
 
     except Exception as e:
@@ -744,8 +706,8 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
                 row.status = buildings_map[row.record]["status"]
                 # validation_message = prettify_validation_responses(buildings_map[row.record]["validation_responses"])
                 
-                # row.validation_responses = validation_message
                 row.validation_responses = buildings_map[row.record]["validation_responses"]
+                row.response_geolocation = buildings_map[row.record].get("response_geolocation", None)
 
                 # sample_row = parent_doc.enumeration_sample_responses[0]
                 # message = prettify_validation_responses(sample_row.validation_responses)
