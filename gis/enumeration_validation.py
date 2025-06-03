@@ -498,11 +498,11 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
         fields=["name"]
     )
 
-    # if existing_summaries:
-    #     return {
-    #         "message": "You already have a pending validation summary. Please complete it before starting a new one.",
-    #         "status": 400
-    #     }
+    if existing_summaries:
+        return {
+            "message": "You already have a pending enumeration validation summary. Please complete it before creating a new one.",
+            "status": 400
+        }
     
 
     try:
@@ -705,14 +705,6 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
         # Iterate over child table records
         for row in parent_doc.enumeration_sample_responses:
             if row.record in buildings_map:  # Match building
-                # row.status = buildings_map[row.record]["status"]
-                # validation_message = prettify_validation_responses(buildings_map[row.record]["validation_responses"])
-                
-                # row.validation_responses = buildings_map[row.record]["validation_responses"]
-                # row.response_geolocation = buildings_map[row.record].get("response_geolocation", None)
-
-                # sample_row = parent_doc.enumeration_sample_responses[0]
-                # message = prettify_validation_responses(sample_row.validation_responses)
 
                 row_data = buildings_map[row.record]
                 row.status = row_data["status"]

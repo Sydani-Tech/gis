@@ -300,11 +300,11 @@ def create_vaccination_validation_summary(health_facility=None, start_date=None,
         fields=["name"]
     )
 
-    # if existing_summaries:
-    #     return {
-    #         "message": "You already have a pending validation summary. Please complete it before starting a new one.",
-    #         "status": 400
-    #     }
+    if existing_summaries:
+        return {
+            "message": "You already have a pending vaccination validation summary. Please complete it before creating a new one.",
+            "status": 400
+        }
     
 
     try:
