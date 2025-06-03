@@ -8,15 +8,16 @@
  "engine": "InnoDB",
  "field_order": [
   "doctype_name",
+  "status",
   "record",
   "settlement",
+  "enumerator",
   "building_picture_2",
   "building_picture",
   "column_break_bvbq",
-  "enumerator",
-  "status",
   "geolocation",
   "response_geolocation",
+  "distance",
   "section_break_zpnt",
   "validation_responses"
  ],
@@ -24,8 +25,6 @@
   {
    "fieldname": "doctype_name",
    "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Form",
    "options": "DocType",
    "read_only": 1
@@ -99,12 +98,18 @@
    "fieldtype": "Geolocation",
    "label": "Response Geolocation",
    "read_only": 1
+  },
+  {
+   "fieldname": "distance",
+   "fieldtype": "Float",
+   "label": "Distance (in Metres)",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-28 09:46:24.182714",
+ "modified": "2025-06-03 15:00:47.099790",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Sample Responses",

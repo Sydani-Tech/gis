@@ -3,6 +3,8 @@ import frappe
 import random
 from datetime import datetime, timedelta
 
+from gis.doc_events import (extract_geometry_geojson)
+
 # Predefined questions with Doctype, Field, and Expected Data Type
 QUESTIONS = {
     "building_response_geolocation": {
@@ -703,14 +705,33 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
         # Iterate over child table records
         for row in parent_doc.enumeration_sample_responses:
             if row.record in buildings_map:  # Match building
-                row.status = buildings_map[row.record]["status"]
+                # row.status = buildings_map[row.record]["status"]
                 # validation_message = prettify_validation_responses(buildings_map[row.record]["validation_responses"])
                 
-                row.validation_responses = buildings_map[row.record]["validation_responses"]
-                row.response_geolocation = buildings_map[row.record].get("response_geolocation", None)
+                # row.validation_responses = buildings_map[row.record]["validation_responses"]
+                # row.response_geolocation = buildings_map[row.record].get("response_geolocation", None)
 
                 # sample_row = parent_doc.enumeration_sample_responses[0]
                 # message = prettify_validation_responses(sample_row.validation_responses)
+
+                row_data = buildings_map[row.record]
+                row.status = row_data["status"]
+                row.validation_responses = row_data["validation_responses"]
+                row.response_geolocation = row_data.get("response_geolocation")
+
+                facility_geojson = extract_geometry_geojson(row.geolocation)
+                settlement_geojson = extract_geometry_geojson(row.response_geolocation)
+
+                if facility_geojson and settlement_geojson:
+                    distance_result = frappe.db.sql("""
+                        SELECT ST_Distance_Sphere(
+                            ST_GeomFromGeoJSON(%s),
+                            ST_GeomFromGeoJSON(%s)
+                        ) AS distance
+                    """, (facility_geojson, settlement_geojson), as_dict=True)
+
+                    if distance_result and distance_result[0]["distance"] is not None:
+                        row.distance = round(distance_result[0]["distance"], 3)
 
                 updated_buildings.append(row.record)
 

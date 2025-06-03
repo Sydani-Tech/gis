@@ -326,59 +326,87 @@ def autoset_grid(doc, method):
         frappe.msgprint(f"🔥 GeoJSON error: {str(e)}")
           
 
-# def autoset_nearest_facility(doc, method):
-#     """
-#     Finds the nearest facility within 5000 km.
-#     """
-#     response_geolocation = doc.get('response_geolocation')
+def autoset_nearest_facility(doc, method):
+    """
+    Finds the nearest facility within 5000 km.
+    """
+    response_geolocation = doc.get('response_geolocation')
 
-#     # Debug: Check if response_geolocation is present
-#     if response_geolocation is None or (isinstance(response_geolocation, str) and not response_geolocation.strip()):
-#         frappe.msgprint("No valid response_geolocation provided, skipping ward and facility assignment.")
-#         return
+    # Debug: Check if response_geolocation is present
+    if response_geolocation is None or (isinstance(response_geolocation, str) and not response_geolocation.strip()):
+        frappe.msgprint("No valid response_geolocation provided, skipping ward and facility assignment.")
+        return
 
-#     frappe.msgprint(f"Processing geolocation: {response_geolocation}")
+    frappe.msgprint(f"Processing geolocation: {response_geolocation}")
 
-#     try:
-#         # Fetch the nearest facility within 5000000 meters (5000 km)
-#         facility = frappe.db.sql(f"""
-#             SELECT facility_name, name, geolocation, 
-#                    ST_Distance_Sphere(
-#                        ST_GeomFromGeoJSON(geolocation),
-#                        ST_GeomFromGeoJSON(
-#                            JSON_EXTRACT(
-#                                JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
-#                                '$'
-#                            )
-#                        )
-#                    ) as distance
-#             FROM `tabFacility`
-#             WHERE ST_Distance_Sphere(
-#                       ST_GeomFromGeoJSON(geolocation),
-#                       ST_GeomFromGeoJSON(
-#                           JSON_EXTRACT(
-#                               JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
-#                               '$'
-#                           )
-#                       )
-#                   ) <= 5000000
-#             ORDER BY distance ASC
-#             LIMIT 1
-#         """, as_dict=True)
+    try:
+        # Fetch the nearest facility within 5000000 meters (5000 km)
+        facility = frappe.db.sql(f"""
+            SELECT facility_name, name, geolocation, 
+                   ST_Distance_Sphere(
+                       ST_GeomFromGeoJSON(geolocation),
+                       ST_GeomFromGeoJSON(
+                           JSON_EXTRACT(
+                               JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
+                               '$'
+                           )
+                       )
+                   ) as distance
+            FROM `tabFacility`
+            WHERE ST_Distance_Sphere(
+                      ST_GeomFromGeoJSON(geolocation),
+                      ST_GeomFromGeoJSON(
+                          JSON_EXTRACT(
+                              JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
+                              '$'
+                          )
+                      )
+                  ) <= 5000000
+            ORDER BY distance ASC
+            LIMIT 1
+        """, as_dict=True)
 
-#         if facility:
-#             nearest_facility = facility[0]['name']
-#             distance_km = round(facility[0]['distance'] / 1000, 3)  # Convert meters to kilometers
+        if facility:
+            nearest_facility = facility[0]['name']
+            distance_km = round(facility[0]['distance'] / 1000, 3)  # Convert meters to kilometers
             
-#             # doc.name_of_nearest_facility_to_settlement = nearest_facility
-#             doc.distance_from_settlement_to_facility = distance_km
+            # doc.name_of_nearest_facility_to_settlement = nearest_facility
+            doc.distance_from_settlement_to_facility = distance_km
 
-#             frappe.msgprint(f"Nearest Facility: {nearest_facility}, Distance: {distance_km} km")
-#         else:
-#             frappe.msgprint("No facility found within 5000 km.")
+            frappe.msgprint(f"Nearest Facility: {nearest_facility}, Distance: {distance_km} km")
+        else:
+            frappe.msgprint("No facility found within 5000 km.")
 
-#     except Exception as e:
-#         frappe.msgprint(f"Error in assigning facility: {str(e)}", indicator="red")
+    except Exception as e:
+        frappe.msgprint(f"Error in assigning facility: {str(e)}", indicator="red")
+
+def extract_geometry_geojson(geojson_str):
+    """
+    Extracts and normalizes the geometry from GeoJSON (FeatureCollection or Feature).
+    Ensures coordinates are numeric.
+    """
+    try:
+        geo = json.loads(geojson_str)
+
+        # Handle FeatureCollection
+        if geo.get("type") == "FeatureCollection":
+            geometry = geo["features"][0]["geometry"]
+        elif geo.get("type") == "Feature":
+            geometry = geo["geometry"]
+        elif geo.get("type") == "Point":
+            geometry = geo
+        else:
+            frappe.throw("Unsupported GeoJSON type for facility geolocation.")
+
+        # Convert string coordinates to float (if needed)
+        # if geometry.get("type") == "Point" and isinstance(geometry.get("coordinates"), list):
+        if isinstance(geometry.get("coordinates"), list):
+            geometry["coordinates"] = [float(coord) for coord in geometry["coordinates"]]
+
+        return json.dumps(geometry)
+    except Exception as e:
+        frappe.throw(f"Invalid GeoJSON format or coordinates: {str(e)}")
+
 
 def calculate_distance_between_facility_and_settlement(doc, method):
     """
@@ -387,30 +415,34 @@ def calculate_distance_between_facility_and_settlement(doc, method):
     response_geolocation = doc.get('response_geolocation')
     facility_geolocation = doc.get('facility_geolocation')
 
-    # Debug: Check if response_geolocation is present
+    frappe.msgprint(facility_geolocation)
+
     if not response_geolocation or not facility_geolocation:
         frappe.msgprint("No valid settlement or facility geolocation provided, skipping distance calculation.")
         return
 
     try:
-        # Calculate distance using ST_Distance_Sphere
-        distance = frappe.db.sql(f"""
-            SELECT ST_Distance_Sphere(
-                ST_GeomFromGeoJSON('{facility_geolocation}'),
-                ST_GeomFromGeoJSON(
-                           JSON_EXTRACT(
-                               JSON_EXTRACT('{response_geolocation}', '$.features[0].geometry'),
-                               '$'
-                           )
-                       )
-            ) as distance
-        """, as_dict=True)
+        # Extract geometries
+        facility_geometry = extract_geometry_geojson(facility_geolocation)
 
-        if distance:
-            doc.distance_from_settlement_to_facility = round(distance[0]['distance'] / 1000, 3)  # Convert meters to kilometers
-            frappe.msgprint(f"Distance from Settlement to Facility: {doc.distance_from_settlement_to_facility} km")
+        distance_result = frappe.db.sql(f"""
+            SELECT ST_Distance_Sphere(
+                ST_GeomFromGeoJSON(%s),
+                ST_GeomFromGeoJSON(
+                    JSON_EXTRACT(
+                        JSON_EXTRACT(%s, '$.features[0].geometry'),
+                        '$'
+                    )
+                )
+            ) AS distance
+        """, (facility_geometry, response_geolocation), as_dict=True)
+
+        if distance_result and distance_result[0]['distance'] is not None:
+            distance_km = round(distance_result[0]['distance'] / 1000, 3)
+            doc.distance_from_settlement_to_facility = distance_km
+            frappe.msgprint(f"Distance from Settlement to Facility: {distance_km} km")
         else:
-            frappe.msgprint("Could not calculate distance.")
+            frappe.msgprint("Could not calculate distance (possibly invalid geometry).")
 
     except Exception as e:
         frappe.msgprint(f"Error in calculating distance: {str(e)}", indicator="red")
@@ -476,82 +508,6 @@ def autoset_nearest_facility_household(doc, method):
 
     except Exception as e:
         frappe.msgprint(f"Error in assigning facility: {str(e)}", indicator="red")
-
-
-
-
-
-# def update_child_vaccination_status(doc, method):
-#     """
-#     Updates the vaccination status of a child based on administered vaccines and age.
-#     """
-#     vaccine_records = []
-#     # frappe.msgprint(f"Processing Child Vaccination Status for: {doc.name}")
-    
-#     # Iterate through the child table `last_vaccine_administered`
-#     for vaccine_entry in doc.get("last_vaccine_administered", []):
-#         if vaccine_entry.get("vaccine"):
-#             # Append the value of `vaccine` to the list
-#             vaccine_records.append(vaccine_entry.get("vaccine"))
-    
-#     # Print vaccine records for debugging
-#     # frappe.msgprint(f"Vaccine Records: {vaccine_records}")
-    
-#     # Format the list into a string in the required format
-#     doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
-    
-#     # Calculate the age in weeks
-#     date_of_birth = getdate(doc.date_of_birth)
-#     current_date = getdate(today())
-#     age_in_days = date_diff(current_date, date_of_birth)
-#     age_in_weeks = age_in_days // 7
-    
-#     # Print age for debugging
-#     # frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
-    
-#     # Set vaccination_status based on conditions
-#     if not vaccine_records:
-#         # If no vaccines have been administered
-#         doc.vaccination_status = "Never Vaccinated"
-       
-    
-#     elif (
-#         ("PENTA 1" not in vaccine_records and 
-#          "PENTA 2" not in vaccine_records and 
-#          "PENTA 3" not in vaccine_records) and age_in_weeks > 6
-#     ):
-#         doc.vaccination_status = "Zero Dose"
-    
-#     elif (
-#         (age_in_weeks >= 10 and ("PENTA 2" not in vaccine_records and "PENTA 3" not in vaccine_records)) or
-#         (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
-#         (age_in_weeks >= 36 and "VIT A" not in vaccine_records) or
-#         (age_in_weeks >= 48 and "Measles 1" not in vaccine_records) or
-#         (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
-#     ):
-#         # If missing age-appropriate vaccines for "Under Immunized" conditions
-#         doc.vaccination_status = "Under Immunized"
-
-#     elif (
-#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
-#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
-#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
-#         (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
-#         (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
-#         (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
-#         (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
-#         (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
-#     ):
-#         doc.vaccination_status = "Vaccinated to Age"
-
-    
-#     elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
-#         # If Measles 2 is administered after 60 weeks
-#         doc.vaccination_status = "Fully Vaccinated (Measles 2)"
-    
-#     # Print final vaccination status
-#     # frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
-
 
 
 def update_child_vaccination_status(doc, method):

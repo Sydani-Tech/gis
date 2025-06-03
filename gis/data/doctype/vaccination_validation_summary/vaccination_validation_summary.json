@@ -19,7 +19,9 @@
   "end_date",
   "section_break_ayph",
   "vaccinations_under_validation",
-  "amended_from"
+  "amended_from",
+  "report_section",
+  "vaccination_validation_report"
  ],
  "fields": [
   {
@@ -135,12 +137,24 @@
    "fieldtype": "Date",
    "label": "Start Date",
    "reqd": 1
+  },
+  {
+   "fieldname": "report_section",
+   "fieldtype": "Section Break",
+   "label": "Report"
+  },
+  {
+   "fieldname": "vaccination_validation_report",
+   "fieldtype": "Table",
+   "label": "Vaccination Validation Report",
+   "options": "Vaccination Validation Report",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-15 15:21:46.849465",
+ "modified": "2025-06-02 16:50:09.485122",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Summary",

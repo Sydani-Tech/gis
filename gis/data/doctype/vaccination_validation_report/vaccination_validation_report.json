@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-02 14:55:04.077332",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "team_code",
+  "validation_percentage",
+  "column_break_urhy",
+  "number_of_approved_vaccinations",
+  "total_number_of_vaccinations"
+ ],
+ "fields": [
+  {
+   "columns": 3,
+   "fieldname": "team_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Team Code",
+   "options": "User"
+  },
+  {
+   "fieldname": "validation_percentage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Validation Percentage"
+  },
+  {
+   "fieldname": "column_break_urhy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "number_of_approved_vaccinations",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Approved Vaccinations"
+  },
+  {
+   "fieldname": "total_number_of_vaccinations",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total No of Vaccinations"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-02 16:52:09.964531",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Vaccination Validation Report",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

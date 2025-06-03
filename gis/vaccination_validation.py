@@ -468,21 +468,56 @@ def process_vaccinations_before_submit(doc, method):
         except frappe.DoesNotExistError:
             frappe.throw(f"Vaccination record not found: {row.vaccination}")
 
+# def process_vaccinations_before_save(doc, method):
+#     pending_rows = []
+#     approved_count = 0
+#     total_rows = len(doc.vaccinations_under_validation)
+
+#     # 1. Check for pending rows and count approved
+#     for i, row in enumerate(doc.vaccinations_under_validation, start=1):
+#         if row.status == "Pending":
+#             pending_rows.append(str(i))
+#         elif row.status == "Approved" or row.status == "Corrected":
+#             approved_count += 1
+
+#     # 2. Set the validation percentage on the main document
+#     if total_rows > 0:
+#         doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
+#     else:
+#         doc.validation_percentage = 0
+
+
 def process_vaccinations_before_save(doc, method):
     pending_rows = []
     approved_count = 0
     total_rows = len(doc.vaccinations_under_validation)
 
-    # 1. Check for pending rows and count approved
+    vaccinator_data = {}  # Structure: {vaccinator_name: {'approved': x, 'total': y}}
+
+    # 1. Check for pending rows, count approved/corrected, and track vaccinators
     for i, row in enumerate(doc.vaccinations_under_validation, start=1):
+        vaccinator = row.vaccinator or "Unknown"
+        vaccinator_stats = vaccinator_data.setdefault(vaccinator, {"approved": 0, "total": 0})
+        vaccinator_stats["total"] += 1
+
         if row.status == "Pending":
             pending_rows.append(str(i))
-        elif row.status == "Approved":
+        elif row.status in ("Approved", "Corrected"):
             approved_count += 1
+            vaccinator_stats["approved"] += 1
 
-    # 2. Set the validation percentage on the main document
-    if total_rows > 0:
-        # doc.validation_percentage = math.ceil((approved_count / total_rows) * 100)
-        doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
-    else:
-        doc.validation_percentage = 0
+    # 2. Set the overall validation percentage on the main document
+    doc.validation_percentage = round((approved_count / total_rows) * 100, 0) if total_rows else 0
+
+    # 3. Clear and populate the child table: vaccination_validation_report
+    doc.vaccination_validation_report = []
+
+    for vaccinator, stats in vaccinator_data.items():
+        percentage = round((stats["approved"] / stats["total"]) * 100, 0) if stats["total"] else 0
+        doc.append("vaccination_validation_report", {
+            "team_code": vaccinator,
+            "number_of_approved_vaccinations": stats["approved"],
+            "total_number_of_vaccinations": stats["total"],
+            "validation_percentage": percentage
+        })
+

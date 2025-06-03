@@ -88,7 +88,8 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                 // Define colors based on status
                 let color_map = {
                     "Pending": "#fff3cd",  // Light Yellow
-                    "Approved": "#d4edda", // Light Green
+                    "Approved": "#93e68e", // Deep Green
+                    "Corrected": "#d4edda", // Light Green
                     "Returned": "#f8d7da"  // Light Red
                 };
 
@@ -101,6 +102,32 @@ frappe.ui.form.on("Vaccination Validation Summary", {
             });
         }
     }
+});
 
 
+frappe.ui.form.on("Vaccination Validation Summary", {
+    vaccinations_under_validation: function (frm) {
+        // Ensure child table is loaded
+        if (frm.fields_dict["vaccinations_under_validation"] && frm.fields_dict["vaccinations_under_validation"].grid) {
+            frm.fields_dict["vaccinations_under_validation"].grid.grid_rows.forEach(row => {
+                let doc = row.doc; // Get row data
+                let $row = $(row.row); // Get row element
+
+                // Define colors based on status
+                let color_map = {
+                    "Pending": "#fff3cd",  // Light Yellow
+                    "Approved": "#93e68e", // Deep Green
+                    "Corrected": "#d4edda", // Light Green
+                    "Returned": "#f8d7da"  // Light Red
+                };
+
+                // Apply background color if status exists
+                if (color_map[doc.status]) {
+                    $row.css("background-color", color_map[doc.status]);
+                } else {
+                    $row.css("background-color", ""); // Reset if no match
+                }
+            });
+        }
+    }
 });

@@ -163,9 +163,8 @@ doc_events = {
     },
     "Settlement": {
         "validate": [
-            "gis.doc_events.autoset_ward",
+            # "gis.doc_events.autoset_ward",
             "gis.doc_events.autoset_grid",
-            # "gis.doc_events.autoset_nearest_facility",
             "gis.doc_events.update_settlement_field",
             "gis.doc_events.calculate_distance_between_facility_and_settlement"
         ]
