@@ -177,7 +177,7 @@ def get_vaccination_validation_summaries(name=None):
                 row["ward_name"] = ward_name
                 row["local_government_area_name"] = lga_name
         else:
-            return {"message": "No Enumeration Validation summaries found for the user. Please contact your supervisor.", "status": 404}
+            return {"message": "No Vaccination Validation summaries found for the user. Please contact your supervisor.", "status": 404}
 
     # Add child records as a dictionary under each parent
     for row in results:
@@ -186,7 +186,7 @@ def get_vaccination_validation_summaries(name=None):
             child_records = frappe.db.get_list(
                 "Vaccinations Under Validation",
                 filters={"parent": row["name"]},
-                fields=["vaccination", "full_name", "gender", "date_of_birth", "vaccines_administered", "status AS vaccination_validation_status"],
+                fields=["vaccination", "full_name", "gender", "date_of_birth", "vaccines_administered", "validation_answers", "last_modified", "status AS vaccination_validation_status"],
                 ignore_permissions=True
             )
 
@@ -382,6 +382,7 @@ def submit_vaccine_validation_responses(doc_name, vaccinations):
         - vaccination (str): vaccination name
         - status (str): Status to update
         - validation_answers (str): Response after validation exercise
+        - last_modified (str): Last modified date
 
     Returns:
     - JSON response with success or failure message.
@@ -409,6 +410,7 @@ def submit_vaccine_validation_responses(doc_name, vaccinations):
             if row.vaccination in vaccinations_map:  # Match vaccination name
                 row.status = vaccinations_map[row.vaccination]["status"]
                 row.validation_answers = vaccinations_map[row.vaccination]["validation_answers"]
+                row.last_modified = vaccinations_map[row.vaccination]["last_modified"]
                 updated_vaccinations.append(row.vaccination)  # Track updated vaccination names
 
         # Save updates
@@ -467,25 +469,6 @@ def process_vaccinations_before_submit(doc, method):
             vaccination_doc.save()
         except frappe.DoesNotExistError:
             frappe.throw(f"Vaccination record not found: {row.vaccination}")
-
-# def process_vaccinations_before_save(doc, method):
-#     pending_rows = []
-#     approved_count = 0
-#     total_rows = len(doc.vaccinations_under_validation)
-
-#     # 1. Check for pending rows and count approved
-#     for i, row in enumerate(doc.vaccinations_under_validation, start=1):
-#         if row.status == "Pending":
-#             pending_rows.append(str(i))
-#         elif row.status == "Approved" or row.status == "Corrected":
-#             approved_count += 1
-
-#     # 2. Set the validation percentage on the main document
-#     if total_rows > 0:
-#         doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
-#     else:
-#         doc.validation_percentage = 0
-
 
 def process_vaccinations_before_save(doc, method):
     pending_rows = []

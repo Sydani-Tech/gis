@@ -105,9 +105,10 @@ frappe.ui.form.on("Vaccination Validation Summary", {
 });
 
 
-frappe.ui.form.on("Vaccination Validation Summary", {
-    vaccinations_under_validation: function (frm) {
+frappe.ui.form.on("Vaccinations Under Validation", {
+    status: function (frm, cdt, cdn) {
         // Ensure child table is loaded
+        frappe.model.set_value(cdt, cdn, "last_modified", frappe.datetime.now_datetime());
         if (frm.fields_dict["vaccinations_under_validation"] && frm.fields_dict["vaccinations_under_validation"].grid) {
             frm.fields_dict["vaccinations_under_validation"].grid.grid_rows.forEach(row => {
                 let doc = row.doc; // Get row data

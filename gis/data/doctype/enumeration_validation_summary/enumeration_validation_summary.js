@@ -155,3 +155,30 @@ frappe.ui.form.on('Enumeration Validation Summary', {
         }
     }
 });
+
+frappe.ui.form.on("Enumeration Sample Responses", {
+    status: function (frm, cdt, cdn) {
+        // Ensure child table is loaded
+        frappe.model.set_value(cdt, cdn, "last_modified", frappe.datetime.now_datetime());
+        if (frm.fields_dict["enumeration_sample_responses"] && frm.fields_dict["enumeration_sample_responses"].grid) {
+            frm.fields_dict["enumeration_sample_responses"].grid.grid_rows.forEach(row => {
+                let doc = row.doc; // Get row data
+                let $row = $(row.row); // Get row element
+
+                // Define colors based on status
+                let color_map = {
+                    "Pending": "#fff3cd",  // Light Yellow
+                    "Approved": "#d4edda", // Light Green
+                    "Returned": "#f8d7da"  // Light Red
+                };
+
+                // Apply background color if status exists
+                if (color_map[doc.status]) {
+                    $row.css("background-color", color_map[doc.status]);
+                } else {
+                    $row.css("background-color", ""); // Reset if no match
+                }
+            });
+        }
+    }
+});

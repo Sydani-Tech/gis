@@ -14,7 +14,7 @@ fixtures = [
     {"dt": "State"},
     # {"dt": "Ward"},
 	{"dt": "Server Script"},
-    {"dt": "Workspace", "filters": [["name", "in", ["Coverage Trackr"]]]},
+    # {"dt": "Workspace", "filters": [["name", "in", ["Coverage Trackr"]]]},
     # {"dt": "Facility"},
     # {"dt": "Settlement"},
     # {"dt": "Building"},

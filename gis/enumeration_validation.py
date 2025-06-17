@@ -400,7 +400,7 @@ def get_enumeration_validation_summaries(name=None):
             child_records = frappe.db.get_list(
                 "Enumeration Sample Responses",
                 filters={"parent": row["name"]},
-                fields=["record AS building_name", "status AS building_validation_status", "geolocation AS building_geolocation"],
+                fields=["record AS building_name", "status AS building_validation_status", "geolocation AS building_geolocation", "validation_responses", "response_geolocation", "last_modified"],
                 ignore_permissions=True
             )
             for building in child_records:
@@ -532,6 +532,7 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
                 "settlement": building.get("settlement"),
                 "enumerator": building.get("owner"),
                 "geolocation": building.get("geolocation"),
+                "last_modified": frappe.utils.now(),
                 "status": "Pending",
             })
 
@@ -544,6 +545,7 @@ def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None
                 "enumerator": building.get("owner"),
                 "geolocation": building.get("geolocation"),
                 "response_geolocation": building.get("geolocation"),
+                "last_modified": frappe.utils.now(),
                 "status": "Pending",
             })
 
@@ -710,6 +712,7 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
                 row.status = row_data["status"]
                 row.validation_responses = row_data["validation_responses"]
                 row.response_geolocation = row_data.get("response_geolocation")
+                row.last_modified = row_data.get("last_modified")
 
                 facility_geojson = extract_geometry_geojson(row.geolocation)
                 settlement_geojson = extract_geometry_geojson(row.response_geolocation)

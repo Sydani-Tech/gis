@@ -21,7 +21,8 @@
   "vaccinator",
   "full_name",
   "section_break_gdpj",
-  "validation_answers"
+  "validation_answers",
+  "last_modified"
  ],
  "fields": [
   {
@@ -60,7 +61,8 @@
   {
    "fieldname": "validation_answers",
    "fieldtype": "Text Editor",
-   "label": "Validation Answers"
+   "label": "Validation Answers",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_gdpj",
@@ -134,12 +136,18 @@
    "in_standard_filter": 1,
    "label": "Vaccination Date",
    "read_only": 1
+  },
+  {
+   "fieldname": "last_modified",
+   "fieldtype": "Datetime",
+   "label": "Last Modified",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-02 07:02:18.823499",
+ "modified": "2025-06-12 09:17:08.837838",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccinations Under Validation",
