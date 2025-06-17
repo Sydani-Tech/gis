@@ -76,7 +76,6 @@ def update_approved_records():
         doc.save()
     frappe.db.commit()
 
-import frappe
 
 def update_building_vaccination_status():
     """
@@ -151,6 +150,65 @@ def set_enumerated_vaccination_status():
         # Update the enumerated vaccination status
         frappe.db.set_value("Children", child_name, "enumerated_vaccination_status", enumerated_vaccination_status)
     frappe.db.commit()
+
+def create_missing_facility_buildings():
+    facilities = frappe.get_all("Facility", filters={"selected_facility": 1}, fields=["name", "facility_name", "ward", "longitude", "latitude"])
+
+    for facility in facilities:
+        # Check if buildings exist for the facility
+        building_count = frappe.db.count("Building", filters={"health_facility": facility.name})
+        if building_count > 0:
+            continue  # Facility already has buildings
+
+        # Check for matching settlements
+        settlements = frappe.get_all(
+            "Settlement",
+            filters={
+                "name_of_nearest_facility_to_settlement": facility.name,
+                "ward": facility.ward,
+                "status": "Approved"
+            },
+            fields=["name"],
+            limit=1
+        )
+
+        if not settlements:
+            continue  # No matching settlement, skip this facility
+
+        for settlement in settlements:
+            building = frappe.new_doc("Building")
+            building.building_number = "001"
+            building.building_address = facility.facility_name
+            building.street_name = facility.name.replace("-", ", ")
+            building.describe_the_building = facility.facility_name
+            building.building_type = "Non-residential"
+            building.establishment_type = "Health Facility"
+            building.health_facility = facility.name
+            building.settlement = settlement.name
+            building.status = "Approved"
+            building.project = "STRICAN - Phase 2"
+            building.longitude = facility.longitude
+            building.latitude = facility.latitude
+
+            # Create GeoJSON Point
+            building.geolocation = json.dumps({
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [facility.longitude, facility.latitude]
+                    }
+                }]
+            })
+
+            building.insert(ignore_permissions=True)
+            frappe.db.commit()
+            print(f"Created Building for Facility: {facility.name} in Settlement: {settlement.name}")
+
+
+
 
 def fetch_odk_data():
     # print("Function fetch_odk_data_program is executed.")

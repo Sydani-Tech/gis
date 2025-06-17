@@ -99,78 +99,6 @@ def update_building_geolocation():
 import frappe
 from frappe.utils import getdate, date_diff, today
 
-# def update_child_vaccination_status(doc, method):
-#     """
-#     Updates the vaccination status of a child based on administered vaccines and age.
-#     """
-#     vaccine_records = []
-#     # frappe.msgprint(f"Processing Child Vaccination Status for: {doc.name}")
-    
-#     # Iterate through the child table `last_vaccine_administered`
-#     for vaccine_entry in doc.get("last_vaccine_administered", []):
-#         if vaccine_entry.get("vaccine"):
-#             # Append the value of `vaccine` to the list
-#             vaccine_records.append(vaccine_entry.get("vaccine"))
-    
-#     # Print vaccine records for debugging
-#     # frappe.msgprint(f"Vaccine Records: {vaccine_records}")
-    
-#     # Format the list into a string in the required format
-#     doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
-    
-#     # Calculate the age in weeks
-#     date_of_birth = getdate(doc.date_of_birth)
-#     current_date = getdate(today())
-#     age_in_days = date_diff(current_date, date_of_birth)
-#     age_in_weeks = age_in_days // 7
-    
-#     # Print age for debugging
-#     # frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
-    
-#     # Set vaccination_status based on conditions
-#     if not vaccine_records:
-#         # If no vaccines have been administered
-#         doc.vaccination_status = "Never Vaccinated"
-       
-    
-#     elif (
-#         ("PENTA 1" not in vaccine_records and 
-#          "PENTA 2" not in vaccine_records and 
-#          "PENTA 3" not in vaccine_records) and age_in_weeks > 6
-#     ):
-#         doc.vaccination_status = "Zero Dose"
-    
-#     elif (
-#         (age_in_weeks >= 10 and ("PENTA 2" not in vaccine_records and "PENTA 3" not in vaccine_records)) or
-#         (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
-#         (age_in_weeks >= 36 and "VIT A" not in vaccine_records) or
-#         (age_in_weeks >= 48 and "Measles 1" not in vaccine_records) or
-#         (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
-#     ):
-#         # If missing age-appropriate vaccines for "Under Immunized" conditions
-#         doc.vaccination_status = "Under Immunized"
-
-#     elif (
-#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records) or
-#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "HEP B0" in vaccine_records) or
-#         (age_in_weeks >= 0 and age_in_weeks <= 6 and "OPV 0" in vaccine_records) or
-#         (age_in_weeks >= 6 and age_in_weeks <= 10 and "PENTA 1" in vaccine_records) or
-#         (age_in_weeks >= 10 and age_in_weeks <= 14 and "PENTA 2" in vaccine_records) or
-#         (age_in_weeks >= 14 and age_in_weeks <= 36 and "PENTA 3" in vaccine_records) or
-#         (age_in_weeks >= 36 and age_in_weeks <= 48 and "VIT A" in vaccine_records) or
-#         (age_in_weeks >= 48 and age_in_weeks <= 60 and "Measles 1" in vaccine_records)
-#     ):
-#         doc.vaccination_status = "Vaccinated to Age"
-
-    
-#     elif age_in_weeks > 60 and "Measles 2" in vaccine_records:
-#         # If Measles 2 is administered after 60 weeks
-#         doc.vaccination_status = "Fully Vaccinated (Measles 2)"
-    
-#     # Print final vaccination status
-#     # frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
-
-
 def update_child_vaccination_status(doc, method):
     """
     Updates the vaccination status of a child based on administered vaccines and age.
@@ -250,3 +178,27 @@ def update_child_vaccination_status(doc, method):
     
     # Print final vaccination status
     frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
+
+
+import frappe
+
+def find_facilities_without_buildings():
+    facilities_without_buildings = []
+
+    # Get all Facility records where selected_facility is 1
+    facilities = frappe.get_all("Facility", filters={"selected_facility": 1}, fields=["name", "facility_name"])
+
+    for facility in facilities:
+        # Check if any Building is linked to this facility
+        building_count = frappe.db.count("Building", filters={"health_facility": facility["name"]})
+
+        if building_count == 0:
+            facilities_without_buildings.append(facility)
+
+    if facilities_without_buildings:
+        print("\nFacilities with no linked Buildings:\n")
+        for f in facilities_without_buildings:
+            print(f"- {f['facility_name']} ({f['name']})")
+    else:
+        print("All selected facilities have at least one building linked.")
+
