@@ -294,7 +294,8 @@
    "in_standard_filter": 1,
    "label": "Building",
    "options": "Building",
-   "permlevel": 2
+   "permlevel": 2,
+   "reqd": 1
   },
   {
    "fieldname": "settlement",
@@ -472,7 +473,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-06-17 12:23:36.669408",
+ "modified": "2025-06-17 15:15:24.530149",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination",
