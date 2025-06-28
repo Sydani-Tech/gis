@@ -10,7 +10,6 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                     return;
                 }
 
-                frm.clear_table("vaccinations_under_validation");
                 frappe.call({
                     method: "gis.vaccination_validation.get_vaccinations",
                     args: {
@@ -20,35 +19,41 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                     },
 
                     callback: function (r) {
-
                         const vaccinations = r.message.vaccinations || [];
-
-                        // console.log("Final vaccinations array:", vaccinations);
 
                         if (!Array.isArray(vaccinations) || vaccinations.length === 0) {
                             frappe.msgprint("No vaccinations found for the selected filters.");
                             return;
                         }
 
-                        // Now loop through each vaccination
+                        const newVaccinationNames = new Set(vaccinations.map(v => v.name));
+
+                        // Remove rows not in newVaccinationNames
+                        const currentRows = frm.doc.vaccinations_under_validation || [];
+                        frm.doc.vaccinations_under_validation = currentRows.filter(row => {
+                            return newVaccinationNames.has(row.vaccination);
+                        });
+                        frm.refresh_field("vaccinations_under_validation");
+
+                        const existingVaccinations = new Set(
+                            (frm.doc.vaccinations_under_validation || []).map(row => row.vaccination)
+                        );
+
                         vaccinations.forEach(vaccination => {
+                            if (existingVaccinations.has(vaccination.name)) return;
+
                             frappe.call({
                                 method: "gis.vaccination_validation.get_vaccination_validation_questions",
                                 args: {
                                     vaccination_name: vaccination.name
                                 },
-
                                 callback: function (res) {
                                     const answers = res.message;
                                     let prettifiedMessage = "";
 
                                     Object.entries(answers).forEach(([sectionKey, sectionValue], index) => {
-                                        // Convert key to uppercase and replace underscores with spaces
                                         const header = sectionKey.replace(/_/g, " ").toUpperCase();
-
-                                        // Add double paragraph break before each section
                                         if (index > 0) prettifiedMessage += `<br><br>`;
-
                                         prettifiedMessage += `<strong>${header}</strong><br>`;
 
                                         Object.entries(sectionValue).forEach(([fieldKey, fieldValue]) => {
@@ -57,10 +62,9 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                                         });
                                     });
 
-                                    const row = frm.add_child("vaccinations_under_validation", {
+                                    frm.add_child("vaccinations_under_validation", {
                                         vaccination: vaccination.name,
                                         vaccinator: vaccination.owner,
-                                        // validation_answers: prettifiedMessage.trim(),
                                         full_name: vaccination.full_name,
                                         gender: vaccination.gender,
                                         date_of_birth: vaccination.date_of_birth,
@@ -69,7 +73,6 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                                         vaccination_date: vaccination.vaccination_date,
                                         vaccines_administered: vaccination.vaccines_taken,
                                         last_modified: frappe.datetime.now_datetime()
-
                                     });
 
                                     frm.refresh_field("vaccinations_under_validation");
@@ -77,6 +80,7 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                             });
                         });
                     }
+
                 });
             });
         }
