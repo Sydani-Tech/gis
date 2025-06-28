@@ -6,11 +6,35 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "summary_section",
   "team_code",
-  "validation_percentage",
+  "vaccinators_total_payment",
+  "recorders_total_payment",
+  "total_payment",
   "column_break_urhy",
   "number_of_approved_vaccinations",
-  "total_number_of_vaccinations"
+  "total_number_of_vaccinations",
+  "payment_breakdown_section",
+  "vaccinators_total_transport_allowance",
+  "vaccinators_unvalidated_stipend",
+  "vaccinators_validated_stipend",
+  "column_break_etrc",
+  "recorders_total_transport_allowance",
+  "recorders_unvalidated_stipend",
+  "recorders_validated_stipend",
+  "total_data_allowance",
+  "payment_variables_section",
+  "total_working_days",
+  "days_zd_target_met",
+  "validation_percentage",
+  "column_break_twgf",
+  "vaccinators_stipend",
+  "recorders_stipend",
+  "currency",
+  "column_break_kvlc",
+  "transport_allowance",
+  "hard_to_reach_transport_allowance",
+  "data_allowance"
  ],
  "fields": [
   {
@@ -19,13 +43,15 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Team Code",
-   "options": "User"
+   "options": "User",
+   "read_only": 1
   },
   {
    "fieldname": "validation_percentage",
    "fieldtype": "Percent",
    "in_list_view": 1,
-   "label": "Validation Percentage"
+   "label": "Validation Percentage",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_urhy",
@@ -35,19 +61,158 @@
    "fieldname": "number_of_approved_vaccinations",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Approved Vaccinations"
+   "label": "Approved Vaccinations",
+   "read_only": 1
   },
   {
    "fieldname": "total_number_of_vaccinations",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Total No of Vaccinations"
+   "label": "Total No of Vaccinations",
+   "read_only": 1
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "Summary"
+  },
+  {
+   "fieldname": "total_payment",
+   "fieldtype": "Currency",
+   "label": "Total Payment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_variables_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Variables"
+  },
+  {
+   "fieldname": "total_working_days",
+   "fieldtype": "Int",
+   "label": "Total Working Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "days_zd_target_met",
+   "fieldtype": "Int",
+   "label": "Days ZD target met",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_twgf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "4000",
+   "fieldname": "vaccinators_stipend",
+   "fieldtype": "Currency",
+   "label": "Vaccinators Stipend"
+  },
+  {
+   "default": "3000",
+   "fieldname": "recorders_stipend",
+   "fieldtype": "Currency",
+   "label": "Recorders Stipend"
+  },
+  {
+   "fieldname": "column_break_kvlc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "2500",
+   "fieldname": "transport_allowance",
+   "fieldtype": "Currency",
+   "label": "Transport Allowance"
+  },
+  {
+   "default": "0",
+   "fieldname": "hard_to_reach_transport_allowance",
+   "fieldtype": "Currency",
+   "label": "Hard to Reach Transport Allowance"
+  },
+  {
+   "default": "400",
+   "fieldname": "data_allowance",
+   "fieldtype": "Currency",
+   "label": "Data Allowance"
+  },
+  {
+   "fieldname": "vaccinators_total_payment",
+   "fieldtype": "Currency",
+   "label": "Vaccinators Total Payment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "recorders_total_payment",
+   "fieldtype": "Currency",
+   "label": "Recorders Total Payment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_breakdown_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Breakdown"
+  },
+  {
+   "fieldname": "vaccinators_total_transport_allowance",
+   "fieldtype": "Currency",
+   "label": "Vaccinators Total Transport Allowance",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vaccinators_unvalidated_stipend",
+   "fieldtype": "Currency",
+   "label": "Vaccinators Unvalidated Stipend",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vaccinators_validated_stipend",
+   "fieldtype": "Currency",
+   "label": "Vaccinators Validated Stipend",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_etrc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recorders_unvalidated_stipend",
+   "fieldtype": "Currency",
+   "label": "Recorders Unvalidated Stipend",
+   "read_only": 1
+  },
+  {
+   "fieldname": "recorders_validated_stipend",
+   "fieldtype": "Currency",
+   "label": "Recorders Validated Stipend",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_data_allowance",
+   "fieldtype": "Currency",
+   "label": "Total Data Allowance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Currency",
+   "label": "Currency",
+   "options": "NGN"
+  },
+  {
+   "fieldname": "recorders_total_transport_allowance",
+   "fieldtype": "Currency",
+   "label": "Recorders Total Transport Allowance"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-02 16:52:09.964531",
+ "modified": "2025-06-28 13:34:04.098281",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Report",

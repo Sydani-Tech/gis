@@ -428,7 +428,6 @@ def submit_vaccine_validation_responses(doc_name, vaccinations):
         return {"error": str(e)}
 
 
-
 def process_vaccinations_before_submit(doc, method):
     pending_rows = []
     approved_count = 0
@@ -450,25 +449,85 @@ def process_vaccinations_before_submit(doc, method):
 
     # 4. Set the validation percentage on the main document
     if total_rows > 0:
-        # doc.validation_percentage = math.ceil((approved_count / total_rows) * 100)
         doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
     else:
         doc.validation_percentage = 0.0
 
-    # 5. Update linked Vaccination records based on each row's status
+    # 5. Update linked Vaccination records
     for row in doc.vaccinations_under_validation:
         if not row.vaccination:
-            continue  # skip if vaccination is not linked
+            continue
 
         try:
             vaccination_doc = frappe.get_doc("Vaccination", row.vaccination)
+
             if row.status == "Approved":
                 vaccination_doc.status = "Approved"
+                vaccination_doc.save()
+
             elif row.status == "Returned":
                 vaccination_doc.status = "Suspended"
-            vaccination_doc.save()
+                vaccination_doc.save()
+
+            elif row.status == "Corrected" and row.validation_answers:
+                try:
+                    answers = json.loads(row.validation_answers)
+                   
+                    for ans in answers:
+                        question = ans.get("question")
+                        value = ans.get("value")
+                        updated_value = ans.get("updatedValue")
+                        vaccine_id = ans.get("vaccineId")
+
+                        if not vaccine_id:
+                            continue  # Skip if no vaccine_id
+
+                        # Get target vaccination record
+                        vax = frappe.get_doc("Vaccination", vaccine_id)
+
+                        # Flag to track if any field is updated
+                        modified = False
+
+                        if updated_value and value != updated_value:
+                            if "last name" in question.lower():
+                                vax.last_name = updated_value
+                                modified = True
+                            elif "first name" in question.lower():
+                                vax.first_name = updated_value
+                                modified = True
+                            elif "date of birth" in question.lower():
+                                vax.date_of_birth = updated_value
+                                modified = True
+                            elif "gender" in question.lower():
+                                vax.gender = updated_value
+                                modified = True
+                            elif "antigen" in question.lower():
+                                try:
+                                    vaccine_list = json.loads(updated_value)
+                                except json.JSONDecodeError:
+                                    frappe.throw(f"Invalid antigen list: {updated_value}")
+
+                                # Clear and replace table
+                                vax.last_vaccines_administered = []
+                                for vaccine_name in vaccine_list:
+                                    vax.append("last_vaccines_administered", {
+                                        "vaccine": vaccine_name
+                                    })
+                                modified = True
+
+                        # Always set status and save
+                        vax.status = "Approved"
+                        vax.save()
+
+
+                except Exception as e:
+                    frappe.throw(f"Error processing corrections for Vaccination {row.vaccination}: {e}")
+
+            # vaccination_doc.save()
+
         except frappe.DoesNotExistError:
             frappe.throw(f"Vaccination record not found: {row.vaccination}")
+
 
 def process_vaccinations_before_save(doc, method):
     pending_rows = []

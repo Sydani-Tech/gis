@@ -19,7 +19,6 @@
   "end_date",
   "section_break_ayph",
   "vaccinations_under_validation",
-  "amended_from",
   "report_section",
   "vaccination_validation_report"
  ],
@@ -76,32 +75,13 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nDiscarded\nCompleted"
+   "options": "Pending\nDiscarded\nCompleted",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_ayph",
    "fieldtype": "Section Break",
    "label": "Records Validated"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Vaccination Validation Summary",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Vaccination Validation Summary",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
   },
   {
    "fieldname": "vaccinations_under_validation",
@@ -129,12 +109,14 @@
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "End Date",
    "reqd": 1
   },
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Start Date",
    "reqd": 1
   },
@@ -154,7 +136,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-02 16:50:09.485122",
+ "modified": "2025-06-28 13:45:24.605947",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Summary",
@@ -171,6 +153,7 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
@@ -182,6 +165,7 @@
    "report": 1,
    "role": "Project Team",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {

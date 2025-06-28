@@ -9,7 +9,7 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                     frappe.msgprint("Please select a health facility and start/end date.");
                     return;
                 }
-                // frm.set_value("vaccinations_under_validation", []);
+
                 frm.clear_table("vaccinations_under_validation");
                 frappe.call({
                     method: "gis.vaccination_validation.get_vaccinations",
@@ -60,7 +60,7 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                                     const row = frm.add_child("vaccinations_under_validation", {
                                         vaccination: vaccination.name,
                                         vaccinator: vaccination.owner,
-                                        validation_answers: prettifiedMessage.trim(),
+                                        // validation_answers: prettifiedMessage.trim(),
                                         full_name: vaccination.full_name,
                                         gender: vaccination.gender,
                                         date_of_birth: vaccination.date_of_birth,
@@ -68,6 +68,8 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                                         first_name: vaccination.first_name,
                                         vaccination_date: vaccination.vaccination_date,
                                         vaccines_administered: vaccination.vaccines_taken,
+                                        last_modified: frappe.datetime.now_datetime()
+
                                     });
 
                                     frm.refresh_field("vaccinations_under_validation");
@@ -101,6 +103,28 @@ frappe.ui.form.on("Vaccination Validation Summary", {
                 }
             });
         }
+
+        if (!frm.is_dirty() && frm.doc.docstatus === 0) {
+            frm.add_custom_button('Submit Now', () => {
+                frappe.confirm(
+                    'Are you sure you want to submit this document?',
+                    () => {
+                        frm.save('Submit');
+                    }
+                );
+            }, 'Actions');
+
+            frm.add_custom_button('Discard', () => {
+                frappe.confirm(
+                    'Are you sure you want to discard this document?',
+                    () => {
+                        frm.set_value('status', 'Discarded');
+                        frm.save();
+                    }
+                );
+            }, 'Actions');
+        }
+
     }
 });
 
