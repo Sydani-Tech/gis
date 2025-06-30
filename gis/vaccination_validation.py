@@ -601,7 +601,6 @@ def process_vaccinations_before_save(doc, method):
             existing_row.recorders_unvalidated_stipend = existing_row.days_zd_target_met * existing_row.recorders_stipend
             existing_row.total_data_allowance = existing_row.total_working_days * existing_row.data_allowance
 
-            total_transport_allowance = existing_row.vaccinators_total_transport_allowance + existing_row.recorders_total_transport_allowance
             total_data_allowance = existing_row.total_data_allowance
 
             if percentage >= 50 and percentage <= 90:
@@ -616,8 +615,8 @@ def process_vaccinations_before_save(doc, method):
                 vaccinators_validated_stipend = 0
                 recorders_validated_stipend = 0
 
-            vaccinators_total_payment = vaccinators_validated_stipend + total_transport_allowance
-            recorders_total_payment = recorders_validated_stipend + total_transport_allowance + total_data_allowance
+            vaccinators_total_payment = vaccinators_validated_stipend + existing_row.vaccinators_total_transport_allowance
+            recorders_total_payment = recorders_validated_stipend + existing_row.recorders_total_transport_allowance + total_data_allowance
 
             sum_total_payment = vaccinators_total_payment + recorders_total_payment
 
@@ -635,13 +634,13 @@ def process_vaccinations_before_save(doc, method):
             vaccinators_stipend = 4000
             recorders_stipend = 3000
             data_allowance = 500
-            currency = "NGN"
+            base_currency = "NGN"
             total_transport_allowance = (ta * total_days) + (hta * total_days)
             recorders_unvalidated_stipend = zd_met_days * recorders_stipend
             vaccinators_unvalidated_stipend = zd_met_days * vaccinators_stipend
             total_data_allowance = total_days * data_allowance
 
-            if percentage >= 1 and percentage <= 90:
+            if percentage >= 50 and percentage <= 90:
                 vaccinators_validated_stipend = vaccinators_unvalidated_stipend / 2
                 recorders_validated_stipend = recorders_unvalidated_stipend / 2
 
@@ -670,7 +669,7 @@ def process_vaccinations_before_save(doc, method):
                 "vaccinators_stipend": vaccinators_stipend,
                 "recorders_stipend": recorders_stipend,
                 "data_allowance": data_allowance,
-                "currency": currency,
+                "base_currency": base_currency,
                 "vaccinators_total_transport_allowance": total_transport_allowance,
                 "recorders_total_transport_allowance": total_transport_allowance,
                 "vaccinators_unvalidated_stipend": vaccinators_unvalidated_stipend,
