@@ -529,37 +529,339 @@ def process_vaccinations_before_submit(doc, method):
             frappe.throw(f"Vaccination record not found: {row.vaccination}")
 
 
+# def process_vaccinations_before_save(doc, method):
+#     pending_rows = []
+#     approved_count = 0
+#     total_rows = len(doc.vaccinations_under_validation)
+
+#     vaccinator_data = {}  # Structure: {vaccinator_name: {'approved': x, 'total': y}}
+
+#     # 1. Check for pending rows, count approved/corrected, and track vaccinators
+#     for i, row in enumerate(doc.vaccinations_under_validation, start=1):
+#         vaccinator = row.vaccinator or "Unknown"
+#         vaccinator_stats = vaccinator_data.setdefault(vaccinator, {"approved": 0, "total": 0})
+#         vaccinator_stats["total"] += 1
+
+#         if row.status == "Pending":
+#             pending_rows.append(str(i))
+#         elif row.status in ("Approved", "Corrected"):
+#             approved_count += 1
+#             vaccinator_stats["approved"] += 1
+
+#     # 2. Set the overall validation percentage on the main document
+#     doc.validation_percentage = round((approved_count / total_rows) * 100, 0) if total_rows else 0
+
+#     # 3. Clear and populate the child table: vaccination_validation_report
+#     doc.vaccination_validation_report = []
+
+#     for vaccinator, stats in vaccinator_data.items():
+#         percentage = round((stats["approved"] / stats["total"]) * 100, 0) if stats["total"] else 0
+#         doc.append("vaccination_validation_report", {
+#             "team_code": vaccinator,
+#             "number_of_approved_vaccinations": stats["approved"],
+#             "total_number_of_vaccinations": stats["total"],
+#             "validation_percentage": percentage
+#         })
+
+# import json
+# from collections import defaultdict
+
+# def process_vaccinations_before_save(doc, method):
+#     pending_rows = []
+#     approved_count = 0
+#     total_rows = len(doc.vaccinations_under_validation)
+
+#     vaccinator_data = {}  # {vaccinator: {approved: int, total: int, dates: set(), penta_count_by_date: {date: count}}}
+
+#     for i, row in enumerate(doc.vaccinations_under_validation, start=1):
+#         vaccinator = row.vaccinator or "Unknown"
+#         vaccination_date = row.vaccination_date
+
+#         # Init vaccinator tracking structure
+#         vaccinator_stats = vaccinator_data.setdefault(vaccinator, {
+#             "approved": 0,
+#             "total": 0,
+#             "dates": set(),
+#             "penta_count_by_date": defaultdict(int)
+#         })
+
+#         vaccinator_stats["total"] += 1
+#         if vaccination_date:
+#             vaccinator_stats["dates"].add(str(vaccination_date))
+
+#         if row.status == "Pending":
+#             pending_rows.append(str(i))
+#         elif row.status in ("Approved", "Corrected"):
+#             approved_count += 1
+#             vaccinator_stats["approved"] += 1
+
+#             # Check if this row administered PENTA 1
+#             if row.validation_answers:
+#                 try:
+#                     answers = json.loads(row.validation_answers)
+#                     for answer in answers:
+#                         question = answer.get("question", "").lower()
+#                         if "the antigen recorded on the register accurately reflect" in question or "antigen recorded" in question:
+#                             updated_value = answer.get("updatedValue")
+#                             if updated_value:
+#                                 try:
+#                                     vaccine_list = json.loads(updated_value)
+#                                     if "PENTA 1" in vaccine_list:
+#                                         if vaccination_date:
+#                                             vaccinator_stats["penta_count_by_date"][str(vaccination_date)] += 1
+#                                 except json.JSONDecodeError:
+#                                     continue
+#                 except Exception:
+#                     continue
+
+#     # Set validation % on main doc
+#     doc.validation_percentage = round((approved_count / total_rows) * 100, 0) if total_rows else 0
+
+#     # Clear and rebuild the vaccination_validation_report table
+#     doc.vaccination_validation_report = []
+
+#     for vaccinator, stats in vaccinator_data.items():
+#         percentage = round((stats["approved"] / stats["total"]) * 100, 0) if stats["total"] else 0
+
+#         # Count days with >= 5 PENTA 1s
+#         days_zd_target_met = sum(1 for count in stats["penta_count_by_date"].values() if count >= 5)
+
+#         doc.append("vaccination_validation_report", {
+#             "team_code": vaccinator,
+#             "number_of_approved_vaccinations": stats["approved"],
+#             "total_number_of_vaccinations": stats["total"],
+#             "validation_percentage": percentage,
+#             "total_working_days": len(stats["dates"]),
+#             "days_zd_target_met": days_zd_target_met
+#         })
+
+
+# from collections import defaultdict
+# import json
+
+# def process_vaccinations_before_save(doc, method):
+#     pending_rows = []
+#     approved_count = 0
+#     total_rows = len(doc.vaccinations_under_validation)
+#     vaccinator_data = defaultdict(lambda: {"approved": 0, "total": 0, "dates": set(), "zd_dates": defaultdict(int)})
+
+#     for row in doc.vaccinations_under_validation:
+#         vaccinator = row.vaccinator or "Unknown"
+#         vaccinator_data[vaccinator]["total"] += 1
+
+#         if row.vaccination_date:
+#             vaccinator_data[vaccinator]["dates"].add(str(row.vaccination_date))
+
+#         if row.status == "Pending":
+#             pending_rows.append(row.vaccination)
+#         elif row.status in ("Approved", "Corrected"):
+#             approved_count += 1
+#             vaccinator_data[vaccinator]["approved"] += 1
+
+#             # Try to parse validation_answers
+#             try:
+#                 answers = json.loads(row.validation_answers or "[]")
+#                 for answer in answers:
+#                     question = answer.get("question", "").lower()
+#                     updated_val = answer.get("updatedValue")
+
+#                     if "antigen" in question and updated_val:
+#                         try:
+#                             antigen_list = json.loads(updated_val)
+#                             if "PENTA 1" in antigen_list:
+#                                 vaccinator_data[vaccinator]["zd_dates"][str(row.vaccination_date)] += 1
+#                         except json.JSONDecodeError:
+#                             continue
+#             except Exception as e:
+#                 frappe.logger().error(f"[Validation Parsing Error] Vaccination {row.vaccination}: {e}")
+
+#     doc.validation_percentage = round((approved_count / total_rows) * 100, 0) if total_rows else 0
+#     doc.vaccination_validation_report = []
+
+#     for vaccinator, stats in vaccinator_data.items():
+#         percentage = round((stats["approved"] / stats["total"]) * 100, 0) if stats["total"] else 0
+#         zd_met_days = sum(1 for count in stats["zd_dates"].values() if count >= 5)  # threshold 1
+
+#         total_days = len(stats["dates"])
+
+#         # Fetch allowance values from the matching existing report row if available
+#         existing_row = next((r for r in doc.vaccination_validation_report if r.team_code == vaccinator), None)
+#         ta = (existing_row.transport_allowance if existing_row and existing_row.transport_allowance else 0)
+#         hta = (existing_row.hard_to_reach_transport_allowance if existing_row and existing_row.hard_to_reach_transport_allowance else 0)
+
+#         # Compute total transport allowance
+#         transport_allowance = ta if ta > 0 else 2500
+#         total_allowance = (transport_allowance * total_days) + (hta * total_days)
+
+#         doc.append("vaccination_validation_report", {
+#             "team_code": vaccinator,
+#             "number_of_approved_vaccinations": stats["approved"],
+#             "total_number_of_vaccinations": stats["total"],
+#             "validation_percentage": percentage,
+#             "total_working_days": len(stats["dates"]),
+#             "days_zd_target_met": zd_met_days,
+#             "vaccinators_total_transport_allowance": total_allowance,
+#             "recorders_total_transport_allowance": total_allowance,
+
+#         })
+
+from collections import defaultdict
+import json
+
 def process_vaccinations_before_save(doc, method):
     pending_rows = []
+    pending_count = 0
     approved_count = 0
     total_rows = len(doc.vaccinations_under_validation)
+    vaccinator_data = defaultdict(lambda: {"approved": 0, "total": 0, "dates": set(), "zd_dates": defaultdict(int)})
 
-    vaccinator_data = {}  # Structure: {vaccinator_name: {'approved': x, 'total': y}}
-
-    # 1. Check for pending rows, count approved/corrected, and track vaccinators
-    for i, row in enumerate(doc.vaccinations_under_validation, start=1):
+    # Step 1: Aggregate vaccination data by vaccinator
+    for row in doc.vaccinations_under_validation:
         vaccinator = row.vaccinator or "Unknown"
-        vaccinator_stats = vaccinator_data.setdefault(vaccinator, {"approved": 0, "total": 0})
-        vaccinator_stats["total"] += 1
+        vaccinator_data[vaccinator]["total"] += 1
+
+        if row.vaccination_date:
+            vaccinator_data[vaccinator]["dates"].add(str(row.vaccination_date))
 
         if row.status == "Pending":
-            pending_rows.append(str(i))
+            pending_rows.append(row.vaccination)
+            pending_count += 1
         elif row.status in ("Approved", "Corrected"):
             approved_count += 1
-            vaccinator_stats["approved"] += 1
+            vaccinator_data[vaccinator]["approved"] += 1
 
-    # 2. Set the overall validation percentage on the main document
+            # Parse validation_answers safely
+            try:
+                answers = json.loads(row.validation_answers or "[]")
+                for answer in answers:
+                    question = answer.get("question", "").lower()
+                    updated_val = answer.get("updatedValue")
+                    if "antigen" in question and updated_val:
+                        try:
+                            antigen_list = json.loads(updated_val)
+                            if "PENTA 1" in antigen_list:
+                                vaccinator_data[vaccinator]["zd_dates"][str(row.vaccination_date)] += 1
+                        except json.JSONDecodeError:
+                            continue
+            except Exception as e:
+                # frappe.logger().error(f"[Validation Parsing Error] Vaccination {row.vaccination}: {e}")
+                frappe.msgprint(f"[Validation Parsing Error] Vaccination {row.vaccination}: {e}", alert=True)
+
+    doc.total_vaccinations = total_rows
     doc.validation_percentage = round((approved_count / total_rows) * 100, 0) if total_rows else 0
+    doc.completion_percentage = round((total_rows - pending_count) / total_rows * 100, 0)
 
-    # 3. Clear and populate the child table: vaccination_validation_report
-    doc.vaccination_validation_report = []
+    # Map existing report rows by team_code
+    existing_rows = {r.team_code: r for r in doc.vaccination_validation_report}
+    seen_vaccinators = set()
 
     for vaccinator, stats in vaccinator_data.items():
+        seen_vaccinators.add(vaccinator)
         percentage = round((stats["approved"] / stats["total"]) * 100, 0) if stats["total"] else 0
-        doc.append("vaccination_validation_report", {
-            "team_code": vaccinator,
-            "number_of_approved_vaccinations": stats["approved"],
-            "total_number_of_vaccinations": stats["total"],
-            "validation_percentage": percentage
-        })
+        total_days = len(stats["dates"])
+        zd_met_days = sum(1 for count in stats["zd_dates"].values() if count >= 5)
 
+        existing_row = existing_rows.get(vaccinator)
+
+        if existing_row:
+            # RETAIN manually set fields
+            ta = existing_row.transport_allowance or 0
+            hta = existing_row.hard_to_reach_transport_allowance or 0
+
+            existing_row.number_of_approved_vaccinations = stats["approved"]
+            existing_row.total_number_of_vaccinations = stats["total"]
+            existing_row.validation_percentage = percentage
+            existing_row.total_working_days = total_days
+            existing_row.days_zd_target_met = zd_met_days
+            existing_row.vaccinators_total_transport_allowance = (ta if ta > 0 else 2500) * total_days + hta * total_days
+            existing_row.recorders_total_transport_allowance = existing_row.vaccinators_total_transport_allowance
+            existing_row.vaccinators_unvalidated_stipend = existing_row.days_zd_target_met * existing_row.vaccinators_stipend
+            existing_row.recorders_unvalidated_stipend = existing_row.days_zd_target_met * existing_row.recorders_stipend
+            existing_row.total_data_allowance = existing_row.total_working_days * existing_row.data_allowance
+
+            total_transport_allowance = existing_row.vaccinators_total_transport_allowance + existing_row.recorders_total_transport_allowance
+            total_data_allowance = existing_row.total_data_allowance
+
+            if percentage >= 50 and percentage <= 90:
+                vaccinators_validated_stipend = existing_row.vaccinators_unvalidated_stipend / 2
+                recorders_validated_stipend = existing_row.recorders_unvalidated_stipend / 2
+
+            elif percentage > 90:
+                vaccinators_validated_stipend = existing_row.vaccinators_unvalidated_stipend
+                recorders_validated_stipend = existing_row.recorders_unvalidated_stipend
+
+            else:
+                vaccinators_validated_stipend = 0
+                recorders_validated_stipend = 0
+
+            vaccinators_total_payment = vaccinators_validated_stipend + total_transport_allowance
+            recorders_total_payment = recorders_validated_stipend + total_transport_allowance + total_data_allowance
+
+            sum_total_payment = vaccinators_total_payment + recorders_total_payment
+
+            existing_row.vaccinators_validated_stipend = vaccinators_validated_stipend
+            existing_row.recorders_validated_stipend = recorders_validated_stipend
+            existing_row.vaccinators_total_payment = vaccinators_total_payment
+            existing_row.recorders_total_payment = recorders_total_payment
+            existing_row.sum_total_payment = sum_total_payment
+
+            # Keep existing stipend and data values intact
+        else:
+            # DEFAULT values for new row
+            ta = 2500
+            hta = 0
+            vaccinators_stipend = 4000
+            recorders_stipend = 3000
+            data_allowance = 500
+            currency = "NGN"
+            total_transport_allowance = (ta * total_days) + (hta * total_days)
+            recorders_unvalidated_stipend = zd_met_days * recorders_stipend
+            vaccinators_unvalidated_stipend = zd_met_days * vaccinators_stipend
+            total_data_allowance = total_days * data_allowance
+
+            if percentage >= 1 and percentage <= 90:
+                vaccinators_validated_stipend = vaccinators_unvalidated_stipend / 2
+                recorders_validated_stipend = recorders_unvalidated_stipend / 2
+
+            elif percentage > 90:
+                vaccinators_validated_stipend = vaccinators_unvalidated_stipend
+                recorders_validated_stipend = recorders_unvalidated_stipend
+
+            else:
+                vaccinators_validated_stipend = 0
+                recorders_validated_stipend = 0
+
+            vaccinators_total_payment = vaccinators_validated_stipend + total_transport_allowance
+            recorders_total_payment = recorders_validated_stipend + total_transport_allowance + total_data_allowance
+
+            sum_total_payment = vaccinators_total_payment + recorders_total_payment
+
+            doc.append("vaccination_validation_report", {
+                "team_code": vaccinator,
+                "number_of_approved_vaccinations": stats["approved"],
+                "total_number_of_vaccinations": stats["total"],
+                "validation_percentage": percentage,
+                "total_working_days": total_days,
+                "days_zd_target_met": zd_met_days,
+                "transport_allowance": ta,
+                "hard_to_reach_transport_allowance": hta,
+                "vaccinators_stipend": vaccinators_stipend,
+                "recorders_stipend": recorders_stipend,
+                "data_allowance": data_allowance,
+                "currency": currency,
+                "vaccinators_total_transport_allowance": total_transport_allowance,
+                "recorders_total_transport_allowance": total_transport_allowance,
+                "vaccinators_unvalidated_stipend": vaccinators_unvalidated_stipend,
+                "recorders_unvalidated_stipend": recorders_unvalidated_stipend,
+                "total_data_allowance": total_data_allowance,
+                "vaccinators_validated_stipend": vaccinators_validated_stipend,
+                "recorders_validated_stipend": recorders_validated_stipend,
+                "vaccinators_total_payment": vaccinators_total_payment,
+                "recorders_total_payment": recorders_total_payment,
+                "sum_total_payment": sum_total_payment,
+            })
+
+    # Remove report rows that are no longer in vaccinations
+    doc.vaccination_validation_report = [
+        row for row in doc.vaccination_validation_report if row.team_code in seen_vaccinators
+    ]
