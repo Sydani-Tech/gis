@@ -128,7 +128,6 @@
    "label": "Report"
   },
   {
-   "allow_on_submit": 1,
    "fieldname": "vaccination_validation_report",
    "fieldtype": "Table",
    "label": "Vaccination Validation Report",
@@ -161,7 +160,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-30 16:38:07.306995",
+ "modified": "2025-06-30 17:01:08.413970",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Summary",

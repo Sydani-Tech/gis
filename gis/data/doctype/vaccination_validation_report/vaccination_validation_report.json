@@ -137,22 +137,22 @@
    "label": "Data Allowance"
   },
   {
-   "allow_on_submit": 1,
    "columns": 2,
    "fieldname": "vaccinators_total_payment",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Vaccinators Total Payment",
-   "options": "base_currency"
+   "options": "base_currency",
+   "read_only": 1
   },
   {
-   "allow_on_submit": 1,
    "columns": 2,
    "fieldname": "recorders_total_payment",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Recorders Total Payment",
-   "options": "base_currency"
+   "options": "base_currency",
+   "read_only": 1
   },
   {
    "fieldname": "payment_breakdown_section",
@@ -213,13 +213,13 @@
    "read_only": 1
   },
   {
-   "allow_on_submit": 1,
    "columns": 2,
    "fieldname": "sum_total_payment",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Sum Total Payment",
-   "options": "base_currency"
+   "options": "base_currency",
+   "read_only": 1
   },
   {
    "default": "NGN",
@@ -232,7 +232,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-30 16:42:05.791135",
+ "modified": "2025-06-30 17:00:44.788294",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Report",
