@@ -52,7 +52,7 @@ def process_vaccination_status_and_next_vaccination(doc, method):
             vaccine_records.append(vaccine_entry.get("vaccine"))
 
     # Print vaccine records for debugging
-    frappe.msgprint(f"Vaccine Records: {vaccine_records}")
+    # frappe.msgprint(f"Vaccine Records: {vaccine_records}")
 
     # Format the list into a string in the required format
     # doc.vaccines_taken = "[" + ", ".join(vaccine_records) + "]"
@@ -65,7 +65,7 @@ def process_vaccination_status_and_next_vaccination(doc, method):
     age_in_weeks = age_in_days // 7
 
     # Print age for debugging
-    frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
+    # frappe.msgprint(f"Age in Weeks: {age_in_weeks}")
 
     # Set vaccination_status based on conditions
     # if not vaccine_records:
@@ -149,12 +149,12 @@ def process_vaccination_status_and_next_vaccination(doc, method):
         doc.vaccination_status = "Fully Vaccinated (Measles 2)"
     
     # Print final vaccination status
-    frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
+    # frappe.msgprint(f"Updated Vaccination Status: {doc.vaccination_status}")
 
 
     # Determine the next vaccination date based on administered vaccines
     vaccination_date = frappe.utils.getdate(doc.vaccination_date)
-    frappe.msgprint(f"Vaccination Date: {vaccination_date}")
+    # frappe.msgprint(f"Vaccination Date: {vaccination_date}")
 
     # if set(vaccine_records).issubset({"BCG", "HEP B0", "OPV 0"}):
     #     doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, 42)  # 6 weeks
@@ -246,10 +246,10 @@ def process_vaccination_status_and_next_vaccination(doc, method):
         days_to_add = next_vaccine_days.get(highest_stage)
         if days_to_add:
             doc.next_vaccination_date = frappe.utils.add_days(vaccination_date, days_to_add)
-            frappe.msgprint(f"Next vaccination date calculated based on '{highest_stage_vaccine}' (Stage {highest_stage}).")
+            # frappe.msgprint(f"Next vaccination date calculated based on '{highest_stage_vaccine}' (Stage {highest_stage}).")
         else:
             doc.next_vaccination_date = None
-            frappe.msgprint(f"No next vaccination scheduled after '{highest_stage_vaccine}' (Stage {highest_stage}).")
+            # frappe.msgprint(f"No next vaccination scheduled after '{highest_stage_vaccine}' (Stage {highest_stage}).")
     else:
         frappe.msgprint("No recognized vaccines found to calculate next vaccination date.")
 
