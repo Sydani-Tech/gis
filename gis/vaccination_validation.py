@@ -534,8 +534,11 @@ def process_vaccinations_before_save(doc, method):
     pending_rows = []
     pending_count = 0
     approved_count = 0
+    approved_only_count = 0
+    corrected_count = 0
+    returned_count = 0
     total_rows = len(doc.vaccinations_under_validation)
-    vaccinator_data = defaultdict(lambda: {"approved": 0, "total": 0, "dates": set(), "zd_dates": defaultdict(int)})
+    vaccinator_data = defaultdict(lambda: {"approved": 0, "approved_only": 0, "corrected": 0, "returned": 0, "total": 0, "dates": set(), "zd_dates": defaultdict(int)})
 
     # Step 1: Aggregate vaccination data by vaccinator
     for row in doc.vaccinations_under_validation:
@@ -548,7 +551,18 @@ def process_vaccinations_before_save(doc, method):
         if row.status == "Pending":
             pending_rows.append(row.vaccination)
             pending_count += 1
-        elif row.status in ("Approved", "Corrected"):
+        elif row.status == "Returned":
+            returned_count += 1
+            vaccinator_data[vaccinator]["returned"] += 1  
+        elif row.status == "Corrected":
+            corrected_count += 1
+            vaccinator_data[vaccinator]["corrected"] += 1  
+        elif row.status == "Approved":
+            approved_only_count += 1
+            vaccinator_data[vaccinator]["approved_only"] += 1
+
+    # Step 2: Calculate vaccination percentage and completion percentage      
+        if row.status in ("Approved", "Corrected"):
             approved_count += 1
             vaccinator_data[vaccinator]["approved"] += 1
 
@@ -566,7 +580,6 @@ def process_vaccinations_before_save(doc, method):
                         except json.JSONDecodeError:
                             continue
             except Exception as e:
-                # frappe.logger().error(f"[Validation Parsing Error] Vaccination {row.vaccination}: {e}")
                 frappe.msgprint(f"[Validation Parsing Error] Vaccination {row.vaccination}: {e}", alert=True)
 
     doc.total_vaccinations = total_rows
@@ -590,7 +603,9 @@ def process_vaccinations_before_save(doc, method):
             ta = existing_row.transport_allowance or 0
             hta = existing_row.hard_to_reach_transport_allowance or 0
 
-            existing_row.number_of_approved_vaccinations = stats["approved"]
+            existing_row.number_of_approved_vaccinations = stats["approved_only"]
+            existing_row.number_of_corrected_vaccinations = stats["corrected"]
+            existing_row.number_of_returned_vaccinations = stats["returned"]
             existing_row.total_number_of_vaccinations = stats["total"]
             existing_row.validation_percentage = percentage
             existing_row.total_working_days = total_days
@@ -659,7 +674,10 @@ def process_vaccinations_before_save(doc, method):
 
             doc.append("vaccination_validation_report", {
                 "team_code": vaccinator,
-                "number_of_approved_vaccinations": stats["approved"],
+                "number_of_approved_vaccinations": stats["approved_only"],
+                "number_of_corrected_vaccinations": stats["corrected"],    
+                "number_of_returned_vaccinations": stats["returned"],     
+
                 "total_number_of_vaccinations": stats["total"],
                 "validation_percentage": percentage,
                 "total_working_days": total_days,

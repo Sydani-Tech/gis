@@ -13,6 +13,8 @@
   "sum_total_payment",
   "column_break_urhy",
   "number_of_approved_vaccinations",
+  "number_of_corrected_vaccinations",
+  "number_of_returned_vaccinations",
   "total_number_of_vaccinations",
   "payment_breakdown_section",
   "vaccinators_total_transport_allowance",
@@ -227,12 +229,24 @@
    "fieldtype": "Link",
    "label": "Base Currency",
    "options": "Currency"
+  },
+  {
+   "fieldname": "number_of_corrected_vaccinations",
+   "fieldtype": "Int",
+   "label": "Corrected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "number_of_returned_vaccinations",
+   "fieldtype": "Int",
+   "label": "Returned",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-30 17:00:44.788294",
+ "modified": "2025-07-03 23:42:58.039795",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Report",

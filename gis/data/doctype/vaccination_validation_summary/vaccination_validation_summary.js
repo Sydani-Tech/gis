@@ -160,3 +160,66 @@ frappe.ui.form.on("Vaccinations Under Validation", {
         }
     }
 });
+
+// frappe.ui.form.on("Vaccination Validation", {
+//     refresh(frm) {
+//         setup_grid_events(frm);
+//         apply_row_colors(frm);
+//     },
+
+//     vaccinations_under_validation_on_form_rendered(frm) {
+//         // This ensures colors are reapplied when editing child rows
+//         apply_row_colors(frm);
+//     }
+// });
+
+// frappe.ui.form.on("Vaccinations Under Validation", {
+//     status(frm, cdt, cdn) {
+//         frappe.model.set_value(cdt, cdn, "last_modified", frappe.datetime.now_datetime());
+//         apply_row_colors(frm);
+//     }
+// });
+
+// function setup_grid_events(frm) {
+//     const grid = frm.fields_dict["vaccinations_under_validation"]?.grid;
+//     if (!grid || grid.__color_events_added) return;
+
+//     grid.__color_events_added = true;
+
+//     // Hook into the grid's refresh when navigating pages
+//     const original_refresh = grid.refresh;
+//     grid.refresh = function (...args) {
+//         const result = original_refresh.apply(this, args);
+//         apply_row_colors(frm);
+//         return result;
+//     };
+
+//     // Hook into pagination buttons
+//     ["next_page", "prev_page", "first_page", "last_page"].forEach(event => {
+//         const original = grid[event];
+//         grid[event] = function (...args) {
+//             const result = original.apply(this, args);
+//             apply_row_colors(frm);
+//             return result;
+//         };
+//     });
+// }
+
+// function apply_row_colors(frm) {
+//     const grid = frm.fields_dict["vaccinations_under_validation"]?.grid;
+//     if (!grid) return;
+
+//     const color_map = {
+//         "Pending": "#fff3cd",    // Light Yellow
+//         "Approved": "#93e68e",   // Deep Green
+//         "Corrected": "#d4edda",  // Light Green
+//         "Returned": "#f8d7da"    // Light Red
+//     };
+
+//     grid.grid_rows.forEach(row => {
+//         const doc = row.doc;
+//         const $row = $(row.row);
+//         const color = color_map[doc.status] || "";
+//         $row.css("background-color", color);
+//     });
+// }
