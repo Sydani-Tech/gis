@@ -14,11 +14,15 @@
   "state",
   "column_break_ennm",
   "status",
-  "validation_percentage",
-  "completion_percentage",
-  "total_vaccinations",
   "start_date",
   "end_date",
+  "validation_status_section",
+  "completion_percentage",
+  "validation_percentage",
+  "column_break_pcem",
+  "pending_validations",
+  "completed_validations",
+  "total_vaccinations",
   "section_break_ayph",
   "vaccinations_under_validation",
   "report_section",
@@ -155,12 +159,33 @@
    "in_list_view": 1,
    "label": "Completion Percentage",
    "read_only": 1
+  },
+  {
+   "fieldname": "validation_status_section",
+   "fieldtype": "Section Break",
+   "label": "Validation Status"
+  },
+  {
+   "fieldname": "column_break_pcem",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pending_validations",
+   "fieldtype": "Int",
+   "label": "Pending Validations",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_validations",
+   "fieldtype": "Int",
+   "label": "Completed Validations",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-30 17:01:08.413970",
+ "modified": "2025-07-05 08:09:52.249986",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Vaccination Validation Summary",

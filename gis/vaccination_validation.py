@@ -157,6 +157,9 @@ def get_vaccination_validation_summaries(name=None):
                 parent.status,
                 parent.start_date,
                 parent.end_date,
+                parent.completion_percentage,
+                parent.completed_validations,
+                parent.total_vaccinations,
                 parent.ward, 
                 parent.local_government_area, 
                 parent.state, 
@@ -582,6 +585,8 @@ def process_vaccinations_before_save(doc, method):
             except Exception as e:
                 frappe.msgprint(f"[Validation Parsing Error] Vaccination {row.vaccination}: {e}", alert=True)
 
+    doc.pending_validations = pending_count
+    doc.completed_validations = total_rows - pending_count
     doc.total_vaccinations = total_rows
     doc.validation_percentage = round((approved_count / total_rows) * 100, 0) if total_rows else 0
     doc.completion_percentage = round((total_rows - pending_count) / total_rows * 100, 0)

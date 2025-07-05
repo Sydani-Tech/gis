@@ -1245,9 +1245,6 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
     """
     vdc_periodic_meeting_count = frappe.db.sql(vdc_periodic_meeting_count_query, tuple(sql_values), as_dict=True)[0]['count']
     
-
-
-
     archetype_group_query = f"""
     SELECT archetype_for_rural, archetype_for_urban, COUNT(*) AS count
     FROM `tabSettlement`
@@ -1686,8 +1683,19 @@ def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
             "data": {
                 "building_count": 0,
                 "household_count": 0,
+                "residential_building_count": 0,
+                "building_type": [],
+                "building_establishment": [],
+                "total_establishment": [],
             }
         }
+
+    residential_building_count_query = f"""
+        SELECT COUNT(*) AS count
+        FROM `tabBuilding`
+        WHERE status = 'Approved' AND building_type = 'Residential' AND {where_clause}
+    """
+    residential_building_count = frappe.db.sql(residential_building_count_query, tuple(sql_values), as_dict=True)[0]['count']
 
     household_query = f"""
         SELECT COUNT(*) AS count
@@ -1696,13 +1704,49 @@ def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
     """
     household_count = frappe.db.sql(household_query, tuple(sql_values), as_dict=True)[0]['count']
 
+    building_type_query = f"""
+        SELECT building_type, COUNT(*) AS count
+        FROM `tabBuilding`        
+        WHERE status = 'Approved' AND {where_clause}
+        GROUP BY building_type
+    """
+    building_type = frappe.db.sql(building_type_query, tuple(sql_values), as_dict=True)
+
+    # Calculate total count
+    total_buildings = sum(item["count"] for item in building_type)
+
+    # Calculate percentages and update each item in the result
+    for item in building_type:
+        item["percentage"] = round((item["count"] / total_buildings) * 100, 2)
+
+    
+    building_establishment_query = f"""
+        SELECT establishment_type, COUNT(*) AS count
+        FROM `tabBuilding`
+        WHERE status = 'Approved' AND building_type = 'Non-residential' AND {where_clause}
+        GROUP BY establishment_type
+    """
+    building_establishment = frappe.db.sql(building_establishment_query, tuple(sql_values), as_dict=True)
+
+    # Calculate total count
+    total_establishment = sum(item["count"] for item in building_establishment)
+
+    # Calculate percentages and update each item in the result
+    for item in building_establishment:
+        item["percentage"] = round((item["count"] / total_establishment) * 100, 2)
+
+
     
     return {
         "status": 200,
         "response": "Success",
         "data": {
             "building_count": building_count,
+            "residential_building_count": residential_building_count,
             "household_count": household_count,
+            "building_type": building_type,
+            "building_establishment": building_establishment,
+            "total_establishment": total_establishment,
             },
         }
 
