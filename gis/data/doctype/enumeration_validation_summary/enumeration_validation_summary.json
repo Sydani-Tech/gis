@@ -16,6 +16,13 @@
   "status",
   "start_date",
   "end_date",
+  "validation_status_section",
+  "completion_percentage",
+  "validation_percentage",
+  "column_break_rfjn",
+  "pending_validations",
+  "completed_validations",
+  "total_buildings",
   "enumeration_sample_responses_section_section",
   "enumeration_sample_responses",
   "section_break_ayph",
@@ -128,12 +135,51 @@
    "in_list_view": 1,
    "label": "End Date",
    "reqd": 1
+  },
+  {
+   "fieldname": "validation_status_section",
+   "fieldtype": "Section Break",
+   "label": "Validation Status"
+  },
+  {
+   "fieldname": "completion_percentage",
+   "fieldtype": "Percent",
+   "label": "Completion Percentage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "validation_percentage",
+   "fieldtype": "Percent",
+   "label": "Validation Percentage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rfjn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pending_validations",
+   "fieldtype": "Int",
+   "label": "Pending Validations",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_buildings",
+   "fieldtype": "Int",
+   "label": "Total Buildings",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_validations",
+   "fieldtype": "Int",
+   "label": "Completed Validations",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-26 12:11:33.013894",
+ "modified": "2025-07-06 07:47:06.766564",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Validation Summary",

@@ -196,6 +196,9 @@ doc_events = {
         "on_update": [
             "gis.enumeration_validation.update_enumeration_records_from_sample_responses_on_save"
         ],
+        "validate": [
+            "gis.enumeration_validation.calculate_validation_status"
+        ],
         "before_submit": [
             "gis.enumeration_validation.validate_status_is_approved"
         ]

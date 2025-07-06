@@ -928,6 +928,32 @@ def update_enumeration_records_from_sample_responses_on_save(doc, method):
     # Commit changes after all updates
     frappe.db.commit()
 
+def calculate_validation_status(doc, method):
+    pending_count = 0
+    approved_count = 0
+    corrected_count = 0
+    returned_count = 0
+    total_rows = len(doc.enumeration_sample_responses)
+
+    # Step 1: Aggregate vaccination data by vaccinator
+    for row in doc.enumeration_sample_responses:
+        if row.status == "Pending":
+            pending_count += 1
+        elif row.status == "Approved":
+            approved_count += 1
+        elif row.status == "Corrected":
+            corrected_count += 1
+        elif row.status == "Returned":
+            returned_count += 1
+
+    doc.pending_validations = pending_count
+    doc.completed_validations = total_rows - pending_count
+    doc.total_buildings = total_rows
+    doc.validation_percentage = round(((approved_count + corrected_count) / total_rows) * 100, 0) if total_rows else 0
+    doc.completion_percentage = round((total_rows - pending_count) / total_rows * 100, 0)
+
+    # frappe.msgprint (f"Pending: {pending_count}, Approved: {approved_count}, Corrected: {corrected_count}, Returned: {returned_count}, Total Rows: {total_rows}, Validation Percentage: {doc.validation_percentage}, Completion Percentage: {doc.completion_percentage}")
+
 def validate_status_is_approved(doc, method):
     if doc.status != "Completed":
         frappe.throw("Status must be 'Approved' to submit validation.")
