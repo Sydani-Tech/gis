@@ -851,7 +851,7 @@ def update_enumeration_records_from_sample_responses(doc, method):
     # frappe.msgprint(f"Records under validation: {records_under_validation}")
 
     # Get a set of enumerators with 'Returned' status
-    returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Returned"}
+    returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] in ["Returned", "Corrected"]}
 
     for record in records_under_validation:
         enumerator = record["enumerator"]
@@ -910,7 +910,7 @@ def update_enumeration_records_from_sample_responses_on_save(doc, method):
     # frappe.msgprint(f"Records under validation: {records_under_validation}")
 
     # Get a set of enumerators with 'Returned' status
-    returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Returned"}
+    returned_enumerators = {row["enumerator"] for row in sample_responses if row["status"] in ["Returned", "Corrected"]}
     approved_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Approved"}
     pending_enumerators = {row["enumerator"] for row in sample_responses if row["status"] == "Pending"}
 

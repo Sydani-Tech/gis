@@ -211,6 +211,11 @@ doc_events = {
             "gis.vaccination_validation.process_vaccinations_before_save"
         ],
     },
+    "Issue": {
+        "before_save": [
+            "gis.doc_events.before_save_issue"
+        ]
+    }
 }
 
 

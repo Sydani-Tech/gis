@@ -35,15 +35,15 @@ def test_fields():
 
 
 @frappe.whitelist()
-def update_building_geolocation():
+def geolocation():
     try:
         # Fetch the Building record with the specified name
-        building = frappe.get_doc("Grid", "vuha6hqe62")
-        # building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
+        # building = frappe.get_doc("Grid", "vuha6hqe62")
+        building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
         # Update the geolocation field
         # print(building.response_geolocation)
-        # print(building.geolocation)
-        print(building.geolocation_kyow)
+        print(building.geolocation)
+        # print(building.geolocation_kyow)
         
         # building.response_geolocation = None
         # building.geolocation = None
@@ -95,6 +95,50 @@ def update_building_geolocation():
             "status": 500,
             "message": f"An error occurred: {str(e)}"
         }
+import frappe
+import json
+
+@frappe.whitelist()
+def fix_building_coordinates():
+    """
+    Scans Building documents and converts coordinate strings to floats
+    in the GeoJSON 'geolocation' field, without changing the structure.
+    """
+    updated = 0
+    buildings = frappe.get_all("Building", filters={"project": "STRICAN - Phase 2"}, fields=["name", "geolocation"])
+
+    for b in buildings:
+        if not b.geolocation:
+            continue
+
+        try:
+            geo = json.loads(b.geolocation)
+
+            feature = geo.get("features", [])[0] if geo.get("features") else None
+            coords = feature.get("geometry", {}).get("coordinates", []) if feature else []
+
+            # Only process if both coordinates exist and are strings
+            if (
+                isinstance(coords, list) and
+                len(coords) == 2 and
+                isinstance(coords[0], str) and isinstance(coords[1], str)
+            ):
+                # Convert both to float
+                lon = float(coords[0])
+                lat = float(coords[1])
+                geo["features"][0]["geometry"]["coordinates"] = [lon, lat]
+
+                # Save updated GeoJSON back to the document
+                frappe.db.set_value("Building", b.name, "geolocation", json.dumps(geo))
+                print(f"Fixed geolocation in Building '{b.name}'")
+                updated += 1
+
+        except Exception as e:
+            frappe.log_error(f"Error fixing geolocation in Building '{b.name}': {e}", "Geo Fix")
+
+    print(f"✔ Updated {updated} Building records with float coordinates.")
+
+
 
 import frappe
 from frappe.utils import getdate, date_diff, today
@@ -202,3 +246,6 @@ def find_facilities_without_buildings():
     else:
         print("All selected facilities have at least one building linked.")
 
+def submit_vaccination_summary():
+    record = frappe.get_doc("Vaccination Validation Summary", "Vaccination Validation - 00117")
+    record.submit()

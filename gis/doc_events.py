@@ -415,8 +415,6 @@ def calculate_distance_between_facility_and_settlement(doc, method):
     response_geolocation = doc.get('response_geolocation')
     facility_geolocation = doc.get('facility_geolocation')
 
-    frappe.msgprint(facility_geolocation)
-
     if not response_geolocation or not facility_geolocation:
         frappe.msgprint("No valid settlement or facility geolocation provided, skipping distance calculation.")
         return
@@ -424,18 +422,14 @@ def calculate_distance_between_facility_and_settlement(doc, method):
     try:
         # Extract geometries
         facility_geometry = extract_geometry_geojson(facility_geolocation)
+        response_geolocation_geometry = extract_geometry_geojson(response_geolocation)
 
-        distance_result = frappe.db.sql(f"""
+        distance_result = frappe.db.sql("""
             SELECT ST_Distance_Sphere(
                 ST_GeomFromGeoJSON(%s),
-                ST_GeomFromGeoJSON(
-                    JSON_EXTRACT(
-                        JSON_EXTRACT(%s, '$.features[0].geometry'),
-                        '$'
-                    )
-                )
+                ST_GeomFromGeoJSON(%s)
             ) AS distance
-        """, (facility_geometry, response_geolocation), as_dict=True)
+        """, (facility_geometry, response_geolocation_geometry), as_dict=True)
 
         if distance_result and distance_result[0]['distance'] is not None:
             distance_km = round(distance_result[0]['distance'] / 1000, 3)
@@ -542,6 +536,8 @@ def update_child_vaccination_status(doc, method):
     if not vaccine_records:
         # If no vaccines have been administered
         doc.vaccination_status = "Never Vaccinated"
+        if not doc.enumerated_vaccination_status:
+            doc.enumerated_vaccination_status = "Never Vaccinated"
 
     elif (
         ("PENTA 1" not in vaccine_records and 
@@ -549,6 +545,8 @@ def update_child_vaccination_status(doc, method):
          "PENTA 3" not in vaccine_records) and age_in_weeks > 6
     ):
         doc.vaccination_status = "Zero Dose"
+        if not doc.enumerated_vaccination_status:
+            doc.enumerated_vaccination_status = "Zero Dose"
 
     elif (
         (age_in_weeks >= 0 and "BCG" not in vaccine_records) or
@@ -562,7 +560,9 @@ def update_child_vaccination_status(doc, method):
         (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
     ):
         # If missing age-appropriate vaccines for "Under Immunized" conditions
-        doc.vaccination_status = "Under Immunized" 
+        doc.vaccination_status = "Under Immunized"
+        if not doc.enumerated_vaccination_status:
+            doc.enumerated_vaccination_status = "Under Immunized"
 
     elif (
         ("BCG" in vaccine_records) and
@@ -576,6 +576,8 @@ def update_child_vaccination_status(doc, method):
         ("Measles 2" in vaccine_records)
     ):
         doc.vaccination_status = "Fully Vaccinated (Measles 2)"
+        if not doc.enumerated_vaccination_status:
+            doc.enumerated_vaccination_status = "Fully Vaccinated (Measles 2)"
     
     elif (
         (age_in_weeks >= 0 and age_in_weeks <= 6 and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records) or
@@ -586,6 +588,8 @@ def update_child_vaccination_status(doc, method):
         (age_in_weeks >= 36 and age_in_weeks <= 60 and "Measles 1" in vaccine_records and "VIT A" in vaccine_records and "PENTA 3" in vaccine_records and "PENTA 2" in vaccine_records and "PENTA 1" in vaccine_records and "BCG" in vaccine_records and "HEP B0" in vaccine_records and "OPV 0" in vaccine_records)
     ):
         doc.vaccination_status = "Vaccinated to Age"
+        if not doc.enumerated_vaccination_status:
+            doc.enumerated_vaccination_status = "Vaccinated to Age"
 
    
     
@@ -779,18 +783,19 @@ def validate_facilities_in_buildings(doc, method):
     if existing:
         frappe.throw(f"A record with facility '{doc.health_facility}' already exists. Each facility must be unique.")
 
-
-
 @frappe.whitelist()
 def format_geolocation(longitude, latitude):
     """
     Converts longitude and latitude into Frappe's GeoJSON Point format.
+    Ensures coordinates are stored as floats.
     """
     if not longitude or not latitude:
         frappe.throw("Longitude and Latitude are required.")
 
     try:
-        
+        lon = float(longitude)
+        lat = float(latitude)
+
         geolocation = json.dumps({
             "type": "FeatureCollection",
             "features": [
@@ -799,18 +804,17 @@ def format_geolocation(longitude, latitude):
                     "properties": {},
                     "geometry": {
                         "type": "Point",
-                       
-                        "coordinates": [longitude, latitude]  # Longitude first, then Latitude
-
+                        "coordinates": [lon, lat]  # Longitude first
                     }
                 }
             ]
         })
 
-
         return geolocation
+
     except ValueError:
-        frappe.throw("Invalid longitude or latitude format.")
+        frappe.throw("Invalid longitude or latitude format. Must be numeric.")
+
 
 
 
@@ -905,3 +909,63 @@ def validate_buildings_have_geolocation(doc, method):
 def validate_vaccination_status_before_approval(doc, method):
     if (not doc.vaccination_status or doc.vaccination_status == "") and doc.status == "Approved":
         frappe.throw("Vaccination Status is required before approving the record.")
+
+from frappe.utils import now_datetime, time_diff_in_seconds
+
+
+
+@frappe.whitelist()
+def before_save_issue(doc, method):
+    # Set created_on only once
+    if not doc.created_on:
+        doc.created_on = now_datetime()
+
+    # First response logic
+    if doc.response_to_issue and not doc.first_response_on:
+        doc.first_response_on = now_datetime()
+        doc.status = "Replied"
+
+        # Send in-app notification to the owner
+        if doc.owner and doc.owner != frappe.session.user:
+            frappe.publish_realtime("frappe.notifications.refresh")
+
+            frappe.get_doc({
+                "doctype": "Notification Log",
+                "subject": f"New reply on Issue: {doc.name}",
+                "for_user": doc.owner,
+                "type": "Alert",
+                "document_type": "Issue",
+                "document_name": doc.name
+            }).insert(ignore_permissions=True)
+
+    # On resolution
+    if doc.status == "Resolved":
+        doc.resolved_on = now_datetime()
+        doc.resolved_by = frappe.session.user
+
+        if doc.created_on and doc.resolved_on:
+            doc.resolution_time = time_diff_in_seconds(doc.resolved_on, doc.created_on)
+
+        frappe.publish_realtime("frappe.notifications.refresh")
+
+        frappe.get_doc({
+            "doctype": "Notification Log",
+            "subject": f'Your Issue "{doc.name}" has been resolved',
+            "for_user": doc.owner,
+            "type": "Alert",
+            "document_type": "Issue",
+            "document_name": doc.name
+        }).insert(ignore_permissions=True)
+
+    if doc.status == "On Hold":
+        frappe.publish_realtime("frappe.notifications.refresh")
+
+        frappe.get_doc({
+            "doctype": "Notification Log",
+            "subject": f'Your Issue "{doc.name}" has been put on hold',
+            "for_user": doc.owner,
+            "type": "Alert",
+            "document_type": "Issue",
+            "document_name": doc.name
+        }).insert(ignore_permissions=True)
+

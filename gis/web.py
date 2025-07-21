@@ -636,7 +636,7 @@ def overview(project=None, grid=None, settlement=None, ward=None, lga=None, stat
 
 
 @frappe.whitelist()
-def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, state=None):
+def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, state=None, building_type=None, establishment_type=None, health_facility=None):
     """
     Fetch data for the map overview: Residential buildings and their geolocation.
     Filters applied: state, lga, ward, settlement, grid (all optional).
@@ -667,6 +667,36 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     # Initialize filters
     filters = {}
 
+    # Handle special filter values
+    if building_type == "Residential Only":
+        building_type = "Residential"
+
+    elif building_type == "Non Residential Only":
+        building_type = "Non-residential"
+
+    elif building_type == "Health Facilities Only":
+        building_type = "Non-residential"
+        establishment_type = "Health Facility"
+
+    elif building_type == "Schools Only":
+        building_type = "Non-residential"
+        establishment_type = "School"
+
+    elif building_type == "Churches Only":
+        building_type = "Non-residential"
+        establishment_type = "Church"
+
+    elif building_type == "Mosques Only":
+        building_type = "Non-residential"
+        establishment_type = "Mosque"
+
+    # If a specific health facility is selected
+    if health_facility:
+        building_type = "Non-residential"
+        establishment_type = "Health Facility"
+        filters['health_facility'] = health_facility
+
+
     # Add optional filters
     if project:
         filters['project'] = project
@@ -680,6 +710,10 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
         filters['local_government_area'] = lga
     if state:
         filters['state'] = state
+    if building_type:
+        filters['building_type'] = building_type
+    if establishment_type:
+        filters['establishment_type'] = establishment_type
 
     # Prepare SQL filter conditions
     sql_conditions = []
@@ -769,7 +803,7 @@ def get_building_data(building):
             "message": f"No building found with name: {building}",
             "status": 404
         }
-
+    #COALESCE(vaccination_date, last_vaccination_date) AS vaccination_date,
     # Fetch both children and vaccination records in a single query
     combined_records = frappe.db.sql(
         """
@@ -777,8 +811,10 @@ def get_building_data(building):
             full_name, 
             date_of_birth, 
             gender, 
+            enumerated_vaccination_status,
             vaccination_status, 
-            COALESCE(vaccination_date, last_vaccination_date) AS vaccination_date,
+            vaccination_date,
+            vaccines_administered,
             next_vaccination_date,
             household
         FROM (
@@ -787,9 +823,10 @@ def get_building_data(building):
                 date_of_birth, 
                 gender, 
                 vaccination_status, 
+                vaccines_taken AS vaccines_administered,
                 vaccination_date, 
                 next_vaccination_date,
-                NULL AS last_vaccination_date,
+                NULL AS enumerated_vaccination_status,
                 household
             FROM `tabVaccination`
             WHERE building = %(building)s AND status = 'Approved' AND children IS NULL AND building IS NOT NULL
@@ -801,9 +838,10 @@ def get_building_data(building):
                 date_of_birth, 
                 gender, 
                 vaccination_status, 
-                NULL AS vaccination_date,
-                next_vaccination_date AS next_vaccination_date,
-                last_vaccination_date,
+                vaccines_taken AS vaccines_administered,
+                last_vaccination_date AS vaccination_date,
+                next_vaccination_date,
+                enumerated_vaccination_status,
                 household
             FROM `tabChildren`
             WHERE building = %(building)s AND status = 'Approved'
@@ -820,17 +858,54 @@ def get_building_data(building):
             "full_name": record["full_name"],
             "gender": record["gender"],
             "vaccination_status": record["vaccination_status"],
-            "vaccination_date": record["vaccination_date"],
-            "next_vaccination_date": record["next_vaccination_date"],
-            "date_of_birth": record["date_of_birth"],
             "age": (
                 f"{(today.year - record['date_of_birth'].year) - (1 if today.month < record['date_of_birth'].month or (today.month == record['date_of_birth'].month and today.day < record['date_of_birth'].day) else 0)} years, "
                 f"{((today.month - record['date_of_birth'].month) % 12 if today.day >= record['date_of_birth'].day else (today.month - record['date_of_birth'].month - 1) % 12)} months"
                 if record["date_of_birth"] else "Unknown"
             ),
-            "household_head": frappe.db.get_value("Household", record["household"], "name_of_household_head")
+            "date_of_birth": record["date_of_birth"],
+            "household_head": frappe.db.get_value("Household", record["household"], "name_of_household_head"),
+            "enumerated_vaccination_status": record["enumerated_vaccination_status"],
+            "vaccination_date": record["vaccination_date"],
+            "vaccines_administered": record["vaccines_administered"],
+            "next_vaccination_date": record["next_vaccination_date"],
         }
         for record in combined_records
+    ]
+
+    household_data = frappe.db.sql(
+        """
+        SELECT 
+            name_of_household_head, 
+            gender_of_household_head, 
+            date_of_birth_of_household_head, 
+            phone_number,
+            educational_level_of_household_head,
+            how_many_people_live_in_the_household,
+            average_monthly_income
+        FROM `tabHousehold`
+        WHERE status = 'Approved' AND building = %(building)s
+        """,
+        {"building": building},
+        as_dict=True
+    )
+
+    formatted_household_data = [
+        {
+            "name_of_household_head": record["name_of_household_head"],
+            "gender_of_household_head": record["gender_of_household_head"],
+            "date_of_birth_of_household_head": record["date_of_birth_of_household_head"],
+            "age_of_household_head": (
+                f"{(today.year - record['date_of_birth_of_household_head'].year) - (1 if today.month < record['date_of_birth_of_household_head'].month or (today.month == record['date_of_birth_of_household_head'].month and today.day < record['date_of_birth_of_household_head'].day) else 0)} years, "
+                f"{((today.month - record['date_of_birth_of_household_head'].month) % 12 if today.day >= record['date_of_birth_of_household_head'].day else (today.month - record['date_of_birth_of_household_head'].month - 1) % 12)} months"
+                if record["date_of_birth_of_household_head"] else "Unknown"
+            ),
+            "phone_number": record["phone_number"],
+            "educational_level_of_household_head": record["educational_level_of_household_head"],
+            "how_many_people_live_in_the_household": record["how_many_people_live_in_the_household"],
+            "average_monthly_income": record["average_monthly_income"],
+        }
+        for record in household_data
     ]
 
     return {
@@ -846,7 +921,8 @@ def get_building_data(building):
                 "ward": building_data["ward"],
                 "local_government_area": building_data["local_government_area"],
                 "state": building_data["state"],
-                "children_and_vaccination_data": formatted_data
+                "children_and_vaccination_data": formatted_data,
+                "household_data": formatted_household_data
             }
         }
     }
@@ -1608,7 +1684,7 @@ def distribution_of_settlements(project=None, grid=None, settlement=None, ward=N
 
 
 @frappe.whitelist()
-def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=None, state=None):
+def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=None, state=None, building_type=None, establishment_type=None, health_facility=None):
     """
     Fetch data for the building dashboard.
     Filters applied: user permissions, settlement, ward, lga, state.
@@ -1643,6 +1719,35 @@ def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
             else:
                 filters[allow_value.lower().replace(" ", "_")] = ('in', [perm['for_value'] for perm in allowed_records])
 
+    # Handle special filter values
+    if building_type == "Residential Only":
+        building_type = "Residential"
+
+    elif building_type == "Non Residential Only":
+        building_type = "Non-residential"
+
+    elif building_type == "Health Facilities Only":
+        building_type = "Non-residential"
+        establishment_type = "Health Facility"
+
+    elif building_type == "Schools Only":
+        building_type = "Non-residential"
+        establishment_type = "School"
+
+    elif building_type == "Churches Only":
+        building_type = "Non-residential"
+        establishment_type = "Church"
+
+    elif building_type == "Mosques Only":
+        building_type = "Non-residential"
+        establishment_type = "Mosque"
+
+    # If a specific health facility is selected
+    if health_facility:
+        building_type = "Non-residential"
+        establishment_type = "Health Facility"
+        filters['health_facility'] = health_facility
+
     if project:
         filters['project'] = project
     if grid:
@@ -1655,6 +1760,10 @@ def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
         filters['local_government_area'] = lga
     if state:
         filters['state'] = state
+    if building_type:
+        filters['building_type'] = building_type
+    if establishment_type:
+        filters['establishment_type'] = establishment_type
 
     sql_conditions = []
     sql_values = []
@@ -1697,12 +1806,51 @@ def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
     """
     residential_building_count = frappe.db.sql(residential_building_count_query, tuple(sql_values), as_dict=True)[0]['count']
 
+    # household_query = f"""
+    #     SELECT COUNT(*) AS count
+    #     FROM `tabHousehold`
+    #     WHERE status = 'Approved' AND {where_clause}
+    # """
+    # household_count = frappe.db.sql(household_query, tuple(sql_values), as_dict=True)[0]['count']
+
+    # Household filters (build only fields relevant to tabHousehold)
+    household_filters = {}
+
+    if project:
+        household_filters['project'] = project
+    if grid:
+        household_filters['grid'] = grid
+    if settlement:
+        household_filters['settlement'] = settlement
+    if ward:
+        household_filters['ward'] = ward
+    if lga:
+        household_filters['local_government_area'] = lga
+    if state:
+        household_filters['state'] = state
+
+    # Construct WHERE clause for Household
+    household_conditions = []
+    household_values = []
+
+    for key, value in household_filters.items():
+        if isinstance(value, tuple) and value[0] == 'in':
+            household_conditions.append(f"`{key}` IN %s")
+            household_values.append(tuple(value[1]))
+        else:
+            household_conditions.append(f"`{key}` = %s")
+            household_values.append(value)
+
+    household_where_clause = " AND ".join(household_conditions) if household_conditions else "1=1"
+
+    # Final Household query
     household_query = f"""
         SELECT COUNT(*) AS count
         FROM `tabHousehold`
-        WHERE status = 'Approved' AND {where_clause}
+        WHERE status = 'Approved' AND {household_where_clause}
     """
-    household_count = frappe.db.sql(household_query, tuple(sql_values), as_dict=True)[0]['count']
+    household_count = frappe.db.sql(household_query, tuple(household_values), as_dict=True)[0]['count']
+
 
     building_type_query = f"""
         SELECT building_type, COUNT(*) AS count
@@ -1754,7 +1902,7 @@ def building_dashboard(project=None, grid=None, settlement=None, ward=None, lga=
 
 
 @frappe.whitelist()
-def distribution_of_building(project=None, grid=None, settlement=None, ward=None, local_government_area=None, state=None):
+def distribution_of_building(project=None, grid=None, settlement=None, ward=None, local_government_area=None, state=None, building_type=None, establishment_type=None):
     """
     Fetch hierarchical building data and counts based on filters.
     Includes user permission checks for State, Local Government Area, Ward, and Grid.
@@ -1778,7 +1926,29 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
 
     # Initialize filters based on user permissions
     filters = {}
-    # filters = {"project": project}
+    
+    # Handle special filter values
+    if building_type == "Residential Only":
+        building_type = "Residential"
+
+    elif building_type == "Non Residential Only":
+        building_type = "Non-residential"
+
+    elif building_type == "Health Facilities Only":
+        building_type = "Non-residential"
+        establishment_type = "Health Facility"
+
+    elif building_type == "Schools Only":
+        building_type = "Non-residential"
+        establishment_type = "School"
+
+    elif building_type == "Churches Only":
+        building_type = "Non-residential"
+        establishment_type = "Church"
+
+    elif building_type == "Mosques Only":
+        building_type = "Non-residential"
+        establishment_type = "Mosque"
 
     # Override filters with directly provided values
     if grid:
@@ -1793,6 +1963,10 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         filters['state'] = state
     if project:
         filters['project'] = project
+    if building_type:
+        filters['building_type'] = building_type
+    if establishment_type:
+        filters['establishment_type'] = establishment_type
    
 
     # Prepare SQL filter conditions
@@ -1830,8 +2004,17 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
             state_query += " AND building.grid = %s"
             query_params.append(filters['grid'])
 
+         # Add additional filters if provided
+        if 'building_type' in filters:
+            state_query += " AND building.building_type = %s"
+            query_params.append(filters['building_type'])
+
+        if 'establishment_type' in filters:
+            state_query += " AND building.establishment_type = %s"
+            query_params.append(filters['establishment_type'])
+
         # Finalize the query with GROUP BY clause
-        state_query += " GROUP BY st.name"
+        state_query += " GROUP BY st.name" 
 
         try:
             # Execute the query with the dynamically built parameters
@@ -1841,6 +2024,9 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
             return {"status": 400, "message": str(e)}
 
     elif 'state' in filters and 'local_government_area' not in filters and 'ward' not in filters:
+
+        query_params = [filters['project']]
+
         # Base query for fetching LGAs and settlement counts
         lga_query = """
             SELECT 
@@ -1860,6 +2046,15 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         if 'grid' in filters:
             lga_query += " AND building.grid = %s"
 
+         # Add additional filters if provided
+        if 'building_type' in filters:
+            lga_query += " AND building.building_type = %s"
+            query_params.append(filters['building_type'])
+
+        if 'establishment_type' in filters:
+            lga_query += " AND building.establishment_type = %s"
+            query_params.append(filters['establishment_type'])
+
         # Add the WHERE clause for state
         lga_query += """
             WHERE lga.state = %s
@@ -1867,11 +2062,14 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         """
         
         try:
-            # Build parameters dynamically based on grid filter
-            query_params = [filters['project']]
-            if 'grid' in filters:
-                query_params.append(filters['grid'])
+            # # Build parameters dynamically based on grid filter
+            # query_params = [filters['project']]
+            # if 'grid' in filters:
+            #     query_params.append(filters['grid'])
+            # query_params.append(filters['state'])
+
             query_params.append(filters['state'])
+
 
             # Execute the query with parameters
             lgas = frappe.db.sql(lga_query, tuple(query_params), as_dict=True)
@@ -1880,6 +2078,9 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
             return {"status": 400, "message": str(e)}
 
     elif 'state' in filters and 'local_government_area' in filters and 'ward' not in filters:
+
+        query_params = [filters['project']]
+
         # Fetch wards and their settlement counts
         ward_query = """
             SELECT 
@@ -1899,6 +2100,15 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         if 'grid' in filters:
             ward_query += " AND building.grid = %s"
 
+                 # Add additional filters if provided
+        if 'building_type' in filters:
+            ward_query += " AND building.building_type = %s"
+            query_params.append(filters['building_type'])
+
+        if 'establishment_type' in filters:
+            ward_query += " AND building.establishment_type = %s"
+            query_params.append(filters['establishment_type'])
+
         # Add the WHERE clause for lga
         ward_query += """
             WHERE ward.local_government_area = %s
@@ -1906,10 +2116,12 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         """
         
         try:
-            # Build parameters dynamically based on grid filter
-            query_params = [filters['project']]
-            if 'grid' in filters:
-                query_params.append(filters['grid'])
+            # # Build parameters dynamically based on grid filter
+            # query_params = [filters['project']]
+            # if 'grid' in filters:
+            #     query_params.append(filters['grid'])
+            # query_params.append(filters['local_government_area'])
+
             query_params.append(filters['local_government_area'])
 
             # Execute the query with parameters
@@ -1920,6 +2132,9 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         
 
     elif 'state' in filters and 'local_government_area' in filters and 'ward' in filters and 'settlement' not in filters:
+
+        query_params = [filters['project']]
+
         # Base query for fetching LGAs and settlement counts
         settlement_query = """
             SELECT 
@@ -1931,23 +2146,35 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
                 AND building.status = 'Approved' 
                 AND building.project = %s
         """
-        
-        # Add grid filter to the LEFT JOIN condition if provided
+
         if 'grid' in filters:
             settlement_query += " AND building.grid = %s"
+            query_params.append(filters['grid'])
+
+        if 'building_type' in filters:
+            settlement_query += " AND building.building_type = %s"
+            query_params.append(filters['building_type'])
+
+        if 'establishment_type' in filters:
+            settlement_query += " AND building.establishment_type = %s"
+            query_params.append(filters['establishment_type'])
+
+        # Final WHERE clause (%s)
+        settlement_query += """
+            WHERE building.settlement = %s
+            GROUP BY settlement.name
+        """
+        query_params.append(filters['settlement'])   # for the final WHERE clause
 
         # Add the WHERE clause for ward
         settlement_query += """
-            WHERE settlement.ward = %s
+            WHERE building.settlement = %s
             GROUP BY settlement.name
         """
         
         try:
             # Build parameters dynamically based on grid filter
-            query_params = [filters['project']]
-            if 'grid' in filters:
-                query_params.append(filters['grid'])
-            query_params.append(filters['ward'])  # Correctly use 'ward' instead of 'state'
+            query_params.append(filters['ward'])  
 
             # Execute the query with parameters
             settlements = frappe.db.sql(settlement_query, tuple(query_params), as_dict=True)
@@ -1957,6 +2184,12 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
 
     
     elif 'state' in filters and 'local_government_area' in filters and 'ward' in filters and 'settlement' in filters:
+
+        query_params = [
+            filters['project'],
+            filters['settlement'] 
+        ]
+
         # Base query for fetching LGAs and settlement counts
         settlement_query = """
             SELECT 
@@ -1974,6 +2207,15 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         if 'grid' in filters:
             settlement_query += " AND building.grid = %s"
 
+        # Add additional filters if provided
+        if 'building_type' in filters:
+            settlement_query += " AND building.building_type = %s"
+            query_params.append(filters['building_type'])
+
+        if 'establishment_type' in filters:
+            settlement_query += " AND building.establishment_type = %s"
+            query_params.append(filters['establishment_type'])
+
         # Add the WHERE clause for ward
         settlement_query += """
             WHERE building.settlement = %s
@@ -1981,10 +2223,6 @@ def distribution_of_building(project=None, grid=None, settlement=None, ward=None
         """
         
         try:
-            # Build parameters dynamically based on grid filter
-            query_params = [filters['project'], filters['settlement']]
-            if 'grid' in filters:
-                query_params.append(filters['grid'])
             query_params.append(filters['settlement']) 
 
             # Execute the query with parameters
@@ -3231,3 +3469,74 @@ def distribution_of_household(project=None, grid=None, settlement=None, ward=Non
     
     return {"status": 400, "message": "Invalid filters or no data available."}
 
+
+@frappe.whitelist()
+def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None):
+    """
+    Fetch data for the settlement map:
+    Filters applied: state, lga, ward, settlement, grid (all optional).
+    """
+    # Get the logged-in user
+    user = frappe.session.user
+    if user == "Guest":
+        return {
+            "message": "You must be logged in to access this data.",
+            "status": 401
+        }
+
+    # Check if the user has the "Map Viewer" role
+    user_roles = frappe.get_roles(user)
+    if "Dashboard Viewer" not in user_roles:
+        return {
+            "message": "You do not have the required role to view the map, please contact the project manager.",
+            "status": 401
+        }
+
+    # Initialize filters
+    filters = {}
+
+    # Add optional filters
+    if grid:
+        filters['grid'] = grid
+    if settlement:
+        filters['settlement'] = settlement
+    if ward:
+        filters['ward'] = ward
+    if lga:
+        filters['local_government_area'] = lga
+    if state:
+        filters['state'] = state
+
+    # Prepare SQL filter conditions
+    sql_conditions = []
+    sql_values = []
+
+    for key, value in filters.items():
+        if isinstance(value, tuple) and value[0] == 'in':
+            sql_conditions.append(f"`{key}` IN %s")
+            sql_values.append(tuple(value[1]))
+        else:
+            sql_conditions.append(f"`{key}` = %s")
+            sql_values.append(value)
+
+    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+
+    # Query the Building table for residential buildings
+    settlement_query = f"""
+        SELECT name, response_geolocation, type_of_settlement, archetype_for_rural, archetype_for_urban
+        FROM `tabSettlement`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    try:
+        settlement_data = frappe.db.sql(settlement_query, tuple(sql_values), as_dict=True)
+    except Exception as e:
+        return {
+            "message": f"Error fetching data: {str(e)}",
+            "status": "error"
+        }
+
+    return {
+        "status": 200,
+        "response": "Success",
+        "data": settlement_data
+    }

@@ -434,6 +434,7 @@ def submit_vaccine_validation_responses(doc_name, vaccinations):
 def process_vaccinations_before_submit(doc, method):
     pending_rows = []
     approved_count = 0
+    corrected_count = 0
     total_rows = len(doc.vaccinations_under_validation)
 
     # 1. Check for pending rows and count approved
@@ -442,6 +443,8 @@ def process_vaccinations_before_submit(doc, method):
             pending_rows.append(str(i))
         elif row.status == "Approved":
             approved_count += 1
+        elif row.status == "Corrected":
+            corrected_count += 1
 
     # 2. If there are any pending rows, throw an error listing row numbers
     if pending_rows:
@@ -452,7 +455,7 @@ def process_vaccinations_before_submit(doc, method):
 
     # 4. Set the validation percentage on the main document
     if total_rows > 0:
-        doc.validation_percentage = round((approved_count / total_rows) * 100, 0)
+        doc.validation_percentage = round(((approved_count + corrected_count)/ total_rows) * 100, 0)
     else:
         doc.validation_percentage = 0.0
 

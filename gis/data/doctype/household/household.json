@@ -422,10 +422,14 @@
   {
    "link_doctype": "Children",
    "link_fieldname": "household"
+  },
+  {
+   "link_doctype": "Vaccination",
+   "link_fieldname": "household"
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-05-15 16:02:44.380726",
+ "modified": "2025-07-11 11:27:06.046917",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

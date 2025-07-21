@@ -260,6 +260,7 @@
    "depends_on": "eval:doc.building_type===\"Non-residential\"",
    "fieldname": "establishment_type",
    "fieldtype": "Select",
+   "in_standard_filter": 1,
    "label": "Establishment Type",
    "mandatory_depends_on": "eval:doc.building_type===\"Non-residential\"",
    "options": "\nChurch\nHealth Facility\nMosque\nSchool"
@@ -319,7 +320,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-06-17 11:53:23.293204",
+ "modified": "2025-07-13 19:44:16.069449",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
