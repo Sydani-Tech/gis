@@ -276,3 +276,12 @@ def read_json_as_dict(file_path):
 
 def create_admin():
   create_user([{"Name": "Gis Admin", "Email": "gis.admin@sydani.org"}])
+
+def sanitize_name(name):
+    # Strip spaces
+    name = name.strip()
+    # Remove unwanted characters (anything not a letter, number, or space)
+    name = re.sub(r"[^A-Za-z0-9\s]", "", name)
+    # Collapse multiple spaces into one
+    name = re.sub(r"\s+", " ", name)
+    return name

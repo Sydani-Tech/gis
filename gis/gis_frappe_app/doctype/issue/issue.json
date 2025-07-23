@@ -23,6 +23,7 @@
   "resolution_stat_section",
   "created_on",
   "first_response_on",
+  "first_response_time",
   "column_break_fkzz",
   "resolved_on",
   "resolved_by",
@@ -62,17 +63,20 @@
   {
    "fieldname": "screenshot_of_your_login_page",
    "fieldtype": "Attach",
-   "label": "Screenshot of your login page or homepage"
+   "label": "Screenshot of your login page or homepage",
+   "reqd": 1
   },
   {
    "fieldname": "screenshot_of_your_profile_page",
    "fieldtype": "Attach",
-   "label": "Screenshot of your profile page"
+   "label": "Screenshot of your profile page",
+   "reqd": 1
   },
   {
    "fieldname": "video_recording_of_the_issue",
    "fieldtype": "Attach",
-   "label": "Video recording of the issue"
+   "label": "Video recording of the issue",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_amyi",
@@ -83,7 +87,8 @@
    "fieldtype": "Link",
    "label": "Team Code",
    "options": "User",
-   "read_only_depends_on": "eval:doc.status === \"Resolved\""
+   "read_only_depends_on": "eval:doc.status === \"Resolved\"",
+   "reqd": 1
   },
   {
    "fieldname": "ward",
@@ -108,7 +113,8 @@
    "fieldname": "issue_description",
    "fieldtype": "Text Editor",
    "label": "Describe the Issue Clearly",
-   "read_only_depends_on": "eval:doc.status === \"Resolved\""
+   "read_only_depends_on": "eval:doc.status === \"Resolved\"",
+   "reqd": 1
   },
   {
    "fieldname": "response_section",
@@ -168,11 +174,16 @@
    "in_list_view": 1,
    "label": "Resolution Time",
    "read_only": 1
+  },
+  {
+   "fieldname": "first_response_time",
+   "fieldtype": "Duration",
+   "label": "First Response Time"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-17 09:12:43.261928",
+ "modified": "2025-07-23 07:20:12.190084",
  "modified_by": "Administrator",
  "module": "GIS frappe app",
  "name": "Issue",

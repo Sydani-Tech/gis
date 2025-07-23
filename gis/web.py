@@ -697,7 +697,82 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
         filters['health_facility'] = health_facility
 
 
+    # # Add optional filters
+    # if project:
+    #     filters['project'] = project
+    # if grid:
+    #     filters['grid'] = grid
+    # if settlement:
+    #     filters['settlement'] = settlement
+    # if ward:
+    #     filters['ward'] = ward
+    # if lga:
+    #     filters['local_government_area'] = lga
+    # if state:
+    #     filters['state'] = state
+    # if building_type:
+    #     filters['building_type'] = building_type
+    # if establishment_type:
+    #     filters['establishment_type'] = establishment_type
+
+    # # Prepare SQL filter conditions
+    # sql_conditions = []
+    # sql_values = []
+
+    # for key, value in filters.items():
+    #     if isinstance(value, tuple) and value[0] == 'in':
+    #         sql_conditions.append(f"`{key}` IN %s")
+    #         sql_values.append(tuple(value[1]))
+    #     else:
+    #         sql_conditions.append(f"`{key}` = %s")
+    #         sql_values.append(value)
+
+    # where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+
+    # # Query the Building table for residential buildings
+    # building_query = f"""
+    #     SELECT name, percentage_of_vaccinated_children, geolocation, building_type, establishment_type, health_facility
+    #     FROM `tabBuilding`
+    #     WHERE status = 'Approved' AND {where_clause}
+    # """
+    # try:
+    #     building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+
+    #     for building in building_data:
+    #     # Fetch vaccination statuses for children linked to this building
+    #         child_statuses = frappe.db.get_all(
+    #             "Children",
+    #             filters={"building": building["name"], "status": "Approved"},
+    #             fields=["vaccination_status"]
+    #         )
+
+    #         vaccination_statuses = frappe.db.get_all(
+    #             "Vaccination",
+    #             filters={"building": building["name"], "status": "Approved"},
+    #             fields=["vaccination_status"]
+    #         )
+
+    #         # Combine statuses from both doctypes
+    #         all_statuses = [c["vaccination_status"] for c in child_statuses] + \
+    #                     [v["vaccination_status"] for v in vaccination_statuses]
+
+    #         # Determine building vaccination status
+    #         building_vaccination_status = "gray"  # Default if there are no records
+    #         if all_statuses:
+    #             if any(s not in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses):
+    #                 building_vaccination_status = "red"
+    #             elif all(s in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses) and any(
+    #                 s == "Vaccinated to Age" for s in all_statuses
+    #             ):
+    #                 building_vaccination_status = "yellow"
+    #             elif all(s == "Fully Vaccinated (Measles 2)" for s in all_statuses):
+    #                 building_vaccination_status = "green"
+
+    #         # Add the computed status to the row
+    #         building["building_vaccination_status"] = building_vaccination_status
+
     # Add optional filters
+
     if project:
         filters['project'] = project
     if grid:
@@ -720,23 +795,87 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     sql_values = []
 
     for key, value in filters.items():
+        # Always prefix keys with "b." (the alias for tabBuilding)
+        field = f"b.`{key}`"
         if isinstance(value, tuple) and value[0] == 'in':
-            sql_conditions.append(f"`{key}` IN %s")
+            sql_conditions.append(f"{field} IN %s")
             sql_values.append(tuple(value[1]))
         else:
-            sql_conditions.append(f"`{key}` = %s")
+            sql_conditions.append(f"{field} = %s")
             sql_values.append(value)
 
     where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
 
-    # Query the Building table for residential buildings
+
     building_query = f"""
-        SELECT name, percentage_of_vaccinated_children, geolocation, building_type, establishment_type, health_facility
-        FROM `tabBuilding`
-        WHERE status = 'Approved' AND {where_clause}
+        SELECT 
+            b.name,
+            b.percentage_of_vaccinated_children,
+            b.geolocation,
+            b.building_type,
+            b.establishment_type,
+            b.health_facility,
+            -- Compute building vaccination status directly
+            CASE
+                WHEN COUNT(c.name) = 0 AND COUNT(v.name) = 0 THEN 'gray'
+                WHEN SUM(
+                        CASE 
+                            WHEN c.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
+                            THEN 1 ELSE 0 
+                        END
+                    ) > 0
+                    OR SUM(
+                        CASE 
+                            WHEN v.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
+                            THEN 1 ELSE 0 
+                        END
+                    ) > 0
+                THEN 'red'
+                WHEN SUM(
+                        CASE 
+                            WHEN c.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
+                        END
+                    ) > 0
+                    OR SUM(
+                        CASE 
+                            WHEN v.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
+                        END
+                    ) > 0
+                    AND SUM(
+                        CASE 
+                            WHEN c.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
+                        END
+                    ) + SUM(
+                        CASE 
+                            WHEN v.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
+                        END
+                    ) = COUNT(c.name) + COUNT(v.name)
+                THEN 'yellow'
+                ELSE 'green'
+            END AS building_vaccination_status
+
+        FROM `tabBuilding` b
+        LEFT JOIN `tabChildren` c 
+            ON c.building = b.name AND c.status = 'Approved'
+        LEFT JOIN `tabVaccination` v 
+            ON v.building = b.name AND v.status = 'Approved'
+
+        WHERE b.status = 'Approved'
+        AND {where_clause}
+        -- Exclude non-residential health facilities with no approved records
+        AND NOT (
+            b.building_type = 'Non-residential'
+            AND b.establishment_type = 'Health Facility'
+            AND (c.name IS NULL AND v.name IS NULL)
+        )
+
+        GROUP BY b.name
     """
+
     try:
         building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+
+
     except Exception as e:
         return {
             "message": f"Error fetching data: {str(e)}",
@@ -787,7 +926,7 @@ def get_building_data(building):
     building_data = frappe.db.get_value(
         "Building",
         building,
-        ["building_picture", "building_picture_2", "building_type", "establishment_type", "health_facility", "ward", "local_government_area", "state"],
+        ["building_picture", "building_picture_2", "building_type", "establishment_type", "health_facility", "settlement", "ward", "local_government_area", "state"],
         as_dict=True
     )
 
@@ -803,7 +942,57 @@ def get_building_data(building):
             "message": f"No building found with name: {building}",
             "status": 404
         }
-    #COALESCE(vaccination_date, last_vaccination_date) AS vaccination_date,
+
+    # Determine building_vaccination_status  
+    # Fetch Children vaccination statuses
+    children_statuses = frappe.db.sql(
+        """
+        SELECT vaccination_status
+        FROM `tabChildren`
+        WHERE building = %s AND status = 'Approved'
+        """,
+        (building,),
+        as_dict=True
+    )
+
+    # Fetch Vaccination records linked to this building
+    vaccination_statuses = frappe.db.sql(
+        """
+        SELECT vaccination_status
+        FROM `tabVaccination`
+        WHERE building = %s AND status = 'Approved'
+        """,
+        (building,),
+        as_dict=True
+    )
+
+    # Combine all statuses
+    all_statuses = [c["vaccination_status"] for c in children_statuses] + \
+                [v["vaccination_status"] for v in vaccination_statuses]
+
+
+    # Default if no records exist
+    building_vaccination_status = "gray"
+
+    if all_statuses:
+        # If any status is NOT Fully Vaccinated or Vaccinated to Age -> Red
+        if any(s not in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses):
+            building_vaccination_status = "red"
+        # If all are Fully Vaccinated or Vaccinated to Age, and at least one is Vaccinated to Age -> Yellow
+        elif all(s in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses) and any(s == "Vaccinated to Age" for s in all_statuses):
+            building_vaccination_status = "yellow"
+        # If all are Fully Vaccinated -> Green
+        elif all(s == "Fully Vaccinated (Measles 2)" for s in all_statuses):
+            building_vaccination_status = "green"
+        else:
+            building_vaccination_status = "gray"  # default if no statuses (shouldn't trigger here)
+
+
+
+    # Attach to building data
+    building_data["building_vaccination_status"] = building_vaccination_status
+        
+    
     # Fetch both children and vaccination records in a single query
     combined_records = frappe.db.sql(
         """
@@ -916,8 +1105,10 @@ def get_building_data(building):
                 "building_picture": building_data.get("building_picture"),
                 "building_picture_2": building_data.get("building_picture_2"),
                 "building_type": building_data.get("building_type"),
+                "building_vaccination_status": building_data.get("building_vaccination_status"),
                 "establishment_type": building_data.get("establishment_type"),
                 "health_facility": building_data["health_facility"],
+                "settlement": building_data["settlement"],
                 "ward": building_data["ward"],
                 "local_government_area": building_data["local_government_area"],
                 "state": building_data["state"],

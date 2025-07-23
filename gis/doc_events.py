@@ -633,16 +633,7 @@ def update_household_member_count(doc, method):
     """
     Updates the total number of people living in the household if any of the household member age groups change.
     """
-    # previous_doc = doc.get_doc_before_save()
-
-    # Ensure the previous document state exists before comparison
-    # if previous_doc and (
-    #     previous_doc.how_many_household_members_are_above_18 != doc.how_many_household_members_are_above_18 or
-    #     previous_doc.how_many_household_members_are_between_15_and_18_years != doc.how_many_household_members_are_between_15_and_18_years or
-    #     previous_doc.how_many_household_members_are_between_9_and_14_years != doc.how_many_household_members_are_between_9_and_14_years or
-    #     previous_doc.how_many_household_members_are_between_5_and_8_years != doc.how_many_household_members_are_between_5_and_8_years or
-    #     previous_doc.how_many_household_members_are_below_5 != doc.how_many_household_members_are_below_5
-    # ):
+    
     # Calculate total household members
     doc.how_many_people_live_in_the_household = (
         int(doc.how_many_household_members_are_above_18 or 0) +

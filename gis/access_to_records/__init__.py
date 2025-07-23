@@ -3,10 +3,11 @@ from frappe import _
 import requests
 import json
 import random
+import re
 
 from gis.functions import (
   is_valid_email,set_error,generate_keys,reset_user_password,
-  set_res,create_user,read_json_as_dict,fetch_db_resource, save_image
+  set_res,create_user,read_json_as_dict,fetch_db_resource, save_image, sanitize_name
 )
 
 def get_team(user):
@@ -284,7 +285,6 @@ def grids():
     set_res(data={'grids': grids, 'assignees': grid_record})
 
 
-
 @frappe.whitelist()
 def save_children(**kwargs):
     record_name = kwargs.get("name")  # Check if 'name' (record ID) is provided for updating an existing record
@@ -295,13 +295,16 @@ def save_children(**kwargs):
             children = frappe.get_doc("Children", record_name)
         else:
             # Create a new record if 'name' is not provided
+            first_name = sanitize_name(kwargs["first_name"])
+            middle_name = sanitize_name(kwargs.get("middle_name", ""))
+            last_name = sanitize_name(kwargs["last_name"])
             full_name = f"{kwargs['first_name']} {kwargs.get('middle_name', '')} {kwargs['last_name']}".strip()
             children = frappe.get_doc({
                 "doctype": "Children",
                 "household": kwargs["household"],
-                "first_name": kwargs["first_name"],
-                "middle_name": kwargs.get("middle_name"),
-                "last_name": kwargs["last_name"],
+                "first_name": first_name,
+                "middle_name": middle_name,
+                "last_name": last_name,
                 "full_name": full_name,
                 "date_of_birth": kwargs["date_of_birth"],
                 "gender": kwargs["gender"],
@@ -318,12 +321,15 @@ def save_children(**kwargs):
                 "response_geolocation": kwargs["response_geolocation"],
             })
 
+        first_name = sanitize_name(kwargs["first_name"])
+        middle_name = sanitize_name(kwargs.get("middle_name", ""))
+        last_name = sanitize_name(kwargs["last_name"])
         # Update common fields
         children.update({
             "household": kwargs["household"],
-            "first_name": kwargs["first_name"],
-            "middle_name": kwargs.get("middle_name"),
-            "last_name": kwargs["last_name"],
+            "first_name": first_name,
+            "middle_name": middle_name,
+            "last_name": last_name,
             "date_of_birth": kwargs["date_of_birth"],
             "gender": kwargs["gender"],
             "does_the_child_have_a_vaccination_card": kwargs["does_the_child_have_a_vaccination_card"],
@@ -399,10 +405,11 @@ def save_household(**kwargs):
         if record_name:
             # Fetch the existing record
             household = frappe.get_doc("Household", record_name)
+            name_of_household_head = sanitize_name(kwargs["name_of_household_head"])
 
             # Update fields
             household.update({
-                "name_of_household_head": kwargs["name_of_household_head"],
+                "name_of_household_head": name_of_household_head,
                 "gender_of_household_head": kwargs["gender_of_household_head"],
                 "date_of_birth_of_household_head": kwargs["date_of_birth_of_household_head"],
                 "phone_number": kwargs["phone_number"],
@@ -447,10 +454,12 @@ def save_household(**kwargs):
                 "response_geolocation": kwargs["response_geolocation"]
             })
         else:
+            name_of_household_head = sanitize_name(kwargs["name_of_household_head"])
+
             # Create a new record if 'name' is not provided
             household = frappe.get_doc({
                 "doctype": "Household",
-                "name_of_household_head": kwargs["name_of_household_head"],
+                "name_of_household_head": name_of_household_head,
                 "gender_of_household_head": kwargs["gender_of_household_head"],
                 "date_of_birth_of_household_head": kwargs["date_of_birth_of_household_head"],
                 "phone_number": kwargs["phone_number"],
@@ -609,15 +618,19 @@ def save_settlement(**kwargs):
         # If 'name' is provided, fetch the existing record for updating
         if record_name:
             settlement = frappe.get_doc("Settlement", record_name)
+            name_of_settlementcommunity_head = sanitize_name(kwargs["name_of_settlementcommunity_head"])
+            name_of_disease_surveillance_community_informant = sanitize_name(kwargs["name_of_disease_surveillance_community_informant"])
+            names_of_other_influential_members_within_settlement = sanitize_name(kwargs["names_of_other_influential_members_within_settlement"])
+
             settlement.update({
                 "name_of_settlement": kwargs["name_of_settlement"],
                 "type_of_settlement": kwargs["type_of_settlement"],
                 "archetype_for_rural": kwargs.get("archetype_for_rural"),
                 "archetype_for_urban": kwargs.get("archetype_for_urban"),
-                "name_of_settlementcommunity_head": kwargs["name_of_settlementcommunity_head"],
+                "name_of_settlementcommunity_head": name_of_settlementcommunity_head,
                 "contact_of_settlementcommunity_head": kwargs["contact_of_settlementcommunity_head"],
-                "name_of_disease_surveillance_community_informant": kwargs["name_of_disease_surveillance_community_informant"],
-                "names_of_other_influential_members_within_settlement": kwargs["names_of_other_influential_members_within_settlement"],
+                "name_of_disease_surveillance_community_informant": name_of_disease_surveillance_community_informant,
+                "names_of_other_influential_members_within_settlement": names_of_other_influential_members_within_settlement,
                 "name_of_nearest_facility_to_settlement": kwargs["name_of_nearest_facility_to_settlement"],
                 "is_there_a_vdc": kwargs["is_there_a_vdc"],
                 "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"] if kwargs["is_there_a_vdc"] == "Yes" else "",
@@ -641,6 +654,10 @@ def save_settlement(**kwargs):
                     "message": "This Settlement has already been saved. A Settlement with the same name already exists.",
                     "status": 400
                 }
+            
+            name_of_settlementcommunity_head = sanitize_name(kwargs["name_of_settlementcommunity_head"])
+            name_of_disease_surveillance_community_informant = sanitize_name(kwargs["name_of_disease_surveillance_community_informant"])
+            names_of_other_influential_members_within_settlement = sanitize_name(kwargs["names_of_other_influential_members_within_settlement"])
             # Create a new record if 'name' is not provided
             settlement = frappe.get_doc({
                 "doctype": "Settlement",
@@ -648,10 +665,10 @@ def save_settlement(**kwargs):
                 "type_of_settlement": kwargs["type_of_settlement"],
                 "archetype_for_rural": kwargs.get("archetype_for_rural"),
                 "archetype_for_urban": kwargs.get("archetype_for_urban"),
-                "name_of_settlementcommunity_head": kwargs["name_of_settlementcommunity_head"],
+                "name_of_settlementcommunity_head": name_of_settlementcommunity_head,
                 "contact_of_settlementcommunity_head": kwargs["contact_of_settlementcommunity_head"],
-                "name_of_disease_surveillance_community_informant": kwargs["name_of_disease_surveillance_community_informant"],
-                "names_of_other_influential_members_within_settlement": kwargs["names_of_other_influential_members_within_settlement"],
+                "name_of_disease_surveillance_community_informant": name_of_disease_surveillance_community_informant,
+                "names_of_other_influential_members_within_settlement": names_of_other_influential_members_within_settlement,
                 "name_of_nearest_facility_to_settlement": kwargs["name_of_nearest_facility_to_settlement"],
                 "is_there_a_vdc": kwargs["is_there_a_vdc"],
                 "how_often_does_the_vdc_meet": kwargs["how_often_does_the_vdc_meet"] if kwargs["is_there_a_vdc"] == "Yes" else "",
@@ -715,11 +732,11 @@ def save_vaccination(**kwargs):
                 "project": kwargs.get("project"),
             })
 
-        first_name = kwargs.get("first_name", "").strip()
-        middle_name = kwargs.get("middle_name", "").strip()
-        last_name = kwargs.get("last_name", "").strip()
-        care_givers_firstname = kwargs.get("care_givers_firstname", "").strip()
-        care_givers_surname = kwargs.get("care_givers_surname", "").strip()
+        first_name = sanitize_name(kwargs["first_name"])
+        middle_name = sanitize_name(kwargs.get("middle_name", ""))
+        last_name = sanitize_name(kwargs["last_name"])
+        care_givers_firstname = sanitize_name(kwargs.get("care_givers_firstname", ""))
+        care_givers_surname = sanitize_name(kwargs.get("care_givers_surname", ""))
 
         # Filter out any empty strings to avoid double spaces
         full_name = " ".join(filter(None, [first_name, middle_name, last_name]))
@@ -742,8 +759,6 @@ def save_vaccination(**kwargs):
             "date_of_birth": kwargs.get("date_of_birth"),
             "gender": kwargs.get("gender"),
             "care_givers_name": f"{kwargs.get('care_givers_firstname', '').strip()}{kwargs.get('care_givers_surname', '').strip()}",
-            # "care_givers_firstname": kwargs.get("care_givers_firstname"),
-            # "care_givers_surname": kwargs.get("care_givers_surname"),
             "care_givers_firstname": care_givers_firstname,
             "care_givers_surname": care_givers_surname,
             "care_givers_date_of_birth": kwargs.get("care_givers_date_of_birth"),
@@ -752,8 +767,6 @@ def save_vaccination(**kwargs):
             "building": building,
             "was_the_child_vaccinated_during_this_program": kwargs.get("was_the_child_vaccinated_during_this_program"),
             "vaccination_date": kwargs.get("vaccination_date"),
-            # "next_vaccination_date": kwargs.get("next_vaccination_date"),
-            # "vaccination_status": kwargs.get("vaccination_status"),
             "does_the_child_have_a_child_health_card": kwargs.get("does_the_child_have_a_child_health_card"),
             "did_you_administer_the_child_health_card": kwargs.get("did_you_administer_the_child_health_card"),
             "take_a_picture_of_the_health_card": take_a_picture_of_the_health_card,

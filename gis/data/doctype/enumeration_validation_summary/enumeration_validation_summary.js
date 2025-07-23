@@ -182,3 +182,79 @@ frappe.ui.form.on("Enumeration Sample Responses", {
         }
     }
 });
+
+// frappe.ui.form.on('Enumeration Sample Responses', {
+//     update_building_geolocation: function (frm) {
+//         // if (!frm.doc.record || !frm.doc.response_geolocation) {
+//         //     frappe.msgprint(__('Missing record or geolocation to update.'));
+//         //     return;
+//         // }
+
+//         frappe.confirm(
+//             'Are you sure you want to update the Building geolocation with the validator’s reported geolocation?',
+//             function () {
+//                 // Yes - proceed with update
+//                 frappe.call({
+//                     method: "frappe.client.set_value",
+//                     args: {
+//                         doctype: "Building",
+//                         name: frm.doc.record,
+//                         fieldname: {
+//                             geolocation: frm.doc.response_geolocation
+//                         }
+//                     },
+//                     callback: function (response) {
+//                         if (!response.exc) {
+//                             frappe.msgprint(__('Building geolocation updated successfully.'));
+//                             // frm.reload_doc();
+//                         } else {
+//                             frappe.msgprint(__('Failed to update geolocation.'));
+//                         }
+//                     }
+//                 });
+//             },
+//             function () {
+//                 // No - do nothing
+//                 frappe.msgprint(__('Operation cancelled.'));
+//             }
+//         );
+//     }
+// });
+
+frappe.ui.form.on('Enumeration Sample Responses', {
+    update_building_geolocation: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+
+        // if (!row.response_geolocation) {
+        //     frappe.msgprint(__('No response geolocation found for this row.'));
+        //     return;
+        // }
+
+        frappe.confirm(
+            `Are you sure you want to update the geolocation for Building <b>${row.record}</b>?`,
+            function () {
+                frappe.call({
+                    method: "frappe.client.set_value",
+                    args: {
+                        doctype: "Building",
+                        name: row.record,
+                        fieldname: {
+                            geolocation: row.response_geolocation
+                        }
+                    },
+                    callback: function (response) {
+                        if (!response.exc) {
+                            frappe.msgprint(__('Building geolocation updated successfully.'));
+                        } else {
+                            frappe.msgprint(__('Failed to update geolocation.'));
+                        }
+                    }
+                });
+            },
+            function () {
+                frappe.msgprint(__('Update cancelled.'));
+            }
+        );
+    }
+});
+

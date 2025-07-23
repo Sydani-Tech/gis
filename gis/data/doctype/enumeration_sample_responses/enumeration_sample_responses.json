@@ -18,6 +18,7 @@
   "geolocation",
   "response_geolocation",
   "distance",
+  "update_building_geolocation",
   "last_modified",
   "section_break_zpnt",
   "validation_responses"
@@ -49,6 +50,7 @@
    "options": "Pending\nApproved\nReturned"
   },
   {
+   "columns": 1,
    "fieldname": "settlement",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -101,8 +103,10 @@
    "read_only": 1
   },
   {
+   "columns": 1,
    "fieldname": "distance",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Distance (in Metres)",
    "read_only": 1
   },
@@ -111,12 +115,20 @@
    "fieldtype": "Datetime",
    "label": "Last Modified",
    "read_only": 1
+  },
+  {
+   "columns": 2,
+   "depends_on": "response_geolocation",
+   "fieldname": "update_building_geolocation",
+   "fieldtype": "Button",
+   "in_list_view": 1,
+   "label": "Update Geolocation"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-06 10:51:58.648515",
+ "modified": "2025-07-23 08:23:06.460966",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Sample Responses",

@@ -709,7 +709,8 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
             if row.record in buildings_map:  # Match building
 
                 row_data = buildings_map[row.record]
-                row.status = row_data["status"]
+                # row.status = row_data["status"]
+                row.status = "Returned" if row_data["status"] == "Corrected" else row_data["status"]
                 row.validation_responses = row_data["validation_responses"]
                 row.response_geolocation = row_data.get("response_geolocation")
                 row.last_modified = row_data.get("last_modified")
