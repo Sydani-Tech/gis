@@ -697,46 +697,66 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
         filters['health_facility'] = health_facility
 
 
-    # # Add optional filters
-    # if project:
-    #     filters['project'] = project
-    # if grid:
-    #     filters['grid'] = grid
-    # if settlement:
-    #     filters['settlement'] = settlement
-    # if ward:
-    #     filters['ward'] = ward
-    # if lga:
-    #     filters['local_government_area'] = lga
-    # if state:
-    #     filters['state'] = state
-    # if building_type:
-    #     filters['building_type'] = building_type
-    # if establishment_type:
-    #     filters['establishment_type'] = establishment_type
+    # Add optional filters
+    if project:
+        filters['project'] = project
+    if grid:
+        filters['grid'] = grid
+    if settlement:
+        filters['settlement'] = settlement
+    if ward:
+        filters['ward'] = ward
+    if lga:
+        filters['local_government_area'] = lga
+    if state:
+        filters['state'] = state
+    if building_type:
+        filters['building_type'] = building_type
+    if establishment_type:
+        filters['establishment_type'] = establishment_type
 
-    # # Prepare SQL filter conditions
-    # sql_conditions = []
-    # sql_values = []
+    # Prepare SQL filter conditions
+    sql_conditions = []
+    sql_values = []
 
-    # for key, value in filters.items():
-    #     if isinstance(value, tuple) and value[0] == 'in':
-    #         sql_conditions.append(f"`{key}` IN %s")
-    #         sql_values.append(tuple(value[1]))
-    #     else:
-    #         sql_conditions.append(f"`{key}` = %s")
-    #         sql_values.append(value)
+    for key, value in filters.items():
+        if isinstance(value, tuple) and value[0] == 'in':
+            sql_conditions.append(f"`{key}` IN %s")
+            sql_values.append(tuple(value[1]))
+        else:
+            sql_conditions.append(f"`{key}` = %s")
+            sql_values.append(value)
 
-    # where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
 
     # # Query the Building table for residential buildings
     # building_query = f"""
-    #     SELECT name, percentage_of_vaccinated_children, geolocation, building_type, establishment_type, health_facility
+    #     SELECT name, percentage_of_vaccinated_children, building_vaccination_status, geolocation, building_type, establishment_type, health_facility
     #     FROM `tabBuilding`
     #     WHERE status = 'Approved' AND {where_clause}
     # """
     # try:
     #     building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+
+    # Query the Building table for residential buildings,
+    # excluding health facilities with gray vaccination status
+    building_query = f"""
+        SELECT 
+            name, 
+            percentage_of_vaccinated_children, 
+            building_vaccination_status, 
+            geolocation, 
+            building_type, 
+            establishment_type, 
+            health_facility
+        FROM `tabBuilding`
+        WHERE status = 'Approved'
+        AND NOT (health_facility IS NOT NULL AND building_vaccination_status = 'gray')
+        AND {where_clause}
+    """
+    try:
+        building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+
 
     #     for building in building_data:
     #     # Fetch vaccination statuses for children linked to this building
@@ -771,109 +791,109 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     #         # Add the computed status to the row
     #         building["building_vaccination_status"] = building_vaccination_status
 
-    # Add optional filters
+    # # Add optional filters
 
-    if project:
-        filters['project'] = project
-    if grid:
-        filters['grid'] = grid
-    if settlement:
-        filters['settlement'] = settlement
-    if ward:
-        filters['ward'] = ward
-    if lga:
-        filters['local_government_area'] = lga
-    if state:
-        filters['state'] = state
-    if building_type:
-        filters['building_type'] = building_type
-    if establishment_type:
-        filters['establishment_type'] = establishment_type
+    # if project:
+    #     filters['project'] = project
+    # if grid:
+    #     filters['grid'] = grid
+    # if settlement:
+    #     filters['settlement'] = settlement
+    # if ward:
+    #     filters['ward'] = ward
+    # if lga:
+    #     filters['local_government_area'] = lga
+    # if state:
+    #     filters['state'] = state
+    # if building_type:
+    #     filters['building_type'] = building_type
+    # if establishment_type:
+    #     filters['establishment_type'] = establishment_type
 
-    # Prepare SQL filter conditions
-    sql_conditions = []
-    sql_values = []
+    # # Prepare SQL filter conditions
+    # sql_conditions = []
+    # sql_values = []
 
-    for key, value in filters.items():
-        # Always prefix keys with "b." (the alias for tabBuilding)
-        field = f"b.`{key}`"
-        if isinstance(value, tuple) and value[0] == 'in':
-            sql_conditions.append(f"{field} IN %s")
-            sql_values.append(tuple(value[1]))
-        else:
-            sql_conditions.append(f"{field} = %s")
-            sql_values.append(value)
+    # for key, value in filters.items():
+    #     # Always prefix keys with "b." (the alias for tabBuilding)
+    #     field = f"b.`{key}`"
+    #     if isinstance(value, tuple) and value[0] == 'in':
+    #         sql_conditions.append(f"{field} IN %s")
+    #         sql_values.append(tuple(value[1]))
+    #     else:
+    #         sql_conditions.append(f"{field} = %s")
+    #         sql_values.append(value)
 
-    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+    # where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
 
 
-    building_query = f"""
-        SELECT 
-            b.name,
-            b.percentage_of_vaccinated_children,
-            b.geolocation,
-            b.building_type,
-            b.establishment_type,
-            b.health_facility,
-            -- Compute building vaccination status directly
-            CASE
-                WHEN COUNT(c.name) = 0 AND COUNT(v.name) = 0 THEN 'gray'
-                WHEN SUM(
-                        CASE 
-                            WHEN c.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
-                            THEN 1 ELSE 0 
-                        END
-                    ) > 0
-                    OR SUM(
-                        CASE 
-                            WHEN v.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
-                            THEN 1 ELSE 0 
-                        END
-                    ) > 0
-                THEN 'red'
-                WHEN SUM(
-                        CASE 
-                            WHEN c.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
-                        END
-                    ) > 0
-                    OR SUM(
-                        CASE 
-                            WHEN v.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
-                        END
-                    ) > 0
-                    AND SUM(
-                        CASE 
-                            WHEN c.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
-                        END
-                    ) + SUM(
-                        CASE 
-                            WHEN v.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
-                        END
-                    ) = COUNT(c.name) + COUNT(v.name)
-                THEN 'yellow'
-                ELSE 'green'
-            END AS building_vaccination_status
+    # building_query = f"""
+    #     SELECT 
+    #         b.name,
+    #         b.percentage_of_vaccinated_children,
+    #         b.geolocation,
+    #         b.building_type,
+    #         b.establishment_type,
+    #         b.health_facility,
+    #         -- Compute building vaccination status directly
+    #         CASE
+    #             WHEN COUNT(c.name) = 0 AND COUNT(v.name) = 0 THEN 'gray'
+    #             WHEN SUM(
+    #                     CASE 
+    #                         WHEN c.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
+    #                         THEN 1 ELSE 0 
+    #                     END
+    #                 ) > 0
+    #                 OR SUM(
+    #                     CASE 
+    #                         WHEN v.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
+    #                         THEN 1 ELSE 0 
+    #                     END
+    #                 ) > 0
+    #             THEN 'red'
+    #             WHEN SUM(
+    #                     CASE 
+    #                         WHEN c.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
+    #                     END
+    #                 ) > 0
+    #                 OR SUM(
+    #                     CASE 
+    #                         WHEN v.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
+    #                     END
+    #                 ) > 0
+    #                 AND SUM(
+    #                     CASE 
+    #                         WHEN c.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
+    #                     END
+    #                 ) + SUM(
+    #                     CASE 
+    #                         WHEN v.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
+    #                     END
+    #                 ) = COUNT(c.name) + COUNT(v.name)
+    #             THEN 'yellow'
+    #             ELSE 'green'
+    #         END AS building_vaccination_status
 
-        FROM `tabBuilding` b
-        LEFT JOIN `tabChildren` c 
-            ON c.building = b.name AND c.status = 'Approved'
-        LEFT JOIN `tabVaccination` v 
-            ON v.building = b.name AND v.status = 'Approved'
+    #     FROM `tabBuilding` b
+    #     LEFT JOIN `tabChildren` c 
+    #         ON c.building = b.name AND c.status = 'Approved'
+    #     LEFT JOIN `tabVaccination` v 
+    #         ON v.building = b.name AND v.status = 'Approved'
 
-        WHERE b.status = 'Approved'
-        AND {where_clause}
-        -- Exclude non-residential health facilities with no approved records
-        AND NOT (
-            b.building_type = 'Non-residential'
-            AND b.establishment_type = 'Health Facility'
-            AND (c.name IS NULL AND v.name IS NULL)
-        )
+    #     WHERE b.status = 'Approved'
+    #     AND {where_clause}
+    #     -- Exclude non-residential health facilities with no approved records
+    #     AND NOT (
+    #         b.building_type = 'Non-residential'
+    #         AND b.establishment_type = 'Health Facility'
+    #         AND (c.name IS NULL AND v.name IS NULL)
+    #     )
 
-        GROUP BY b.name
-    """
+    #     GROUP BY b.name
+    # """
 
-    try:
-        building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+    # try:
+    #     building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
 
 
     except Exception as e:

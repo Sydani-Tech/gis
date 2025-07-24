@@ -77,59 +77,138 @@ def update_approved_records():
     frappe.db.commit()
 
 
+# def update_building_vaccination_status():
+#     """
+#     Updates the vaccination status of all buildings where status is 'Approved'
+#     based on the vaccination status of children and vaccinations.
+#     """
+
+#     # Fetch all approved buildings
+#     approved_buildings = frappe.get_all(
+#         "Building",
+#         filters={"status": "Approved"},
+#         fields=["name"]
+#     )
+
+#     for building in approved_buildings:
+#         building_name = building["name"]
+
+#         # Fetch all approved children in the building
+#         children_in_the_building = frappe.get_all(
+#             "Children",
+#             filters={"status": "Approved", "building": building_name},
+#             fields=["name", "vaccination_status"]
+#         )
+
+#         # Count total children and their vaccinated status
+#         total_children = len(children_in_the_building)
+#         children_vaccination_status = sum(
+#             1 for child in children_in_the_building
+#             if child["vaccination_status"] in ["Vaccinated to Age", "Fully Vaccinated (Measles 2)"]
+#         )
+
+#         # Fetch all approved vaccinations in the building (not linked to children)
+#         vaccinations_in_the_building = frappe.get_all(
+#             "Vaccination",
+#             filters={"status": "Approved", "building": building_name, "children": ""},
+#             fields=["name", "vaccination_status"]
+#         )
+
+#         # Count total vaccinations and vaccinated status
+#         total_vaccinations = len(vaccinations_in_the_building)
+#         vaccination_status = sum(
+#             1 for vaccination in vaccinations_in_the_building
+#             if vaccination["vaccination_status"] in ["Vaccinated to Age", "Fully Vaccinated (Measles 2)"]
+#         )
+
+#         # Calculate the combined percentage
+#         combined_percentage = round(
+#             ((children_vaccination_status + vaccination_status) / (total_children + total_vaccinations)) * 100
+#         ) if (total_children + total_vaccinations) > 0 else 0
+
+#         # Update the building record
+#         frappe.db.set_value("Building", building_name, "percentage_of_vaccinated_children", combined_percentage)
+#         frappe.db.commit()
+
 def update_building_vaccination_status():
     """
-    Updates the vaccination status of all buildings where status is 'Approved'
-    based on the vaccination status of children and vaccinations.
+    Updates `percentage_of_vaccinated_children` and `building_vaccination_status`
+    for all Approved buildings, based on linked Approved Children and Vaccination records.
     """
 
-    # Fetch all approved buildings
-    approved_buildings = frappe.get_all(
-        "Building",
-        filters={"status": "Approved"},
-        fields=["name"]
-    )
+    query = """
+        SELECT 
+            b.name AS building_name,
+            -- Count approved children
+            SUM(CASE 
+                WHEN c.status = 'Approved' THEN 1 ELSE 0 
+            END) AS total_children,
+            SUM(CASE 
+                WHEN c.status = 'Approved' AND c.vaccination_status IN 
+                    ('Vaccinated to Age', 'Fully Vaccinated (Measles 2)') THEN 1 ELSE 0 
+            END) AS vaccinated_children,
+            
+            -- Count approved standalone vaccinations
+            SUM(CASE 
+                WHEN v.status = 'Approved' THEN 1 ELSE 0 
+            END) AS total_vaccinations,
+            SUM(CASE 
+                WHEN v.status = 'Approved' AND v.vaccination_status IN 
+                    ('Vaccinated to Age', 'Fully Vaccinated (Measles 2)') THEN 1 ELSE 0 
+            END) AS vaccinated_vaccinations,
+            
+            -- Collect statuses for determining building color
+            GROUP_CONCAT(DISTINCT c.vaccination_status) AS child_statuses,
+            GROUP_CONCAT(DISTINCT v.vaccination_status) AS vacc_statuses
 
-    for building in approved_buildings:
-        building_name = building["name"]
+        FROM `tabBuilding` b
+        LEFT JOIN `tabChildren` c ON c.building = b.name
+        LEFT JOIN `tabVaccination` v ON v.building = b.name
 
-        # Fetch all approved children in the building
-        children_in_the_building = frappe.get_all(
-            "Children",
-            filters={"status": "Approved", "building": building_name},
-            fields=["name", "vaccination_status"]
+        WHERE b.status = 'Approved'
+        GROUP BY b.name
+    """
+
+    results = frappe.db.sql(query, as_dict=True)
+
+    for row in results:
+        total = (row["total_children"] or 0) + (row["total_vaccinations"] or 0)
+        vaccinated = (row["vaccinated_children"] or 0) + (row["vaccinated_vaccinations"] or 0)
+        percentage = round((vaccinated / total) * 100) if total > 0 else 0
+
+        # Combine statuses
+        all_statuses = []
+        if row["child_statuses"]:
+            all_statuses.extend(row["child_statuses"].split(","))
+        if row["vacc_statuses"]:
+            all_statuses.extend(row["vacc_statuses"].split(","))
+
+        # Determine color
+        color = "gray"
+        if all_statuses:
+            if any(s not in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses):
+                color = "red"
+            elif all(s in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses) and \
+                 any(s == "Vaccinated to Age" for s in all_statuses):
+                color = "yellow"
+            elif all(s == "Fully Vaccinated (Measles 2)" for s in all_statuses):
+                color = "green"
+
+        # Update building
+        frappe.db.set_value(
+            "Building",
+            row["building_name"],
+            {
+                "percentage_of_vaccinated_children": percentage,
+                "building_vaccination_status": color
+            }
         )
-
-        # Count total children and their vaccinated status
-        total_children = len(children_in_the_building)
-        children_vaccination_status = sum(
-            1 for child in children_in_the_building
-            if child["vaccination_status"] in ["Vaccinated to Age", "Fully Vaccinated (Measles 2)"]
-        )
-
-        # Fetch all approved vaccinations in the building (not linked to children)
-        vaccinations_in_the_building = frappe.get_all(
-            "Vaccination",
-            filters={"status": "Approved", "building": building_name, "children": ""},
-            fields=["name", "vaccination_status"]
-        )
-
-        # Count total vaccinations and vaccinated status
-        total_vaccinations = len(vaccinations_in_the_building)
-        vaccination_status = sum(
-            1 for vaccination in vaccinations_in_the_building
-            if vaccination["vaccination_status"] in ["Vaccinated to Age", "Fully Vaccinated (Measles 2)"]
-        )
-
-        # Calculate the combined percentage
-        combined_percentage = round(
-            ((children_vaccination_status + vaccination_status) / (total_children + total_vaccinations)) * 100
-        ) if (total_children + total_vaccinations) > 0 else 0
-
-        # Update the building record
-        frappe.db.set_value("Building", building_name, "percentage_of_vaccinated_children", combined_percentage)
 
     frappe.db.commit()
+    print(f"Updated vaccination status for {len(results)} buildings.")
+
+
+
 def set_enumerated_vaccination_status():
     """
     Maintains the original vaccination status of Children.

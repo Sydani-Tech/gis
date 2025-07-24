@@ -38,6 +38,7 @@
   "metadata_tab",
   "metadata_section",
   "percentage_of_vaccinated_children",
+  "building_vaccination_status",
   "response_id",
   "status",
   "project",
@@ -301,6 +302,13 @@
    "fieldtype": "Button",
    "label": "Set Geolocation",
    "permlevel": 2
+  },
+  {
+   "fieldname": "building_vaccination_status",
+   "fieldtype": "Select",
+   "label": "Building Vaccination Status",
+   "options": "\ngray\nred\nyellow\ngreen",
+   "read_only": 1
   }
  ],
  "image_field": "building_picture",
@@ -320,7 +328,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-07-13 19:44:16.069449",
+ "modified": "2025-07-24 08:54:02.249021",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
