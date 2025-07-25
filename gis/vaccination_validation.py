@@ -516,6 +516,8 @@ def process_vaccinations_before_submit(doc, method):
                                 # Clear and replace table
                                 vax.last_vaccines_administered = []
                                 for vaccine_name in vaccine_list:
+                                    if str(vaccine_name).strip().lower() == "none":
+                                        continue
                                     vax.append("last_vaccines_administered", {
                                         "vaccine": vaccine_name
                                     })

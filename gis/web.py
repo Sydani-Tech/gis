@@ -10,35 +10,81 @@ from gis.functions import (
   set_res,create_user,read_json_as_dict,fetch_db_resource
 )
 
+# @frappe.whitelist()
+# def states(stateName=None):
+# # Get the logged-in user
+#     user = frappe.session.user
+#     if user == "Guest":
+#         return {"message": "You must be logged in to access this data.", "status": "error"}
+
+#     fields = ['name', 'state', 'country', 'geolocation']
+#     filters = {}
+
+#     if stateName:
+#         filters['name'] = stateName
+
+#     # Check User Permissions for the provided user
+#     user_permissions = frappe.get_all(
+#         'User Permission',
+#         filters={'user': user, 'allow': 'State'},
+#         fields=['for_value']
+#     )
+
+#     if user_permissions:
+#         # Extract the list of allowed states from user permissions
+#         allowed_states = [permission['for_value'] for permission in user_permissions]
+#         filters['name'] = ['in', allowed_states]
+
+#     # Fetch the states based on the filters
+#     states = fetch_db_resource(doc='State', fields=fields, filters=filters)
+
+#     # Sort the fetched states alphabetically by name
+#     if states:
+#         states = sorted(states, key=lambda x: x['name'])
+#         set_res(states=states)
+#     else:
+#         set_res(message="No states found.")
+
+
+CACHE_KEY = "cached_all_states"
+
 @frappe.whitelist()
 def states(stateName=None):
-# Get the logged-in user
     user = frappe.session.user
     if user == "Guest":
         return {"message": "You must be logged in to access this data.", "status": "error"}
 
-    fields = ['name', 'state', 'country', 'geolocation']
-    filters = {}
+    cache = frappe.cache()
+    cached_data = cache.get_value(CACHE_KEY)
+    print(f"Cached data for {CACHE_KEY}: {cached_data}")
+
+    if cached_data:
+        all_states = json.loads(cached_data)
+    else:
+        # Load ALL States with polygons into cache (expensive only once)
+        fields = ['name', 'state', 'country', 'geolocation']
+        all_states = fetch_db_resource(doc='State', fields=fields, filters={})
+
+        # Cache the full dataset for 24 hours
+        cache.set_value(CACHE_KEY, json.dumps(all_states), expires_in_sec=864000)
+
+    # Now filter the cached states in memory (per user)
+    states = all_states
 
     if stateName:
-        filters['name'] = stateName
+        states = [s for s in states if s['name'] == stateName]
 
-    # Check User Permissions for the provided user
+    # Apply User Permission filter (after cache)
     user_permissions = frappe.get_all(
         'User Permission',
         filters={'user': user, 'allow': 'State'},
         fields=['for_value']
     )
-
     if user_permissions:
-        # Extract the list of allowed states from user permissions
-        allowed_states = [permission['for_value'] for permission in user_permissions]
-        filters['name'] = ['in', allowed_states]
+        allowed_states = {p['for_value'] for p in user_permissions}
+        states = [s for s in states if s['name'] in allowed_states]
 
-    # Fetch the states based on the filters
-    states = fetch_db_resource(doc='State', fields=fields, filters=filters)
-
-    # Sort the fetched states alphabetically by name
+    # Sort alphabetically by name
     if states:
         states = sorted(states, key=lambda x: x['name'])
         set_res(states=states)
@@ -139,7 +185,7 @@ def settlements(ward, lga, state):
         return {"message": "You must be logged in to access this data.", "status": "error"}
 
     # Define fields to fetch
-    fields = ['name', 'name_of_settlement', 'response_geolocation', 'ward', 'local_government_area', 'state']
+    fields = ['name', 'name_of_settlement', 'ward', 'local_government_area', 'state']
 
     # Fetch user permissions where allow = 'Settlement'
     user_permissions = frappe.get_all(
@@ -738,8 +784,7 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     # try:
     #     building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
 
-    # Query the Building table for residential buildings,
-    # excluding health facilities with gray vaccination status
+    # Query the Building table for residential buildings, excluding health facilities with gray vaccination status
     building_query = f"""
         SELECT 
             name, 
@@ -756,145 +801,6 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     """
     try:
         building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
-
-
-    #     for building in building_data:
-    #     # Fetch vaccination statuses for children linked to this building
-    #         child_statuses = frappe.db.get_all(
-    #             "Children",
-    #             filters={"building": building["name"], "status": "Approved"},
-    #             fields=["vaccination_status"]
-    #         )
-
-    #         vaccination_statuses = frappe.db.get_all(
-    #             "Vaccination",
-    #             filters={"building": building["name"], "status": "Approved"},
-    #             fields=["vaccination_status"]
-    #         )
-
-    #         # Combine statuses from both doctypes
-    #         all_statuses = [c["vaccination_status"] for c in child_statuses] + \
-    #                     [v["vaccination_status"] for v in vaccination_statuses]
-
-    #         # Determine building vaccination status
-    #         building_vaccination_status = "gray"  # Default if there are no records
-    #         if all_statuses:
-    #             if any(s not in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses):
-    #                 building_vaccination_status = "red"
-    #             elif all(s in ("Fully Vaccinated (Measles 2)", "Vaccinated to Age") for s in all_statuses) and any(
-    #                 s == "Vaccinated to Age" for s in all_statuses
-    #             ):
-    #                 building_vaccination_status = "yellow"
-    #             elif all(s == "Fully Vaccinated (Measles 2)" for s in all_statuses):
-    #                 building_vaccination_status = "green"
-
-    #         # Add the computed status to the row
-    #         building["building_vaccination_status"] = building_vaccination_status
-
-    # # Add optional filters
-
-    # if project:
-    #     filters['project'] = project
-    # if grid:
-    #     filters['grid'] = grid
-    # if settlement:
-    #     filters['settlement'] = settlement
-    # if ward:
-    #     filters['ward'] = ward
-    # if lga:
-    #     filters['local_government_area'] = lga
-    # if state:
-    #     filters['state'] = state
-    # if building_type:
-    #     filters['building_type'] = building_type
-    # if establishment_type:
-    #     filters['establishment_type'] = establishment_type
-
-    # # Prepare SQL filter conditions
-    # sql_conditions = []
-    # sql_values = []
-
-    # for key, value in filters.items():
-    #     # Always prefix keys with "b." (the alias for tabBuilding)
-    #     field = f"b.`{key}`"
-    #     if isinstance(value, tuple) and value[0] == 'in':
-    #         sql_conditions.append(f"{field} IN %s")
-    #         sql_values.append(tuple(value[1]))
-    #     else:
-    #         sql_conditions.append(f"{field} = %s")
-    #         sql_values.append(value)
-
-    # where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
-
-
-    # building_query = f"""
-    #     SELECT 
-    #         b.name,
-    #         b.percentage_of_vaccinated_children,
-    #         b.geolocation,
-    #         b.building_type,
-    #         b.establishment_type,
-    #         b.health_facility,
-    #         -- Compute building vaccination status directly
-    #         CASE
-    #             WHEN COUNT(c.name) = 0 AND COUNT(v.name) = 0 THEN 'gray'
-    #             WHEN SUM(
-    #                     CASE 
-    #                         WHEN c.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
-    #                         THEN 1 ELSE 0 
-    #                     END
-    #                 ) > 0
-    #                 OR SUM(
-    #                     CASE 
-    #                         WHEN v.vaccination_status NOT IN ('Fully Vaccinated (Measles 2)', 'Vaccinated to Age') 
-    #                         THEN 1 ELSE 0 
-    #                     END
-    #                 ) > 0
-    #             THEN 'red'
-    #             WHEN SUM(
-    #                     CASE 
-    #                         WHEN c.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
-    #                     END
-    #                 ) > 0
-    #                 OR SUM(
-    #                     CASE 
-    #                         WHEN v.vaccination_status = 'Vaccinated to Age' THEN 1 ELSE 0 
-    #                     END
-    #                 ) > 0
-    #                 AND SUM(
-    #                     CASE 
-    #                         WHEN c.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
-    #                     END
-    #                 ) + SUM(
-    #                     CASE 
-    #                         WHEN v.vaccination_status = 'Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 
-    #                     END
-    #                 ) = COUNT(c.name) + COUNT(v.name)
-    #             THEN 'yellow'
-    #             ELSE 'green'
-    #         END AS building_vaccination_status
-
-    #     FROM `tabBuilding` b
-    #     LEFT JOIN `tabChildren` c 
-    #         ON c.building = b.name AND c.status = 'Approved'
-    #     LEFT JOIN `tabVaccination` v 
-    #         ON v.building = b.name AND v.status = 'Approved'
-
-    #     WHERE b.status = 'Approved'
-    #     AND {where_clause}
-    #     -- Exclude non-residential health facilities with no approved records
-    #     AND NOT (
-    #         b.building_type = 'Non-residential'
-    #         AND b.establishment_type = 'Health Facility'
-    #         AND (c.name IS NULL AND v.name IS NULL)
-    #     )
-
-    #     GROUP BY b.name
-    # """
-
-    # try:
-    #     building_data = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
-
 
     except Exception as e:
         return {

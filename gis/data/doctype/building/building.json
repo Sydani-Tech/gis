@@ -308,6 +308,7 @@
    "fieldtype": "Select",
    "label": "Building Vaccination Status",
    "options": "\ngray\nred\nyellow\ngreen",
+   "permlevel": 2,
    "read_only": 1
   }
  ],
@@ -328,7 +329,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-07-24 08:54:02.249021",
+ "modified": "2025-07-25 07:30:13.093304",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",

@@ -158,8 +158,8 @@ def update_building_vaccination_status():
             END) AS vaccinated_vaccinations,
             
             -- Collect statuses for determining building color
-            GROUP_CONCAT(DISTINCT c.vaccination_status) AS child_statuses,
-            GROUP_CONCAT(DISTINCT v.vaccination_status) AS vacc_statuses
+            GROUP_CONCAT(DISTINCT CASE WHEN c.status = 'Approved' THEN c.vaccination_status END) AS child_statuses,
+            GROUP_CONCAT(DISTINCT CASE WHEN v.status = 'Approved' THEN v.vaccination_status END) AS vacc_statuses
 
         FROM `tabBuilding` b
         LEFT JOIN `tabChildren` c ON c.building = b.name
