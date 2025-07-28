@@ -27,6 +27,7 @@
   "how_many_household_members_are_between_5_and_8_years",
   "how_many_household_members_are_below_5",
   "how_many_people_live_in_the_household",
+  "has_all_fully_vaccinated_children",
   "health_facility_and_common_illnesses_section",
   "most_common_illness_within_the_last_year",
   "if_others_specify",
@@ -415,6 +416,14 @@
    "fieldtype": "Int",
    "label": "How many pregnant women are there?",
    "mandatory_depends_on": "eval:doc.are_there_any_pregnant_women_in_the_household === \"Yes\""
+  },
+  {
+   "default": "0",
+   "fieldname": "has_all_fully_vaccinated_children",
+   "fieldtype": "Check",
+   "label": "Does this Household have fully Vaccinated Children",
+   "permlevel": 2,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -429,7 +438,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-07-11 11:27:06.046917",
+ "modified": "2025-07-28 16:14:30.580440",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

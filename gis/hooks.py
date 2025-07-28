@@ -234,6 +234,7 @@ scheduler_events = {
 	],
 	"daily_long": [
 		"gis.scheduled_events.update_approved_records",
+        "gis.scheduled_events.update_fully_vaccinated_households",
 	],
 
 }

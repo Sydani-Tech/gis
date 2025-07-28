@@ -3424,32 +3424,14 @@ def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga
             SUM(how_many_household_members_are_below_5) AS under_5_children,
             GROUP_CONCAT(name) AS household_names,
 
-            -- Count households where *all* children are fully vaccinated (Measles 2)
-            SUM(
-                CASE 
-                    WHEN (
-                        SELECT COUNT(*) 
-                        FROM `tabChildren` c 
-                        WHERE c.household = h.name AND c.status = 'Approved'
-                    ) > 0
-                    AND (
-                        SELECT COUNT(*) 
-                        FROM `tabChildren` c 
-                        WHERE c.household = h.name 
-                        AND c.status = 'Approved' 
-                        AND c.vaccination_status = 'Fully Vaccinated (Measles 2)'
-                    ) = (
-                        SELECT COUNT(*) 
-                        FROM `tabChildren` c 
-                        WHERE c.household = h.name AND c.status = 'Approved'
-                    )
-                    THEN 1 ELSE 0 
-                END
-            ) AS fully_vaccinated_households
+            -- Count households where all children are fully vaccinated (flag set previously)
+            SUM(has_all_fully_vaccinated_children) AS fully_vaccinated_households
+
         FROM `tabHousehold` h
         WHERE h.status = 'Approved' AND {where_clause}
     """
     result = frappe.db.sql(query, tuple(sql_values), as_dict=True)[0]
+
 
     # Extract values
     total_household_count = result['total_households'] or 0
@@ -3479,7 +3461,14 @@ def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga
     # Query Household Table for distribution of households
     household_distribution_query = """
         WITH filtered_households AS (
-            SELECT *
+            SELECT 
+                gender_of_household_head,
+                educational_level_of_household_head,
+                average_monthly_income,
+                is_the_household_head_employed,
+                industry_of_employment,
+                do_you_take_your_childchildren_to_the_facility_for_ri_services,
+                is_the_household_residing_in_a_rented_apartment
             FROM `tabHousehold`
             WHERE status = 'Approved' AND {where_conditions}
         )
@@ -3613,6 +3602,141 @@ def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga
         WHERE is_the_household_head_employed = 'Yes';
 
     """
+    # household_distribution_query = """
+    #     WITH base AS (
+    #         SELECT
+    #             gender_of_household_head,
+    #             educational_level_of_household_head,
+    #             average_monthly_income,
+    #             is_the_household_head_employed,
+    #             industry_of_employment,
+    #             do_you_take_your_childchildren_to_the_facility_for_ri_services AS ri_services,
+    #             is_the_household_residing_in_a_rented_apartment AS rented
+    #         FROM `tabHousehold` USE INDEX (
+    #             idx_status_gender,
+    #             idx_status_education,
+    #             idx_status_income,
+    #             idx_status_employment,
+    #             idx_status_employment_industry,
+    #             idx_status_ri,
+    #             idx_status_rent
+    #         )
+    #         WHERE status = 'Approved' AND {where_conditions}
+    #     ),
+    #     totals AS (
+    #         SELECT
+    #             COUNT(*) AS total,
+    #             SUM(is_the_household_head_employed = 'Yes') AS total_employed
+    #         FROM base
+    #     ),
+    #     dist AS (
+    #         SELECT
+    #             gender_of_household_head AS gender,
+    #             educational_level_of_household_head AS education,
+    #             average_monthly_income AS income,
+    #             is_the_household_head_employed AS employed,
+    #             CASE WHEN is_the_household_head_employed = 'Yes' THEN industry_of_employment END AS industry,
+    #             ri_services AS ri,
+    #             rented AS rent,
+    #             COUNT(*) AS row_count
+    #         FROM base
+    #         GROUP BY
+    #             gender_of_household_head,
+    #             educational_level_of_household_head,
+    #             average_monthly_income,
+    #             is_the_household_head_employed,
+    #             industry_of_employment,
+    #             ri_services,
+    #             rented
+    #     )
+    #     SELECT distribution_type, label, count, percentage FROM (
+    #         -- Gender
+    #         SELECT
+    #             'Gender' AS distribution_type,
+    #             gender AS label,
+    #             COUNT(*) AS count,
+    #             ROUND(COUNT(*) * 100.0 / (SELECT total FROM totals), 2) AS percentage
+    #         FROM dist
+    #         GROUP BY gender
+
+    #         UNION ALL
+
+    #         -- Education
+    #         SELECT
+    #             'Education',
+    #             education,
+    #             COUNT(*),
+    #             ROUND(COUNT(*) * 100.0 / (SELECT total FROM totals), 2)
+    #         FROM dist
+    #         GROUP BY education
+
+    #         UNION ALL
+
+    #         -- Income
+    #         SELECT
+    #             'Income',
+    #             income,
+    #             COUNT(*),
+    #             ROUND(COUNT(*) * 100.0 / (SELECT total FROM totals), 2)
+    #         FROM dist
+    #         GROUP BY income
+
+    #         UNION ALL
+
+    #         -- Employment
+    #         SELECT
+    #             'Employment',
+    #             employed,
+    #             COUNT(*),
+    #             ROUND(COUNT(*) * 100.0 / (SELECT total FROM totals), 2)
+    #         FROM dist
+    #         GROUP BY employed
+
+    #         UNION ALL
+
+    #         -- Industry (only employed)
+    #         SELECT
+    #             'EmploymentIndustry',
+    #             industry,
+    #             COUNT(*),
+    #             ROUND(COUNT(*) * 100.0 / NULLIF((SELECT total_employed FROM totals), 0), 2)
+    #         FROM dist
+    #         WHERE industry IS NOT NULL
+    #         GROUP BY industry
+
+    #         UNION ALL
+
+    #         -- RI Compliance
+    #         SELECT
+    #             'RICompliance',
+    #             ri,
+    #             COUNT(*),
+    #             ROUND(COUNT(*) * 100.0 / (SELECT total FROM totals), 2)
+    #         FROM dist
+    #         GROUP BY ri
+
+    #         UNION ALL
+
+    #         -- Rent
+    #         SELECT
+    #             'RentStatus',
+    #             rent,
+    #             COUNT(*),
+    #             ROUND(COUNT(*) * 100.0 / (SELECT total FROM totals), 2)
+    #         FROM dist
+    #         GROUP BY rent
+
+    #         UNION ALL
+
+    #         -- Total employed heads
+    #         SELECT
+    #             'TotalEmployed',
+    #             'EmployedHeads',
+    #             (SELECT total_employed FROM totals),
+    #             100.0
+    #     ) final;
+    # """
+
 
     # Run the query with a single scan
     results = frappe.db.sql(
