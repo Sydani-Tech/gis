@@ -3059,6 +3059,286 @@ def distribution_of_children(project=None, grid=None, settlement=None, ward=None
     
     return {"status": 400, "message": "Invalid filters or no data available."}
 
+# @frappe.whitelist()
+# def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga=None, state=None):
+#     """
+#     Fetch data for the dashboard: total children, fully vaccinated children, and vaccination percentage.
+#     Filters applied: user permissions, settlement, ward, lga, state.
+#     """
+
+#     if not project:
+#         return {
+#             "message": "Please provide a project to return the data for the dashboard.",
+#             "status": 400
+#         }
+
+#     # Get the logged-in user
+#     user = frappe.session.user
+#     if user == "Guest":
+#         return {"message": "You must be logged in to access this data.", "status": 401}
+    
+#     # Check if the user has the "Dashboard Viewer" role
+#     user_roles = frappe.get_roles(user)
+#     if "Dashboard Viewer" not in user_roles:
+#         return {
+#             "message": "You do not have the required role to visualize the dashboard, please contact the project manager.",
+#             "status": 401
+#         }
+
+#     # Fetch User Permissions for different `allow` values
+#     user_permissions = frappe.get_all(
+#         'User Permission',
+#         filters={'user': user},
+#         fields=['allow', 'for_value', 'is_default']
+#     )
+
+#     # Initialize filters
+#     filters = {}
+
+#     # Process user permissions based on `allow` values
+#     for allow_value in ['State', 'Local Government Area', 'Ward', 'Settlement']:
+#         allowed_records = [
+#             perm for perm in user_permissions if perm['allow'] == allow_value
+#         ]
+#         if allowed_records:
+#             # Prefer the record where `is_default` is 1, else use all records
+#             default_record = next((perm for perm in allowed_records if perm['is_default']), None)
+#             if default_record:
+#                 filters[allow_value.lower().replace(" ", "_")] = default_record['for_value']
+#             else:
+#                 filters[allow_value.lower().replace(" ", "_")] = ('in', [perm['for_value'] for perm in allowed_records])
+
+#     # Override with directly provided filters, if any
+#     if grid:
+#         filters['grid'] = grid
+#     if settlement:
+#         filters['settlement'] = settlement
+#     if ward:
+#         filters['ward'] = ward
+#     if lga:
+#         filters['local_government_area'] = lga
+#     if state:
+#         filters['state'] = state
+#     if project:
+#         filters['project'] = project
+
+#     # Prepare SQL filter conditions
+#     sql_conditions = []
+#     sql_values = []
+
+#     for key, value in filters.items():
+#         if isinstance(value, tuple) and value[0] == 'in':
+#             sql_conditions.append(f"`{key}` IN %s")
+#             sql_values.append(tuple(value[1]))
+#         else:
+#             sql_conditions.append(f"`{key}` = %s")
+#             sql_values.append(value)
+
+#     where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+
+
+#     # Query Household Table for number of households
+#     households_query = f"""
+#         SELECT COUNT(*) AS count, name
+#         FROM `tabHousehold`
+#         WHERE status = 'Approved' AND {where_clause}
+#     """
+#     total_household_count = frappe.db.sql(households_query, tuple(sql_values), as_dict=True)[0]['count']
+
+#     # Query Household Table for number of male household heads
+#     male_household_head_query = f"""
+#         SELECT COUNT(*) AS count
+#         FROM `tabHousehold`
+#         WHERE status = 'Approved' AND gender_of_household_head = 'Male' AND {where_clause}
+#     """
+#     male_household_head_count = frappe.db.sql(male_household_head_query, tuple(sql_values), as_dict=True)[0]['count']
+
+#     # Query Household Table for number of female household heads
+#     female_household_head_count = total_household_count - male_household_head_count
+
+#     households_query = f"""
+#         SELECT COUNT(*) AS count
+#         FROM `tabHousehold`
+#         WHERE status = 'Approved' AND {where_clause}
+#     """
+#     total_household_count = frappe.db.sql(households_query, tuple(sql_values), as_dict=True)[0]['count']
+
+#     # Query Household Table for number of people in households
+#     household_population_query = f"""
+#         SELECT SUM(how_many_people_live_in_the_household) AS count
+#         FROM `tabHousehold`
+#         WHERE status = 'Approved' AND {where_clause}
+#     """
+#     total_people_count = frappe.db.sql(household_population_query, tuple(sql_values), as_dict=True)[0]['count']
+
+#     # Query Household Table for number of under 5 children in households
+#     under_5_children_query = f"""
+#         SELECT SUM(how_many_household_members_are_below_5) AS count
+#         FROM `tabHousehold`
+#         WHERE status = 'Approved' AND {where_clause}
+#     """
+#     under_5_children_count = frappe.db.sql(under_5_children_query, tuple(sql_values), as_dict=True)[0]['count']
+
+#     #calculate percentage
+#     percentage_under_5_children = round((under_5_children_count / total_people_count) * 100, 0) if total_people_count > 0 else 0
+    
+#     # Fetch all approved households
+#     fully_vaccinated_households_query = f"""
+#         SELECT name
+#         FROM `tabHousehold`
+#         WHERE status = 'Approved' AND {where_clause}
+#     """
+#     approved_households = frappe.db.sql(fully_vaccinated_households_query, tuple(sql_values), as_dict=True)
+
+#     fully_vaccinated_count = 0
+
+#     # Iterate through each household
+#     for household in approved_households:
+#         # Fetch children linked to the household where status is Approved
+#         children = frappe.get_all(
+#             "Children",
+#             filters={
+#                 "household": household["name"],
+#                 "status": "Approved",
+#             },
+#             fields=["vaccination_status"],
+#         )
+
+#         # Check if all children are fully vaccinated for Measles 2
+#         if children and all(child["vaccination_status"] == "Fully Vaccinated (Measles 2)" for child in children):
+#             fully_vaccinated_count += 1
+
+#     # Calculate percentage
+#     percentage_fully_vaccinated = round((fully_vaccinated_count / total_household_count) * 100, 0) if total_household_count > 0 else 0
+
+#     # Query Household Table for distribution of households by gender
+#     household_gender_query = f"""
+#       SELECT gender_of_household_head, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND {where_clause}
+#       GROUP BY gender_of_household_head
+#     """
+#     household_gender_distribution = frappe.db.sql(household_gender_query, tuple(sql_values), as_dict=True)
+
+#     # Calculate percentages
+#     total_household_gender_for_query = sum(item['count'] for item in household_gender_distribution)
+#     for item in household_gender_distribution:
+#       item['percentage'] = round((item['count'] / total_household_gender_for_query) * 100, 2) if total_household_gender_for_query > 0 else 0
+
+#     # Query Household Table for distribution of households by educational level
+#     household_educational_level_query = f"""
+#       SELECT educational_level_of_household_head, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND {where_clause}
+#       GROUP BY educational_level_of_household_head
+#     """
+#     household_educational_level_distribution = frappe.db.sql(household_educational_level_query, tuple(sql_values), as_dict=True)
+
+#     # Calculate percentages
+#     total_household_education_level_for_query = sum(item['count'] for item in household_educational_level_distribution)
+#     for item in household_educational_level_distribution:
+#       item['percentage'] = round((item['count'] / total_household_education_level_for_query) * 100, 2) if total_household_education_level_for_query > 0 else 0
+
+#     # Query Household Table for distribution of households by educational level
+#     household_average_monthly_income_query = f"""
+#       SELECT average_monthly_income, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND {where_clause}
+#       GROUP BY average_monthly_income
+#     """
+#     household_average_monthly_income_distribution = frappe.db.sql(household_average_monthly_income_query, tuple(sql_values), as_dict=True)
+
+#     # Calculate percentages
+#     total_household_average_monthly_income_for_query = sum(item['count'] for item in household_average_monthly_income_distribution)
+#     for item in household_average_monthly_income_distribution:
+#       item['percentage'] = round((item['count'] / total_household_average_monthly_income_for_query) * 100, 2) if total_household_average_monthly_income_for_query > 0 else 0
+
+
+#     # Query Household Table for distribution of households employment status
+#     household_employment_status_query = f"""
+#       SELECT is_the_household_head_employed, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND {where_clause}
+#       GROUP BY is_the_household_head_employed
+#     """
+#     household_employment_status_distribution = frappe.db.sql(household_employment_status_query, tuple(sql_values), as_dict=True)
+
+#     # Calculate percentages
+#     total_household_employment_status_for_query = sum(item['count'] for item in household_employment_status_distribution)
+#     for item in household_employment_status_distribution:
+#       item['percentage'] = round((item['count'] / total_household_employment_status_for_query) * 100, 2) if total_household_employment_status_for_query > 0 else 0
+
+
+#     # Query Household Table for distribution of households employment industry
+#     household_employment_industry_status_query = f"""
+#       SELECT industry_of_employment, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND is_the_household_head_employed = 'Yes' AND {where_clause}
+#       GROUP BY industry_of_employment
+#     """
+#     household_employment_industry_distribution = frappe.db.sql(household_employment_industry_status_query, tuple(sql_values), as_dict=True)
+
+#     # Calculate percentages
+#     total_household_employment_industry_for_query = sum(item['count'] for item in household_employment_industry_distribution)
+#     for item in household_employment_industry_distribution:
+#       item['percentage'] = round((item['count'] / total_household_employment_industry_for_query) * 100, 2) if total_household_employment_industry_for_query > 0 else 0
+
+
+#     # Query Household Table for distribution of households by RI compliance
+#     household_children_ri_compliance_query = f"""
+#       SELECT do_you_take_your_childchildren_to_the_facility_for_ri_services, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND {where_clause}
+#       GROUP BY do_you_take_your_childchildren_to_the_facility_for_ri_services
+#     """
+#     household_children_ri_compliance_distribution = frappe.db.sql(household_children_ri_compliance_query, tuple(sql_values), as_dict=True)
+
+#     # Calculate percentages
+#     total_household_children_ri_compliance_for_query = sum(item['count'] for item in household_children_ri_compliance_distribution)
+#     for item in household_children_ri_compliance_distribution:
+#       item['percentage'] = round((item['count'] / total_household_children_ri_compliance_for_query) * 100, 2) if total_household_children_ri_compliance_for_query > 0 else 0
+
+
+#     # Query Household Table for distribution of households by rent status
+#     household_rent_status_query = f"""
+#       SELECT is_the_household_residing_in_a_rented_apartment, COUNT(*) AS count
+#       FROM `tabHousehold`
+#       WHERE status = 'Approved' AND {where_clause}
+#       GROUP BY is_the_household_residing_in_a_rented_apartment
+#     """
+#     household_rent_status_distribution = frappe.db.sql(household_rent_status_query, tuple(sql_values), as_dict=True)
+    
+#     # Calculate percentages
+#     total_household_rent_status_for_query = sum(item['count'] for item in household_rent_status_distribution)
+#     for item in household_rent_status_distribution:
+#       item['percentage'] = round((item['count'] / total_household_rent_status_for_query) * 100, 2) if total_household_rent_status_for_query > 0 else 0
+
+
+
+#     return {
+#         "status": 200,
+#         "response": "Success",
+#         "data": {
+#             "total_household_count": total_household_count,
+#             "male_household_head_count": male_household_head_count,
+#             "female_household_head_count": female_household_head_count,
+#             "population_of_households": total_people_count,
+#             "under_5_children_count": under_5_children_count,
+#             "percentage_under_5_children": percentage_under_5_children,
+#             "fully_vaccinated_households_count": fully_vaccinated_count,
+#             "percentage_fully_vaccinated": percentage_fully_vaccinated,
+#             "household_gender_distribution": household_gender_distribution,
+#             "household_educational_level_distribution": household_educational_level_distribution,
+#             "household_average_monthly_income_distribution": household_average_monthly_income_distribution,
+#             "household_employment_status_distribution": household_employment_status_distribution,
+#             "household_employment_industry_distribution": household_employment_industry_distribution,
+#             "total_household_employment_industry": total_household_employment_industry_for_query,
+#             "household_children_ri_compliance_distribution": household_children_ri_compliance_distribution,
+#             "household_rent_status_distribution": household_rent_status_distribution
+#         }
+#     }
+
+
 @frappe.whitelist()
 def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga=None, state=None):
     """
@@ -3136,182 +3416,486 @@ def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga
 
     where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
 
+    query = f"""
+        SELECT 
+            COUNT(*) AS total_households,
+            SUM(CASE WHEN gender_of_household_head = 'Male' THEN 1 ELSE 0 END) AS male_heads,
+            SUM(how_many_people_live_in_the_household) AS total_people,
+            SUM(how_many_household_members_are_below_5) AS under_5_children,
+            GROUP_CONCAT(name) AS household_names,
 
-    # Query Household Table for number of households
-    households_query = f"""
-        SELECT COUNT(*) AS count, name
-        FROM `tabHousehold`
-        WHERE status = 'Approved' AND {where_clause}
+            -- Count households where *all* children are fully vaccinated (Measles 2)
+            SUM(
+                CASE 
+                    WHEN (
+                        SELECT COUNT(*) 
+                        FROM `tabChildren` c 
+                        WHERE c.household = h.name AND c.status = 'Approved'
+                    ) > 0
+                    AND (
+                        SELECT COUNT(*) 
+                        FROM `tabChildren` c 
+                        WHERE c.household = h.name 
+                        AND c.status = 'Approved' 
+                        AND c.vaccination_status = 'Fully Vaccinated (Measles 2)'
+                    ) = (
+                        SELECT COUNT(*) 
+                        FROM `tabChildren` c 
+                        WHERE c.household = h.name AND c.status = 'Approved'
+                    )
+                    THEN 1 ELSE 0 
+                END
+            ) AS fully_vaccinated_households
+        FROM `tabHousehold` h
+        WHERE h.status = 'Approved' AND {where_clause}
     """
-    total_household_count = frappe.db.sql(households_query, tuple(sql_values), as_dict=True)[0]['count']
+    result = frappe.db.sql(query, tuple(sql_values), as_dict=True)[0]
 
-    # Query Household Table for number of male household heads
-    male_household_head_query = f"""
-        SELECT COUNT(*) AS count
-        FROM `tabHousehold`
-        WHERE status = 'Approved' AND gender_of_household_head = 'Male' AND {where_clause}
-    """
-    male_household_head_count = frappe.db.sql(male_household_head_query, tuple(sql_values), as_dict=True)[0]['count']
-
-    # Query Household Table for number of female household heads
+    # Extract values
+    total_household_count = result['total_households'] or 0
+    male_household_head_count = result['male_heads'] or 0
     female_household_head_count = total_household_count - male_household_head_count
 
-    households_query = f"""
-        SELECT COUNT(*) AS count
-        FROM `tabHousehold`
-        WHERE status = 'Approved' AND {where_clause}
-    """
-    total_household_count = frappe.db.sql(households_query, tuple(sql_values), as_dict=True)[0]['count']
+    total_people_count = result['total_people'] or 0
+    under_5_children_count = result['under_5_children'] or 0
+    fully_vaccinated_count = result['fully_vaccinated_households'] or 0
 
-    # Query Household Table for number of people in households
-    household_population_query = f"""
-        SELECT SUM(how_many_people_live_in_the_household) AS count
-        FROM `tabHousehold`
-        WHERE status = 'Approved' AND {where_clause}
-    """
-    total_people_count = frappe.db.sql(household_population_query, tuple(sql_values), as_dict=True)[0]['count']
-
-    # Query Household Table for number of under 5 children in households
-    under_5_children_query = f"""
-        SELECT SUM(how_many_household_members_are_below_5) AS count
-        FROM `tabHousehold`
-        WHERE status = 'Approved' AND {where_clause}
-    """
-    under_5_children_count = frappe.db.sql(under_5_children_query, tuple(sql_values), as_dict=True)[0]['count']
-
-    #calculate percentage
-    percentage_under_5_children = round((under_5_children_count / total_people_count) * 100, 0) if total_people_count > 0 else 0
-    
-    # Fetch all approved households
-    fully_vaccinated_households_query = f"""
-        SELECT name
-        FROM `tabHousehold`
-        WHERE status = 'Approved' AND {where_clause}
-    """
-    approved_households = frappe.db.sql(fully_vaccinated_households_query, tuple(sql_values), as_dict=True)
-
-    fully_vaccinated_count = 0
-
-    # Iterate through each household
-    for household in approved_households:
-        # Fetch children linked to the household where status is Approved
-        children = frappe.get_all(
-            "Children",
-            filters={
-                "household": household["name"],
-                "status": "Approved",
-            },
-            fields=["vaccination_status"],
-        )
-
-        # Check if all children are fully vaccinated for Measles 2
-        if children and all(child["vaccination_status"] == "Fully Vaccinated (Measles 2)" for child in children):
-            fully_vaccinated_count += 1
+    # Calculate percentage of under-5 children
+    percentage_under_5_children = (
+        round((under_5_children_count / total_people_count) * 100, 0)
+        if total_people_count > 0 else 0
+    )
 
     # Calculate percentage
-    percentage_fully_vaccinated = round((fully_vaccinated_count / total_household_count) * 100, 0) if total_household_count > 0 else 0
-
-    # Query Household Table for distribution of households by gender
-    household_gender_query = f"""
-      SELECT gender_of_household_head, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND {where_clause}
-      GROUP BY gender_of_household_head
-    """
-    household_gender_distribution = frappe.db.sql(household_gender_query, tuple(sql_values), as_dict=True)
-
-    # Calculate percentages
-    total_household_gender_for_query = sum(item['count'] for item in household_gender_distribution)
-    for item in household_gender_distribution:
-      item['percentage'] = round((item['count'] / total_household_gender_for_query) * 100, 2) if total_household_gender_for_query > 0 else 0
-
-    # Query Household Table for distribution of households by educational level
-    household_educational_level_query = f"""
-      SELECT educational_level_of_household_head, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND {where_clause}
-      GROUP BY educational_level_of_household_head
-    """
-    household_educational_level_distribution = frappe.db.sql(household_educational_level_query, tuple(sql_values), as_dict=True)
-
-    # Calculate percentages
-    total_household_education_level_for_query = sum(item['count'] for item in household_educational_level_distribution)
-    for item in household_educational_level_distribution:
-      item['percentage'] = round((item['count'] / total_household_education_level_for_query) * 100, 2) if total_household_education_level_for_query > 0 else 0
-
-    # Query Household Table for distribution of households by educational level
-    household_average_monthly_income_query = f"""
-      SELECT average_monthly_income, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND {where_clause}
-      GROUP BY average_monthly_income
-    """
-    household_average_monthly_income_distribution = frappe.db.sql(household_average_monthly_income_query, tuple(sql_values), as_dict=True)
-
-    # Calculate percentages
-    total_household_average_monthly_income_for_query = sum(item['count'] for item in household_average_monthly_income_distribution)
-    for item in household_average_monthly_income_distribution:
-      item['percentage'] = round((item['count'] / total_household_average_monthly_income_for_query) * 100, 2) if total_household_average_monthly_income_for_query > 0 else 0
+    percentage_fully_vaccinated = (
+        round((fully_vaccinated_count / total_household_count) * 100, 0)
+        if total_household_count > 0 else 0
+    )
 
 
-    # Query Household Table for distribution of households employment status
-    household_employment_status_query = f"""
-      SELECT is_the_household_head_employed, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND {where_clause}
-      GROUP BY is_the_household_head_employed
-    """
-    household_employment_status_distribution = frappe.db.sql(household_employment_status_query, tuple(sql_values), as_dict=True)
+    # Rebuild approved_households as a list of dicts (to preserve API format)
+    approved_households = [{"name": name} for name in (result['household_names'] or "").split(",") if name]
 
-    # Calculate percentages
-    total_household_employment_status_for_query = sum(item['count'] for item in household_employment_status_distribution)
-    for item in household_employment_status_distribution:
-      item['percentage'] = round((item['count'] / total_household_employment_status_for_query) * 100, 2) if total_household_employment_status_for_query > 0 else 0
+    # # Query Household Table for distribution
+    # household_distribution_query = """
+    #     WITH filtered_households AS (
+    #         SELECT *
+    #         FROM `tabHousehold`
+    #         WHERE status = 'Approved' AND {where_conditions}
+    #     )
+    #     SELECT 
+    #         'Gender' AS distribution_type,
+    #         gender_of_household_head AS label,
+    #         COUNT(*) AS count,
+    #         COALESCE(
+    #             ROUND(
+    #             (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Gender'), 0)),
+    #             2
+    #             ),
+    #             0
+    #         ) AS percentage
+    #     FROM filtered_households
+    #     GROUP BY gender_of_household_head
+
+    #     UNION ALL
+
+    #     SELECT 
+    #         'Education' AS distribution_type,
+    #         educational_level_of_household_head AS label,
+    #         COUNT(*) AS count,
+    #         COALESCE(
+    #             ROUND(
+    #             (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Education'), 0)),
+    #             2
+    #             ),
+    #             0
+    #         ) AS percentage
+    #     FROM filtered_households
+    #     GROUP BY educational_level_of_household_head
+    #     """
+
+    # # Replace your dynamic where_clause builder so it produces only `%s` placeholders (not literal values)
+    # results = frappe.db.sql(
+    #     household_distribution_query.format(where_conditions=where_clause),
+    #     tuple(sql_values), 
+    #     as_dict=True
+    # )
+
+    # # Split results into two separate datasets (to match your dashboard)
+    # household_gender_distribution = [
+    #     {"gender_of_household_head": r["label"], "count": r["count"], "percentage": r["percentage"]}
+    #     for r in results if r["distribution_type"] == "Gender"
+    # ]
+
+    # household_educational_level_distribution = [
+    #     {"educational_level_of_household_head": r["label"], "count": r["count"], "percentage": r["percentage"]}
+    #     for r in results if r["distribution_type"] == "Education"
+    # ]
 
 
-    # Query Household Table for distribution of households employment industry
-    household_employment_industry_status_query = f"""
-      SELECT industry_of_employment, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND is_the_household_head_employed = 'Yes' AND {where_clause}
-      GROUP BY industry_of_employment
-    """
-    household_employment_industry_distribution = frappe.db.sql(household_employment_industry_status_query, tuple(sql_values), as_dict=True)
+    # # Query Household Table for distribution of households by educational level
+    # household_average_monthly_income_query = f"""
+    #     SELECT average_monthly_income, COUNT(*) AS count
+    #     FROM `tabHousehold`
+    #     WHERE status = 'Approved' AND {where_clause}
+    #     GROUP BY average_monthly_income
+    # """
+    # household_average_monthly_income_distribution = frappe.db.sql(household_average_monthly_income_query, tuple(sql_values), as_dict=True)
 
-    # Calculate percentages
-    total_household_employment_industry_for_query = sum(item['count'] for item in household_employment_industry_distribution)
-    for item in household_employment_industry_distribution:
-      item['percentage'] = round((item['count'] / total_household_employment_industry_for_query) * 100, 2) if total_household_employment_industry_for_query > 0 else 0
-
-
-    # Query Household Table for distribution of households by RI compliance
-    household_children_ri_compliance_query = f"""
-      SELECT do_you_take_your_childchildren_to_the_facility_for_ri_services, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND {where_clause}
-      GROUP BY do_you_take_your_childchildren_to_the_facility_for_ri_services
-    """
-    household_children_ri_compliance_distribution = frappe.db.sql(household_children_ri_compliance_query, tuple(sql_values), as_dict=True)
-
-    # Calculate percentages
-    total_household_children_ri_compliance_for_query = sum(item['count'] for item in household_children_ri_compliance_distribution)
-    for item in household_children_ri_compliance_distribution:
-      item['percentage'] = round((item['count'] / total_household_children_ri_compliance_for_query) * 100, 2) if total_household_children_ri_compliance_for_query > 0 else 0
+    # # Calculate percentages
+    # total_household_average_monthly_income_for_query = sum(item['count'] for item in household_average_monthly_income_distribution)
+    # for item in household_average_monthly_income_distribution:
+    #   item['percentage'] = round((item['count'] / total_household_average_monthly_income_for_query) * 100, 2) if total_household_average_monthly_income_for_query > 0 else 0
 
 
-    # Query Household Table for distribution of households by rent status
-    household_rent_status_query = f"""
-      SELECT is_the_household_residing_in_a_rented_apartment, COUNT(*) AS count
-      FROM `tabHousehold`
-      WHERE status = 'Approved' AND {where_clause}
-      GROUP BY is_the_household_residing_in_a_rented_apartment
-    """
-    household_rent_status_distribution = frappe.db.sql(household_rent_status_query, tuple(sql_values), as_dict=True)
+    # # Query Household Table for distribution of households employment status
+    # household_employment_status_query = f"""
+    #   SELECT is_the_household_head_employed, COUNT(*) AS count
+    #   FROM `tabHousehold`
+    #   WHERE status = 'Approved' AND {where_clause}
+    #   GROUP BY is_the_household_head_employed
+    # """
+    # household_employment_status_distribution = frappe.db.sql(household_employment_status_query, tuple(sql_values), as_dict=True)
+
+    # # Calculate percentages
+    # total_household_employment_status_for_query = sum(item['count'] for item in household_employment_status_distribution)
+    # for item in household_employment_status_distribution:
+    #   item['percentage'] = round((item['count'] / total_household_employment_status_for_query) * 100, 2) if total_household_employment_status_for_query > 0 else 0
+
+
+    # household_distribution_query = """
+    #     WITH filtered_households AS (
+    #         SELECT *
+    #         FROM `tabHousehold`
+    #         WHERE status = 'Approved' AND {where_conditions}
+    #     )
+    #     -- Gender distribution
+    #     SELECT 
+    #         'Gender' AS distribution_type,
+    #         gender_of_household_head AS label,
+    #         COUNT(*) AS count,
+    #         COALESCE(
+    #             ROUND(
+    #                 (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Gender'), 0)),
+    #                 2
+    #             ),
+    #             0
+    #         ) AS percentage
+    #     FROM filtered_households
+    #     GROUP BY gender_of_household_head
+
+    #     UNION ALL
+
+    #     -- Education distribution
+    #     SELECT 
+    #         'Education' AS distribution_type,
+    #         educational_level_of_household_head AS label,
+    #         COUNT(*) AS count,
+    #         COALESCE(
+    #             ROUND(
+    #                 (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Education'), 0)),
+    #                 2
+    #             ),
+    #             0
+    #         ) AS percentage
+    #     FROM filtered_households
+    #     GROUP BY educational_level_of_household_head
+
+    #     UNION ALL
+
+    #     -- Average Monthly Income distribution
+    #     SELECT 
+    #         'Income' AS distribution_type,
+    #         average_monthly_income AS label,
+    #         COUNT(*) AS count,
+    #         COALESCE(
+    #             ROUND(
+    #                 (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Income'), 0)),
+    #                 2
+    #             ),
+    #             0
+    #         ) AS percentage
+    #     FROM filtered_households
+    #     GROUP BY average_monthly_income
+
+    #     UNION ALL
+
+    #     -- Employment Status distribution
+    #     SELECT 
+    #         'Employment' AS distribution_type,
+    #         is_the_household_head_employed AS label,
+    #         COUNT(*) AS count,
+    #         COALESCE(
+    #             ROUND(
+    #                 (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Employment'), 0)),
+    #                 2
+    #             ),
+    #             0
+    #         ) AS percentage
+    #     FROM filtered_households
+    #     GROUP BY is_the_household_head_employed;
+    # """
+
+    # # Run the query with a single scan
+    # results = frappe.db.sql(
+    #     household_distribution_query.format(where_conditions=where_clause),
+    #     tuple(sql_values),
+    #     as_dict=True
+    # )
+
+    # # Split results into four separate datasets (dashboard expects separate arrays)
+    # household_gender_distribution = [
+    #     {"gender_of_household_head": r["label"], "count": r["count"], "percentage": r["percentage"]}
+    #     for r in results if r["distribution_type"] == "Gender"
+    # ]
+
+    # household_educational_level_distribution = [
+    #     {"educational_level_of_household_head": r["label"], "count": r["count"], "percentage": r["percentage"]}
+    #     for r in results if r["distribution_type"] == "Education"
+    # ]
+
+    # household_average_monthly_income_distribution = [
+    #     {"average_monthly_income": r["label"], "count": r["count"], "percentage": r["percentage"]}
+    #     for r in results if r["distribution_type"] == "Income"
+    # ]
+
+    # household_employment_status_distribution = [
+    #     {"is_the_household_head_employed": r["label"], "count": r["count"], "percentage": r["percentage"]}
+    #     for r in results if r["distribution_type"] == "Employment"
+    # ]
+
+
+
+
+    # # Query Household Table for distribution of households employment industry
+    # household_employment_industry_status_query = f"""
+    #   SELECT industry_of_employment, COUNT(*) AS count
+    #   FROM `tabHousehold`
+    #   WHERE status = 'Approved' AND is_the_household_head_employed = 'Yes' AND {where_clause}
+    #   GROUP BY industry_of_employment
+    # """
+    # household_employment_industry_distribution = frappe.db.sql(household_employment_industry_status_query, tuple(sql_values), as_dict=True)
+
+    # # Calculate percentages
+    # total_household_employment_industry_for_query = sum(item['count'] for item in household_employment_industry_distribution)
+    # for item in household_employment_industry_distribution:
+    #   item['percentage'] = round((item['count'] / total_household_employment_industry_for_query) * 100, 2) if total_household_employment_industry_for_query > 0 else 0
+
+
+    # # Query Household Table for distribution of households by RI compliance
+    # household_children_ri_compliance_query = f"""
+    #   SELECT do_you_take_your_childchildren_to_the_facility_for_ri_services, COUNT(*) AS count
+    #   FROM `tabHousehold`
+    #   WHERE status = 'Approved' AND {where_clause}
+    #   GROUP BY do_you_take_your_childchildren_to_the_facility_for_ri_services
+    # """
+    # household_children_ri_compliance_distribution = frappe.db.sql(household_children_ri_compliance_query, tuple(sql_values), as_dict=True)
+
+    # # Calculate percentages
+    # total_household_children_ri_compliance_for_query = sum(item['count'] for item in household_children_ri_compliance_distribution)
+    # for item in household_children_ri_compliance_distribution:
+    #   item['percentage'] = round((item['count'] / total_household_children_ri_compliance_for_query) * 100, 2) if total_household_children_ri_compliance_for_query > 0 else 0
+
+
+    # # Query Household Table for distribution of households by rent status
+    # household_rent_status_query = f"""
+    #   SELECT is_the_household_residing_in_a_rented_apartment, COUNT(*) AS count
+    #   FROM `tabHousehold`
+    #   WHERE status = 'Approved' AND {where_clause}
+    #   GROUP BY is_the_household_residing_in_a_rented_apartment
+    # """
+    # household_rent_status_distribution = frappe.db.sql(household_rent_status_query, tuple(sql_values), as_dict=True)
     
-    # Calculate percentages
-    total_household_rent_status_for_query = sum(item['count'] for item in household_rent_status_distribution)
-    for item in household_rent_status_distribution:
-      item['percentage'] = round((item['count'] / total_household_rent_status_for_query) * 100, 2) if total_household_rent_status_for_query > 0 else 0
+    # # Calculate percentages
+    # total_household_rent_status_for_query = sum(item['count'] for item in household_rent_status_distribution)
+    # for item in household_rent_status_distribution:
+    #   item['percentage'] = round((item['count'] / total_household_rent_status_for_query) * 100, 2) if total_household_rent_status_for_query > 0 else 0
+
+    household_distribution_query = """
+        WITH filtered_households AS (
+            SELECT *
+            FROM `tabHousehold`
+            WHERE status = 'Approved' AND {where_conditions}
+        )
+        -- Gender distribution
+        SELECT 
+            'Gender' AS distribution_type,
+            gender_of_household_head AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Gender'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        GROUP BY gender_of_household_head
+
+        UNION ALL
+
+        -- Education distribution
+        SELECT 
+            'Education' AS distribution_type,
+            educational_level_of_household_head AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Education'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        GROUP BY educational_level_of_household_head
+
+        UNION ALL
+
+        -- Average Monthly Income distribution
+        SELECT 
+            'Income' AS distribution_type,
+            average_monthly_income AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Income'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        GROUP BY average_monthly_income
+
+        UNION ALL
+
+        -- Employment Status distribution
+        SELECT 
+            'Employment' AS distribution_type,
+            is_the_household_head_employed AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'Employment'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        GROUP BY is_the_household_head_employed
+
+        UNION ALL
+
+        -- Employment Industry (only employed heads)
+        SELECT 
+            'EmploymentIndustry' AS distribution_type,
+            industry_of_employment AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'EmploymentIndustry'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        WHERE is_the_household_head_employed = 'Yes'
+        GROUP BY industry_of_employment
+
+        UNION ALL
+
+        -- RI Compliance
+        SELECT 
+            'RICompliance' AS distribution_type,
+            do_you_take_your_childchildren_to_the_facility_for_ri_services AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'RICompliance'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        GROUP BY do_you_take_your_childchildren_to_the_facility_for_ri_services
+
+        UNION ALL
+
+        -- Rent Status
+        SELECT 
+            'RentStatus' AS distribution_type,
+            is_the_household_residing_in_a_rented_apartment AS label,
+            COUNT(*) AS count,
+            COALESCE(
+                ROUND(
+                    (COUNT(*) * 100.0 / NULLIF(SUM(COUNT(*)) OVER (PARTITION BY 'RentStatus'), 0)),
+                    2
+                ),
+                0
+            ) AS percentage
+        FROM filtered_households
+        GROUP BY is_the_household_residing_in_a_rented_apartment
+
+        UNION ALL
+
+        -- Total count of employed household heads 
+        SELECT
+            'TotalEmployed' AS distribution_type,
+            'EmployedHeads' AS label,
+            COUNT(*) AS count,
+            100.0 AS percentage
+        FROM filtered_households
+        WHERE is_the_household_head_employed = 'Yes';
+
+    """
+
+    # Run the query with a single scan
+    results = frappe.db.sql(
+        household_distribution_query.format(where_conditions=where_clause),
+        tuple(sql_values),
+        as_dict=True
+    )
+
+    # Split results into the seven datasets for the dashboard
+    household_gender_distribution = [
+        {"gender_of_household_head": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "Gender"
+    ]
+
+    household_educational_level_distribution = [
+        {"educational_level_of_household_head": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "Education"
+    ]
+
+    household_average_monthly_income_distribution = [
+        {"average_monthly_income": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "Income"
+    ]
+
+    household_employment_status_distribution = [
+        {"is_the_household_head_employed": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "Employment"
+    ]
+
+    household_employment_industry_distribution = [
+        {"industry_of_employment": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "EmploymentIndustry"
+    ]
+
+    household_children_ri_compliance_distribution = [
+        {"do_you_take_your_childchildren_to_the_facility_for_ri_services": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "RICompliance"
+    ]
+
+    household_rent_status_distribution = [
+        {"is_the_household_residing_in_a_rented_apartment": r["label"], "count": r["count"], "percentage": r["percentage"]}
+        for r in results if r["distribution_type"] == "RentStatus"
+    ]
+
+    total_household_employment_industry_for_query = next(
+    (r["count"] for r in results if r["distribution_type"] == "TotalEmployed"),
+    0
+    )
+
 
 
 
@@ -3337,7 +3921,6 @@ def household_dashboard(project=None, grid=None, settlement=None, ward=None, lga
             "household_rent_status_distribution": household_rent_status_distribution
         }
     }
-
 
 
 
