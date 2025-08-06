@@ -33,12 +33,13 @@
   {
    "fieldname": "geolocation",
    "fieldtype": "Geolocation",
-   "label": "Geolocation"
+   "label": "Geolocation",
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-15 15:18:21.894497",
+ "modified": "2025-08-05 11:37:18.929049",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "State",

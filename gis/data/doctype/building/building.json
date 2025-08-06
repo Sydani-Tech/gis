@@ -217,7 +217,8 @@
    "fieldname": "geolocation",
    "fieldtype": "Geolocation",
    "label": "Geocoordinates",
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "comment_section",
@@ -329,7 +330,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-07-25 07:30:13.093304",
+ "modified": "2025-08-05 11:36:43.754450",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",

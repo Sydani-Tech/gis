@@ -45,12 +45,13 @@
   {
    "fieldname": "geolocation",
    "fieldtype": "Geolocation",
-   "label": "Geolocation"
+   "label": "Geolocation",
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-15 15:17:06.464440",
+ "modified": "2025-08-05 11:37:40.451117",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Local Government Area",

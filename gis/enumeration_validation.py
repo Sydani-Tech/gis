@@ -13,6 +13,12 @@ QUESTIONS = {
         "field": "geolocation",
         "type": "Geolocation"
     },
+    # "building_picture": {
+    #     "question": "Please take a picture of the building by pressing the button below",
+    #     "doctype": "Building",
+    #     "field": "building_picture",
+    #     "type": "Attach Image"
+    # },
     "building_number_match": {
         "question": "Does the building number match with the enumerated data?",
         "doctype": "Building",
@@ -90,7 +96,7 @@ def get_builing_validation_questions(building_name):
     responses = {}
 
     # Fetch Building Information
-    building = frappe.db.get_value("Building", building_name, ["building_number", "building_address", "how_many_households_occupy_this_building"], as_dict=True)
+    building = frappe.db.get_value("Building", building_name, ["building_number", "building_address", "how_many_households_occupy_this_building", "building_picture"], as_dict=True)
 
     if not building:
         return {"error": f"Building '{building_name}' not found"}
@@ -213,7 +219,6 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
         return {"error": "No approved settlements found with the given filter."}
 
     settlement_names = [s["name"] for s in settlements]
-    # print("Approved Settlements: ", settlement_names)
 
     # Fetch all submitted buildings within the given Grid or Ward
     building_filters = {"status": "Submitted"}
@@ -230,7 +235,6 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
     grid_filter = f"AND grid = %(grid)s" if grid else ""
     ward_filter = f"AND ward = %(ward)s" if ward else ""
     date_filter = "AND end_time IS NOT NULL AND end_time BETWEEN %(start_datetime)s AND %(end_datetime)s"
-    # date_filter = "AND end_time IS NOT NULL AND end_time BETWEEN %(start_date)s AND %(end_date)s"
 
     buildings = frappe.db.sql(f"""
         SELECT name, settlement, owner, geolocation, building_picture, building_picture_2
@@ -245,8 +249,6 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
         "ward": ward,
         "start_datetime": start_datetime,
         "end_datetime": end_datetime
-        # "start_date": start_date,
-        # "end_date": end_date
     }, as_dict=True)
 
     # print("Total Buildings: ", len(buildings))
@@ -351,7 +353,10 @@ def get_enumeration_validation_summaries(name=None):
                 parent.state, 
                 parent.validator, 
                 parent.status,
-                parent.modified
+                parent.modified,
+                parent.completion_percentage,
+                parent.completed_validations,
+                parent.total_buildings
             FROM `tabEnumeration Validation Summary` AS parent
             WHERE parent.name = %s AND parent.validator = %s
         """, (name, user), as_dict=True)
@@ -371,7 +376,10 @@ def get_enumeration_validation_summaries(name=None):
                         parent.name, 
                         parent.ward, 
                         parent.local_government_area, 
-                        parent.state, 
+                        parent.state,
+                        parent.completion_percentage,
+                        parent.completed_validations,
+                        parent.total_buildings,
                         parent.validator, 
                         parent.status,
                         parent.modified
@@ -455,7 +463,6 @@ def get_building_details(building_name):
         }
 
 @frappe.whitelist()
-# def get_buildings_to_validate_and_save(grid=None, ward=None):
 def get_buildings_to_validate_and_save(ward=None, start_date=None, end_date=None):
 
     # Get the logged-in user
@@ -670,6 +677,9 @@ def get_grids_to_validate():
 
 import frappe
 from frappe.exceptions import DoesNotExistError
+import base64
+import os
+from frappe.utils.file_manager import save_file
 
 @frappe.whitelist()
 def submit_vaccine_enumeration_responses(doc_name, buildings):
@@ -714,6 +724,35 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
                 row.validation_responses = row_data["validation_responses"]
                 row.response_geolocation = row_data.get("response_geolocation")
                 row.last_modified = row_data.get("last_modified")
+
+                # # Handle Base64 image inline
+                # base64_image = row_data.get("enumeration_picture")
+                # if base64_image:
+                
+                #     # Remove "data:image/..." header if present
+                #     if base64_image.startswith("data:"):
+                #         base64_image = base64_image.split(",")[1]
+
+                #     # Fix Base64 padding (length must be multiple of 4)
+                #     missing_padding = len(base64_image) % 4
+                #     if missing_padding:
+                #         base64_image += '=' * (4 - missing_padding)
+
+                #     # Decode and save file
+                #     image_bytes = base64.b64decode(base64_image)
+                #     filename = f"enumeration_{row.record.replace(' ', '_')}.jpg"
+
+                #     file_doc = save_file(
+                #         filename, image_bytes, parent_doc.doctype, parent_doc.name, is_private=0
+                #     )
+                #     row.enumeration_picture = file_doc.file_url
+
+
+
+
+                # except Exception as e:
+                    #     frappe.log_error(f"Error saving image for {row.record}: {str(e)}", "Enumeration Validation Error")
+                    #     row.enumeration_picture = None
 
                 facility_geojson = extract_geometry_geojson(row.geolocation)
                 settlement_geojson = extract_geometry_geojson(row.response_geolocation)
@@ -950,17 +989,14 @@ def calculate_validation_status(doc, method):
     doc.pending_validations = pending_count
     doc.completed_validations = total_rows - pending_count
     doc.total_buildings = total_rows
-    doc.validation_percentage = round(((approved_count + corrected_count) / total_rows) * 100, 0) if total_rows else 0
-    doc.completion_percentage = round((total_rows - pending_count) / total_rows * 100, 0)
+    doc.validation_percentage = round(((approved_count + corrected_count) / total_rows) * 100, 0) if total_rows != 0 else 0
+    doc.completion_percentage = round((total_rows - pending_count) / total_rows * 100, 0) if total_rows != 0 else 0
 
     # frappe.msgprint (f"Pending: {pending_count}, Approved: {approved_count}, Corrected: {corrected_count}, Returned: {returned_count}, Total Rows: {total_rows}, Validation Percentage: {doc.validation_percentage}, Completion Percentage: {doc.completion_percentage}")
 
 def validate_status_is_approved(doc, method):
-    if doc.status != "Completed":
-        frappe.throw("Status must be 'Approved' to submit validation.")
 
     pending_rows = []
-
 
     # 1. Check for pending rows and count approved
     for i, row in enumerate(doc.enumeration_sample_responses, start=1):
@@ -970,6 +1006,8 @@ def validate_status_is_approved(doc, method):
     # 2. If there are any pending rows, throw an error listing row numbers
     if pending_rows:
         frappe.throw(f"The following rows are still pending validation: {', '.join(pending_rows)}")
+    else:
+        doc.status = "Compeleted"  # Set status to Approved if no pending rows
 
 
 

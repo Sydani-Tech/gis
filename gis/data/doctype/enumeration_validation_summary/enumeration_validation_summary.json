@@ -102,7 +102,8 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nDiscarded\nCompleted"
+   "options": "Pending\nDiscarded\nCompleted",
+   "read_only": 1
   },
   {
    "fetch_from": "ward.state",
@@ -179,7 +180,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-06 07:47:06.766564",
+ "modified": "2025-07-29 15:04:59.799777",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Validation Summary",

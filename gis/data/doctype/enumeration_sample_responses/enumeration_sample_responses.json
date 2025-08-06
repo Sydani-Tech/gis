@@ -12,6 +12,7 @@
   "settlement",
   "enumerator",
   "status",
+  "enumeration_picture",
   "building_picture_2",
   "building_picture",
   "column_break_bvbq",
@@ -19,6 +20,7 @@
   "response_geolocation",
   "distance",
   "update_building_geolocation",
+  "building_geolocation_updated_from_validation",
   "last_modified",
   "section_break_zpnt",
   "validation_responses"
@@ -123,12 +125,26 @@
    "fieldtype": "Button",
    "in_list_view": 1,
    "label": "Update Geolocation"
+  },
+  {
+   "fieldname": "enumeration_picture",
+   "fieldtype": "Attach Image",
+   "hidden": 1,
+   "label": "Enumeration Picture",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "building_geolocation_updated_from_validation",
+   "fieldtype": "Check",
+   "label": "Building Geolocation Updated from Validation",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-23 08:23:06.460966",
+ "modified": "2025-08-06 09:27:14.301335",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Sample Responses",

@@ -299,10 +299,10 @@
   {
    "fieldname": "vaccines_taken",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "Vaccines Taken",
    "length": 255,
-   "permlevel": 2
+   "permlevel": 2,
+   "read_only": 1
   },
   {
    "fieldname": "next_vaccination_date",
@@ -340,7 +340,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-07-21 21:11:50.831995",
+ "modified": "2025-08-05 11:35:51.225027",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Children",
