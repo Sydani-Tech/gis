@@ -155,7 +155,7 @@ def save_image(request, field_name, img_name):
 
     if uploaded_file:
         # Fetch site_name from site_config.json
-        site_name = frappe.get_site_config().get("site_name", "admin.coveragetracker.com")  # Default fallback
+        site_name = frappe.get_site_config().get("site_name", "admin.coveragetrackr.com")  # Default fallback
 
         # Construct save path dynamically
         save_path = os.path.join(os.path.expanduser('~'),
