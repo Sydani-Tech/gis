@@ -86,6 +86,14 @@ fixtures = [
 # before_install = "gis.install.before_install"
 # after_install = "gis.install.after_install"
 
+# in apps/gis/gis/hooks.py
+
+def after_install():
+    import subprocess
+    subprocess.check_call(["/home/frappe/frappe-bench/env/bin/pip", "install", "-r", "apps/gis/requirements.txt"])
+after_install = "gis.hooks.after_install"
+
+
 # Uninstallation
 # ------------
 

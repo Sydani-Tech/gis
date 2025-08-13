@@ -13,12 +13,12 @@ QUESTIONS = {
         "field": "geolocation",
         "type": "Geolocation"
     },
-    # "building_picture": {
-    #     "question": "Please take a picture of the building by pressing the button below",
-    #     "doctype": "Building",
-    #     "field": "building_picture",
-    #     "type": "Attach Image"
-    # },
+    "building_picture": {
+        "question": "Please take a picture of the building by pressing the button below",
+        "doctype": "Building",
+        "field": "building_picture",
+        "type": "Attach Image"
+    },
     "building_number_match": {
         "question": "Does the building number match with the enumerated data?",
         "doctype": "Building",
@@ -408,7 +408,7 @@ def get_enumeration_validation_summaries(name=None):
             child_records = frappe.db.get_list(
                 "Enumeration Sample Responses",
                 filters={"parent": row["name"]},
-                fields=["record AS building_name", "status AS building_validation_status", "geolocation AS building_geolocation", "validation_responses", "response_geolocation", "last_modified"],
+                fields=["record AS building_name", "status AS building_validation_status", "settlement", "geolocation AS building_geolocation", "validation_responses", "response_geolocation", "last_modified"],
                 ignore_permissions=True
             )
             for building in child_records:
@@ -725,34 +725,27 @@ def submit_vaccine_enumeration_responses(doc_name, buildings):
                 row.response_geolocation = row_data.get("response_geolocation")
                 row.last_modified = row_data.get("last_modified")
 
-                # # Handle Base64 image inline
-                # base64_image = row_data.get("enumeration_picture")
-                # if base64_image:
+                # Handle Base64 image inline
+                base64_image = row_data.get("enumeration_picture")
+                if base64_image:
                 
-                #     # Remove "data:image/..." header if present
-                #     if base64_image.startswith("data:"):
-                #         base64_image = base64_image.split(",")[1]
+                    # Remove "data:image/..." header if present
+                    if base64_image.startswith("data:"):
+                        base64_image = base64_image.split(",")[1]
 
-                #     # Fix Base64 padding (length must be multiple of 4)
-                #     missing_padding = len(base64_image) % 4
-                #     if missing_padding:
-                #         base64_image += '=' * (4 - missing_padding)
+                    # Fix Base64 padding (length must be multiple of 4)
+                    missing_padding = len(base64_image) % 4
+                    if missing_padding:
+                        base64_image += '=' * (4 - missing_padding)
 
-                #     # Decode and save file
-                #     image_bytes = base64.b64decode(base64_image)
-                #     filename = f"enumeration_{row.record.replace(' ', '_')}.jpg"
+                    # Decode and save file
+                    image_bytes = base64.b64decode(base64_image)
+                    filename = f"enumeration_{row.record.replace(' ', '_')}.jpg"
 
-                #     file_doc = save_file(
-                #         filename, image_bytes, parent_doc.doctype, parent_doc.name, is_private=0
-                #     )
-                #     row.enumeration_picture = file_doc.file_url
-
-
-
-
-                # except Exception as e:
-                    #     frappe.log_error(f"Error saving image for {row.record}: {str(e)}", "Enumeration Validation Error")
-                    #     row.enumeration_picture = None
+                    file_doc = save_file(
+                        filename, image_bytes, parent_doc.doctype, parent_doc.name, is_private=0
+                    )
+                    row.enumeration_picture = file_doc.file_url
 
                 facility_geojson = extract_geometry_geojson(row.geolocation)
                 settlement_geojson = extract_geometry_geojson(row.response_geolocation)
@@ -1007,7 +1000,7 @@ def validate_status_is_approved(doc, method):
     if pending_rows:
         frappe.throw(f"The following rows are still pending validation: {', '.join(pending_rows)}")
     else:
-        doc.status = "Compeleted"  # Set status to Approved if no pending rows
+        doc.status = "Completed"  # Set status to Approved if no pending rows
 
 
 

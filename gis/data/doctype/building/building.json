@@ -265,7 +265,7 @@
    "in_standard_filter": 1,
    "label": "Establishment Type",
    "mandatory_depends_on": "eval:doc.building_type===\"Non-residential\"",
-   "options": "\nChurch\nHealth Facility\nMosque\nSchool"
+   "options": "\nChurch\nCommercial\nHealth Facility\nMosque\nSchool"
   },
   {
    "depends_on": "eval:doc.establishment_type===\"Health Facility\"",
@@ -330,7 +330,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-08-05 11:36:43.754450",
+ "modified": "2025-08-12 09:08:16.967592",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Building",
@@ -434,6 +434,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

@@ -29,23 +29,38 @@ frappe.ui.form.on("Enumeration Validation Summary", {
         highlightSampleResponsesRows(frm);
 
         if (!frm.is_dirty() && frm.doc.docstatus === 0) {
-            frm.add_custom_button('Submit Now', () => {
-                frappe.confirm(
-                    'Are you sure you want to submit this document?',
-                    () => {
-                        frm.save('Submit');
-                    }
-                );
-            }, 'Actions');
-            frm.add_custom_button('Discard Validation', () => {
-                frappe.confirm(
-                    'Are you sure you want to DISCARD this document?',
-                    () => {
-                        frm.set_value('status', 'Discarded');
-                        frm.save();
-                    }
-                );
-            }, 'Actions');
+            if (frm.doc.status === 'Pending') {
+                frm.add_custom_button('Submit Now', () => {
+                    frappe.confirm(
+                        'Are you sure you want to submit this document?',
+                        () => {
+                            frm.save('Submit');
+                        }
+                    );
+                }, 'Actions');
+            }
+            if (frm.doc.status === 'Pending') {
+                frm.add_custom_button('Discard Validation', () => {
+                    frappe.confirm(
+                        'Are you sure you want to discard this document?',
+                        () => {
+                            frm.set_value('status', 'Discarded');
+                            frm.save();
+                        }
+                    );
+                }, 'Actions');
+            }
+            if (frm.doc.status === 'Discarded') {
+                frm.add_custom_button('Restore', () => {
+                    frappe.confirm(
+                        'Are you sure you want to restore this document?',
+                        () => {
+                            frm.set_value('status', 'Pending');
+                            frm.save();
+                        }
+                    );
+                }, 'Actions');
+            }
         }
     },
 
@@ -165,17 +180,37 @@ frappe.ui.form.on('Enumeration Validation Summary', {
     }
 });
 
+// frappe.ui.form.on("Enumeration Sample Responses", {
+//     status: function (frm, cdt, cdn) {
+//         // Ensure child table is loaded
+//         frappe.model.set_value(cdt, cdn, "last_modified", frappe.datetime.now_datetime());
+//         highlightSampleResponsesRows(frm);
+//     },
+//     refresh: function (frm, cdt, cdn) {
+//         // Ensure child table is loaded
+//         highlightSampleResponsesRows(frm);
+//     }
+// });
+
 frappe.ui.form.on("Enumeration Sample Responses", {
     status: function (frm, cdt, cdn) {
         // Ensure child table is loaded
         frappe.model.set_value(cdt, cdn, "last_modified", frappe.datetime.now_datetime());
+
+        // If status changed to Pending, reset distance and response_geolocation
+        let row = locals[cdt][cdn];
+        if (row.status === "Pending") {
+            frappe.model.set_value(cdt, cdn, "distance", 0);
+            frappe.model.set_value(cdt, cdn, "response_geolocation", "");
+        }
+
         highlightSampleResponsesRows(frm);
     },
     refresh: function (frm, cdt, cdn) {
-        // Ensure child table is loaded
         highlightSampleResponsesRows(frm);
     }
 });
+
 
 function highlightSampleResponsesRows(frm) {
     if (frm.fields_dict["enumeration_sample_responses"] && frm.fields_dict["enumeration_sample_responses"].grid) {
