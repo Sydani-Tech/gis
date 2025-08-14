@@ -101,6 +101,7 @@ def execute(filters=None):
             {"label": "Name", "fieldname": "record", "fieldtype": "Dynamic Link", "options": "data", "width": 190},
             {"label": "Reported", "fieldname": "children_reported", "fieldtype": "Int", "width": 150},
             {"label": "Enumerated", "fieldname": "children_enumerated", "fieldtype": "Int", "width": 150},
+            {"label": "Household Population", "fieldname": "household_population", "fieldtype": "Int", "width": 200},
             {"label": "Date", "fieldname": "enumeration_date", "fieldtype": "Date", "width": 115},
             {"label": "Enumerator", "fieldname": "enumerator", "fieldtype": "Link", "options": "User", "width": 150},
             {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
@@ -121,6 +122,7 @@ def execute(filters=None):
                 hh.creation,
                 hh.owner,
                 hh.how_many_household_members_are_below_5,
+                hh.how_many_people_live_in_the_household,
                 IFNULL(c.children_count, 0) AS children_count
             FROM `tabHousehold` hh
             LEFT JOIN (
@@ -143,12 +145,22 @@ def execute(filters=None):
                 {hh_owner_filter}
 				{hh_status_filter}
                 AND (
-                    hh.how_many_household_members_are_below_5 = 0
+                    hh.how_many_people_live_in_the_household  = 0
                     OR (
-                        c.children_count <> hh.how_many_household_members_are_below_5
-                        AND c.children_count > 0
+                        NOT (
+                            hh.how_many_household_members_are_below_5 = 0
+                            AND c.children_count = 0
+                        )
+                        AND (
+                            hh.how_many_household_members_are_below_5 = 0
+                            OR (
+                                c.children_count <> hh.how_many_household_members_are_below_5
+                                AND c.children_count > 0
+                            )
+                        )
                     )
-                )
+                )               
+                
         """.format(
             hh_state_filter      = "AND hh.state = %(state)s" if filters.get("state") else "",
             hh_lga_filter        = "AND hh.local_government_area = %(local_government_area)s" if filters.get("local_government_area") else "",
@@ -171,6 +183,7 @@ def execute(filters=None):
             "record": row.name,
             "children_reported": row.how_many_household_members_are_below_5,
             "children_enumerated": row.children_count,
+            "household_population": row.how_many_people_live_in_the_household,
             "enumeration_date": getdate(row.creation),
             "enumerator": row.owner,
             "status": row.status,
