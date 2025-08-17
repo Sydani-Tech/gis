@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{ward}-{local_government_area}",
  "creation": "2024-12-17 13:35:39.421749",
@@ -11,7 +12,8 @@
   "state",
   "country",
   "column_break_zcmo",
-  "geolocation"
+  "geolocation",
+  "centroid"
  ],
  "fields": [
   {
@@ -58,11 +60,17 @@
    "fieldtype": "Geolocation",
    "label": "Geolocation",
    "search_index": 1
+  },
+  {
+   "fieldname": "centroid",
+   "fieldtype": "Geolocation",
+   "label": "Centroid",
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-05 11:37:57.717309",
+ "modified": "2025-08-16 04:32:25.703659",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Ward",
@@ -130,6 +138,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

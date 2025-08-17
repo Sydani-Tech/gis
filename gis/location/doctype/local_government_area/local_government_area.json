@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{local_government_area}-{state}",
  "creation": "2024-12-17 13:35:39.314470",
@@ -10,7 +11,8 @@
   "state",
   "country",
   "column_break_rdtm",
-  "geolocation"
+  "geolocation",
+  "centroid"
  ],
  "fields": [
   {
@@ -47,11 +49,17 @@
    "fieldtype": "Geolocation",
    "label": "Geolocation",
    "search_index": 1
+  },
+  {
+   "fieldname": "centroid",
+   "fieldtype": "Geolocation",
+   "label": "Centroid",
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-05 11:37:40.451117",
+ "modified": "2025-08-16 04:31:44.457730",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Local Government Area",
@@ -119,6 +127,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
