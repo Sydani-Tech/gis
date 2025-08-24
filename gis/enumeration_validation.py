@@ -1399,7 +1399,7 @@ import random
 from datetime import datetime, date, timedelta
 
 @frappe.whitelist()
-def assign_enumeration_validations(start_date_str=None, min_count: int = 2, max_count: int = 4):
+def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max_count: int = 30):
     """
     Auto-create Enumeration Validation Summary records for validators (users) who have
     a Ward-level User Permission and are *not* currently validators on any pending Summary.
@@ -1427,7 +1427,7 @@ def assign_enumeration_validations(start_date_str=None, min_count: int = 2, max_
     def _parse_date(s: str) -> date:
         """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date."""
         if not s:
-            return date(2024, 5, 1)  # default 2025-05-01
+            return date(2025, 5, 1)  # default 2025-05-01
         s = s.strip()
         for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
             try:
