@@ -235,6 +235,7 @@ scheduler_events = {
     "hourly_long": [
 		# "gis.scheduled_events.fetch_odk_data",
         "gis.scheduled_events.match_vaccination_to_children",
+        "gis.enumeration_validation.assign_enumeration_validations",
         "gis.scheduled_events.update_building_vaccination_status",
         "gis.req.generate_missing_api_secrets_for_users",
         "gis.scheduled_events.set_enumerated_vaccination_status",

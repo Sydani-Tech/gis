@@ -62,8 +62,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Ward",
-   "options": "Ward",
-   "reqd": 1
+   "options": "Ward"
   },
   {
    "fieldname": "column_break_ennm",
@@ -81,7 +80,6 @@
    "options": "Enumeration Sample Responses"
   },
   {
-   "fetch_from": "ward.local_government_area",
    "fieldname": "local_government_area",
    "fieldtype": "Link",
    "label": "Local Government Area",
@@ -91,7 +89,7 @@
   {
    "fieldname": "grid",
    "fieldtype": "Link",
-   "hidden": 1,
+   "in_filter": 1,
    "label": "Grid",
    "link_filters": "[[\"Grid\",\"enabled\",\"=\",1]]",
    "options": "Grid"
@@ -106,7 +104,6 @@
    "read_only": 1
   },
   {
-   "fetch_from": "ward.state",
    "fieldname": "state",
    "fieldtype": "Link",
    "label": "State",
@@ -180,7 +177,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-29 15:04:59.799777",
+ "modified": "2025-08-18 11:23:12.158331",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Enumeration Validation Summary",
@@ -233,6 +230,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [

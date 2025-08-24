@@ -93,8 +93,8 @@ frappe.ui.form.on('Enumeration Validation Summary', {
     refresh: function (frm) {
         if (frm.doc.docstatus === 0) {
             frm.add_custom_button(__("Fetch Buildings to Validate"), function () {
-                if (!frm.doc.ward || !frm.doc.start_date || !frm.doc.end_date) {
-                    frappe.msgprint("Please specify a Ward and a date range before fetching buildings to validate.");
+                if ((!frm.doc.ward && !frm.doc.grid) || !frm.doc.start_date || !frm.doc.end_date) {
+                    frappe.msgprint("Please specify a Ward or a Grid, and a date range before fetching buildings to validate.");
                     return;
                 }
 
@@ -102,6 +102,7 @@ frappe.ui.form.on('Enumeration Validation Summary', {
                     method: "gis.enumeration_validation.get_buildings",
                     args: {
                         ward: frm.doc.ward,
+                        grid: frm.doc.grid,
                         start_date: frm.doc.start_date,
                         end_date: frm.doc.end_date
                     },

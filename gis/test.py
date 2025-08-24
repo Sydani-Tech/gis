@@ -33,7 +33,6 @@ def test_fields():
   return fields 
 
 
-
 @frappe.whitelist()
 def geolocation():
     try:
@@ -558,8 +557,7 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     if grid or settlement:
         building_query = f"""
             SELECT name, percentage_of_vaccinated_children, building_vaccination_status,
-                   geolocation, building_type, establishment_type, health_facility,
-                   state, local_government_area, ward, settlement, grid
+                   geolocation, building_type, establishment_type, health_facility, settlement, grid
             FROM `tabBuilding`
             WHERE {full_where}
         """
@@ -588,14 +586,14 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
             )
             data.append({
                 "state": label,
-                "total_buildings": float(r["total_buildings"]),
-                "residential_buildings": float(r["residential_buildings"]),
-                "non_residential_buildings": float(r["non_residential_buildings"]),
-                "health_facilities": float(r["health_facilities"]),
-                "schools": float(r["schools"]),
-                "mosques": float(r["mosques"]),
-                "churches": float(r["churches"]),
-                "commercial_buildings": float(r["commercial_buildings"]),
+                "total_buildings": int(r["total_buildings"]),
+                "residential_buildings": int(r["residential_buildings"]),
+                "non_residential_buildings": int(r["non_residential_buildings"]),
+                "health_facilities": int(r["health_facilities"]),
+                "schools": int(r["schools"]),
+                "mosques": int(r["mosques"]),
+                "churches": int(r["churches"]),
+                "commercial_buildings": int(r["commercial_buildings"]),
                 "centroid": centroid,
             })
         return {"status": 200, "response": "Success", "data": data}
@@ -619,14 +617,14 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
             )
             data.append({
                 "lga": label,
-                "total_buildings": float(r["total_buildings"]),
-                "residential_buildings": float(r["residential_buildings"]),
-                "non_residential_buildings": float(r["non_residential_buildings"]),
-                "health_facilities": float(r["health_facilities"]),
-                "schools": float(r["schools"]),
-                "mosques": float(r["mosques"]),
-                "churches": float(r["churches"]),
-                "commercial_buildings": float(r["commercial_buildings"]),
+                "total_buildings": int(r["total_buildings"]),
+                "residential_buildings": int(r["residential_buildings"]),
+                "non_residential_buildings": int(r["non_residential_buildings"]),
+                "health_facilities": int(r["health_facilities"]),
+                "schools": int(r["schools"]),
+                "mosques": int(r["mosques"]),
+                "churches": int(r["churches"]),
+                "commercial_buildings": int(r["commercial_buildings"]),
                 "centroid": centroid,
             })
         return {"status": 200, "response": "Success", "data": data}
@@ -650,14 +648,14 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
             )
             data.append({
                 "ward": label,
-                "total_buildings": float(r["total_buildings"]),
-                "residential_buildings": float(r["residential_buildings"]),
-                "non_residential_buildings": float(r["non_residential_buildings"]),
-                "health_facilities": float(r["health_facilities"]),
-                "schools": float(r["schools"]),
-                "mosques": float(r["mosques"]),
-                "churches": float(r["churches"]),
-                "commercial_buildings": float(r["commercial_buildings"]),
+                "total_buildings": int(r["total_buildings"]),
+                "residential_buildings": int(r["residential_buildings"]),
+                "non_residential_buildings": int(r["non_residential_buildings"]),
+                "health_facilities": int(r["health_facilities"]),
+                "schools": int(r["schools"]),
+                "mosques": int(r["mosques"]),
+                "churches": int(r["churches"]),
+                "commercial_buildings": int(r["commercial_buildings"]),
                 "centroid": centroid,
             })
         return {"status": 200, "response": "Success", "data": data}
@@ -681,14 +679,14 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
             )
             data.append({
                 "settlement": label,
-                "total_buildings": float(r["total_buildings"]),
-                "residential_buildings": float(r["residential_buildings"]),
-                "non_residential_buildings": float(r["non_residential_buildings"]),
-                "health_facilities": float(r["health_facilities"]),
-                "schools": float(r["schools"]),
-                "mosques": float(r["mosques"]),
-                "churches": float(r["churches"]),
-                "commercial_buildings": float(r["commercial_buildings"]),
+                "total_buildings": int(r["total_buildings"]),
+                "residential_buildings": int(r["residential_buildings"]),
+                "non_residential_buildings": int(r["non_residential_buildings"]),
+                "health_facilities": int(r["health_facilities"]),
+                "schools": int(r["schools"]),
+                "mosques": int(r["mosques"]),
+                "churches": int(r["churches"]),
+                "commercial_buildings": int(r["commercial_buildings"]),
                 "geolocation": point_fc,  # original point
             })
         return {"status": 200, "response": "Success", "data": data}
@@ -696,9 +694,284 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
     # Fallback → original rows
     building_query = f"""
         SELECT name, percentage_of_vaccinated_children, building_vaccination_status,
-               geolocation, building_type, establishment_type, health_facility,
-               state, local_government_area, ward, settlement, grid
+               geolocation, building_type, establishment_type, health_facility, settlement, grid
         FROM `tabBuilding`
+        WHERE {full_where}
+    """
+    try:
+        rows = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+        return {"status": 200, "response": "Success", "data": rows}
+    except Exception as e:
+        return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+
+
+
+@frappe.whitelist()
+def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, status=None,
+                 type_of_settlement=None, settlement_archetype=None):
+    # -- Auth & guards --
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+
+    if "Dashboard Viewer" not in frappe.get_roles(user):
+        return {"message": "You do not have the required role to view the map, please contact the project manager.", "status": 401}
+
+    # -- Normalize settlement_type shortcuts --
+
+    if settlement_archetype == "IDP Camp" and type_of_settlement == "Urban":
+        archetype_for_urban = "IDP Camp"
+    elif settlement_archetype == "Urban Slum" and type_of_settlement == "Urban":
+        archetype_for_urban = "Urban Slum"
+    elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Urban":
+        archetype_for_urban = "Security-Compromised"
+    elif settlement_archetype == "Riverine" and type_of_settlement == "Urban":
+        archetype_for_urban = "Riverine"
+    elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Rural":
+        archetype_for_rural = "Security-Compromised"
+    elif settlement_archetype == "IDP Camp" and type_of_settlement == "Rural":
+        archetype_for_rural = "IDP Camp"
+    elif settlement_archetype == "Hard to reach" and type_of_settlement == "Rural":
+        archetype_for_rural = "Hard to reach"
+    elif settlement_archetype == "Riverine" and type_of_settlement == "Rural":
+        archetype_for_rural = "Riverine"
+    elif settlement_archetype == "Nomadic" and type_of_settlement == "Rural":
+        archetype_for_rural = "Nomadic"
+
+    elif type_of_settlement == "Urban" and not settlement_archetype:
+        type_of_settlement = "Urban"
+    elif type_of_settlement == "Rural" and not settlement_archetype:
+        type_of_settlement = "Rural"
+
+    # -- Filters dict (used for SQL) --
+    filters = {}
+    if grid:        filters["grid"] = grid
+    if settlement:  filters["settlement"] = settlement
+    if ward:        filters["ward"] = ward
+    if lga:         filters["local_government_area"] = lga   # building table field
+    if state:       filters["state"] = state
+    if status:      filters["status"] = status
+
+    # Build WHERE clause & values
+    sql_conditions, sql_values = [], []
+    for key, value in filters.items():
+        if value is None:
+            continue
+        if isinstance(value, tuple) and value[0] == "in":
+            sql_conditions.append(f"`{key}` IN %s")
+            sql_values.append(tuple(value[1]))
+        else:
+            sql_conditions.append(f"`{key}` = %s")
+            sql_values.append(value)
+    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+    full_where = f"{where_clause}"
+
+    # ---- helpers ----
+    def _to_geojson(val):
+        """Return a GeoJSON object (dict) or None."""
+        if val is None:
+            return None
+        if isinstance(val, dict):
+            return val
+        if isinstance(val, (bytes, bytearray)):
+            try:
+                return json.loads(val.decode("utf-8", "ignore"))
+            except Exception:
+                return None
+        if isinstance(val, str):
+            s = val.strip()
+            if not s:
+                return None
+            try:
+                return json.loads(s)
+            except Exception:
+                return None
+        return None
+
+    def _wrap_as_fc(geom_or_feat):
+        """Wrap a Geometry/Feature into a FeatureCollection with a single Feature for consistent output."""
+        if geom_or_feat is None:
+            return None
+        if isinstance(geom_or_feat, dict):
+            t = geom_or_feat.get("type")
+            if t == "FeatureCollection":
+                return geom_or_feat
+            if t == "Feature":
+                return {"type": "FeatureCollection", "features": [geom_or_feat]}
+            # assume Geometry
+            return {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {}, "geometry": geom_or_feat}]}
+        return None
+
+    def _fetch_geo(doctype, key, fieldname, fallback_fields=None, wrap_fc=True):
+        """
+        Fetch a GeoJSON from a doctype (by name or label field), returning dict (optionally wrapped as FC).
+        - For State/LGA/Ward: fieldname='centroid'
+        - For Settlement: fieldname='response_geolocation'
+        """
+        if not key:
+            return None
+        val = frappe.db.get_value(doctype, key, fieldname)
+        if not val and fallback_fields:
+            for fld in fallback_fields:
+                try:
+                    docname = frappe.db.get_value(doctype, {fld: key}, "name")
+                    if docname:
+                        val = frappe.db.get_value(doctype, docname, fieldname)
+                        if val:
+                            break
+                except Exception:
+                    pass
+        gj = _to_geojson(val)
+        return _wrap_as_fc(gj) if wrap_fc else gj
+
+    def _group_aggregates(field_name):
+        """
+        Single, efficient aggregation query per level.
+        Returns rows with label and all requested aggregates.
+        """
+        allowed = {"state", "local_government_area", "ward", "settlement"}
+        if field_name not in allowed:
+            frappe.throw(f"Invalid group-by field: {field_name}")
+
+        q = f"""
+            SELECT
+                `{field_name}` AS label,
+                COUNT(*) AS total_settlements,
+                SUM(CASE WHEN type_of_settlement = 'Urban' THEN 1 ELSE 0 END) AS urban_settlements,
+                SUM(CASE WHEN type_of_settlement = 'Rural' THEN 1 ELSE 0 END) AS rural_settlements
+            FROM `tabSettlement`
+            WHERE {full_where}
+              AND `{field_name}` IS NOT NULL
+              AND TRIM(`{field_name}`) != ''
+            GROUP BY `{field_name}`
+            ORDER BY `{field_name}`
+        """
+        return frappe.db.sql(q, tuple(sql_values), as_dict=True)
+
+    # ---- routing ----
+    # If grid or ward or settlement is provided → return the original rows
+    if grid or settlement or ward:
+        settlement_query = f"""
+            SELECT name, type_of_settlement, archetype_for_rural, archetype_for_urban,
+                   response_geolocation, settlement, grid
+            FROM `tabSettlement`
+            WHERE {full_where}
+        """
+        try:
+            rows = frappe.db.sql(settlement_query, tuple(sql_values), as_dict=True)
+            return {"status": 200, "response": "Success", "data": rows}
+        except Exception as e:
+            return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+
+    # No state/lga/ward/settlement → counts per State + centroid (State.doctype)
+    if not state and not lga and not ward and not settlement:
+        try:
+            rows = _group_aggregates("state")
+        except Exception as e:
+            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+        data = []
+        for r in rows:
+            label = r["label"]
+            centroid = _fetch_geo(
+                doctype="State",
+                key=label,
+                fieldname="centroid",
+                fallback_fields=["state", "name"],  # your label field on State
+                wrap_fc=True
+            )
+            data.append({
+                "state": label,
+                "total_settlements": int(r["total_settlements"]),
+                "urban_settlements": int(r["urban_settlements"]),
+                "rural_settlements": int(r["rural_settlements"]),
+                "centroid": centroid,
+            })
+        return {"status": 200, "response": "Success", "data": data}
+
+    # State provided → counts per LGA + centroid (LGA.doctype)
+    if state and not lga and not ward and not settlement:
+        try:
+            rows = _group_aggregates("local_government_area")
+        except Exception as e:
+            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+        data = []
+        for r in rows:
+            label = r["label"]
+            centroid = _fetch_geo(
+                doctype="Local Government Area",
+                key=label,
+                fieldname="centroid",
+                fallback_fields=["local_government_Area", "name"],  # your label field on LGA
+                wrap_fc=True
+            )
+            data.append({
+                "lga": label,
+                "total_settlements": int(r["total_settlements"]),
+                "urban_settlements": int(r["urban_settlements"]),
+                "rural_settlements": int(r["rural_settlements"]),
+                "centroid": centroid,
+            })
+        return {"status": 200, "response": "Success", "data": data}
+
+    # LGA provided → counts per Ward + centroid (Ward.doctype)
+    if lga and not ward and not settlement:
+        try:
+            rows = _group_aggregates("ward")
+        except Exception as e:
+            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+        data = []
+        for r in rows:
+            label = r["label"]
+            centroid = _fetch_geo(
+                doctype="Ward",
+                key=label,
+                fieldname="centroid",
+                fallback_fields=["ward", "name"],  # your label field on Ward
+                wrap_fc=True
+            )
+            data.append({
+                "ward": label,
+                "total_settlements": int(r["total_settlements"]),
+                "urban_settlements": int(r["urban_settlements"]),
+                "rural_settlements": int(r["rural_settlements"]),
+                "centroid": centroid,
+            })
+        return {"status": 200, "response": "Success", "data": data}
+
+    # Ward provided (no settlement) → counts per Settlement + response_geolocation (Point) from Settlement.doctype
+    # if ward and not settlement:
+    #     try:
+    #         rows = _group_aggregates("settlement")
+    #     except Exception as e:
+    #         return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+    #     data = []
+    #     for r in rows:
+    #         label = r["label"]
+    #         point_fc = _fetch_geo(
+    #             doctype="Settlement",
+    #             key=label,
+    #             fieldname="response_geolocation",
+    #             fallback_fields=["settlement", "name"],  # your label field on Settlement
+    #             wrap_fc=True
+    #         )
+    #         data.append({
+    #             "settlement": label,
+    #             "total_settlements": int(r["total_settlements"]),
+    #             "urban_settlements": int(r["urban_settlements"]),
+    #             "rural_settlements": int(r["rural_settlements"]),
+    #             "centroid": centroid,
+    #         })
+    #     return {"status": 200, "response": "Success", "data": data}
+
+    # Fallback → original rows
+    settlement_query = f"""
+        SELECT name, type_of_settlement, archetype_for_rural, archetype_for_urban,
+                response_geolocation,  settlement, grid
+        FROM `tabSettlement`
         WHERE {full_where}
     """
     try:
