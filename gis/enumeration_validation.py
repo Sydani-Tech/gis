@@ -1398,56 +1398,112 @@ import frappe
 import random
 from datetime import datetime, date, timedelta
 
+def _parse_date(s: str) -> date:
+    """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date (defaults to 2025-05-01 if missing)."""
+    if not s:
+        return date(2024, 5, 1)
+    s = s.strip()
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    frappe.throw(f"Invalid start_date format: {s}. Use YYYY-MM-DD or DD-MM-YYYY.")
+    return date.today()  # unreachable
+
+def _fetch_valid_buildings_sql(grid_name: str, start_d: date, today_d: date, cap: int):
+    """
+    Single SQL to fetch up to `cap` valid buildings in a grid between start_d and today_d,
+    ordered by end_time ASC so we know *when* max_count was reached.
+    A building is 'valid' if:
+      - Building.status = 'Submitted'
+      - Settlement.status = 'Approved'
+      - Has ≥1 Household(status='Submitted')
+      - Has ≥1 Children(status='Submitted') whose household is among the submitted households for that building
+    """
+    return frappe.db.sql(
+        """
+        SELECT
+            b.name,
+            b.grid,
+            b.settlement,
+            b.owner,
+            b.geolocation,
+            b.building_picture,
+            b.building_picture_2,
+            b.end_time
+        FROM `tabBuilding` b
+        INNER JOIN `tabSettlement` s
+            ON s.name = b.settlement
+           AND s.status = 'Approved'
+        WHERE b.status = 'Submitted'
+          AND b.grid = %(grid)s
+          AND b.end_time IS NOT NULL
+          AND b.end_time BETWEEN %(start)s AND %(today)s
+          AND EXISTS (
+                SELECT 1 FROM `tabHousehold` h
+                 WHERE h.building = b.name
+                   AND h.status = 'Submitted'
+          )
+          AND EXISTS (
+                SELECT 1
+                  FROM `tabChildren` c
+                 WHERE c.building = b.name
+                   AND c.status = 'Submitted'
+                   AND c.household IN (
+                        SELECT h2.name
+                          FROM `tabHousehold` h2
+                         WHERE h2.building = b.name
+                           AND h2.status = 'Submitted'
+                   )
+          )
+        ORDER BY b.end_time ASC
+        LIMIT %(cap)s
+        """,
+        {
+            "grid": grid_name,
+            "start": datetime.combine(start_d, datetime.min.time()),
+            "today": datetime.combine(today_d, datetime.max.time()),
+            "cap": int(cap),
+        },
+        as_dict=True,
+    )
+
 @frappe.whitelist()
-def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max_count: int = 30):
+def assign_enumeration_validations(start_date_str: str = None, min_count: int = 2, max_count: int = 10):
     """
-    Auto-create Enumeration Validation Summary records for validators (users) who have
-    a Ward-level User Permission and are *not* currently validators on any pending Summary.
+    Auto-create Enumeration Validation Summary for each validator (user) who has a Ward-level User Permission
+    and is not already the validator on a pending Summary.
 
-    New behavior:
-      - Once min_count is reached, keep extending the date window in 7-day steps,
-        accumulating *unique* buildings until either:
-          a) today is reached, or
-          b) max_count is reached.
-      - If after extending to today we still have < min_count, skip that grid.
-      - Only up to max_count buildings are written into the child tables.
+    Logic:
+      - For each (user, ward) User Permission:
+          * Skip if user already has a Pending Summary.
+          * Pick a random eligible Grid in that ward (enabled=1, vaccination_grid=0, not already pending).
+          * Fetch up to `max_count` valid buildings between start_date and today using one SQL.
+          * If < min_count → skip this (user, ward).
+          * Else create a Summary:
+                validator=user
+                start_date = parsed start_date
+                end_date   = max(end_time) of returned buildings  ← tracks actual cap hit date
+                grid       = chosen grid
+                status     = "Pending"
+            Fill both child tables from the returned buildings.
+      - Returns a compact report.
 
-    Args:
-      start_date_str (str): 'YYYY-MM-DD' or 'DD-MM-YYYY'. Defaults to 2025-05-01.
-      min_count (int): Minimum number of buildings to accept a grid.
-      max_count (int): Maximum number of buildings to include (cap).
-
-    Returns:
-      dict: summary of created docs and any skips.
+    Notes:
+      - No Python call to get_buildings; everything is SQL-based.
+      - `end_date` now reflects when the `max_count` (or the last returned building) was reached.
     """
-
-    # ------------------------
-    # Helpers
-    # ------------------------
-    def _parse_date(s: str) -> date:
-        """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date."""
-        if not s:
-            return date(2025, 5, 1)  # default 2025-05-01
-        s = s.strip()
-        for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
-            try:
-                return datetime.strptime(s, fmt).date()
-            except ValueError:
-                continue
-        frappe.throw(f"Invalid start_date format: {s}. Use YYYY-MM-DD or DD-MM-YYYY.")
-        return date.today()  # unreachable
-
-    def _call_get_buildings(grid_name: str, start_d: date, end_d: date):
-        """Call gis.enumeration_validation.get_buildings(grid=..., start_date=..., end_date=...) and return response dict."""
-        fn = frappe.get_attr("gis.enumeration_validation.get_buildings")
-        return fn(grid=grid_name, start_date=start_d.isoformat(), end_date=end_d.isoformat())
-
     start_date = _parse_date(start_date_str)
     today = date.today()
     if start_date > today:
         frappe.throw("start_date cannot be in the future.")
+    if min_count <= 0 or max_count <= 0:
+        frappe.throw("min_count and max_count must be positive integers.")
+    if min_count > max_count:
+        frappe.throw("min_count cannot be greater than max_count.")
 
-    # (2) Pending summaries -> validators & grids
+    # Pending summaries → who is busy & which grids are taken
     pending_summaries = frappe.get_all(
         "Enumeration Validation Summary",
         filters={"status": "Pending"},
@@ -1456,7 +1512,7 @@ def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max
     validators_in_use = {row["validator"] for row in pending_summaries if row.get("validator")}
     pending_grids = {row["grid"] for row in pending_summaries if row.get("grid")}
 
-    # (1) User Permissions where allow="Ward"
+    # All Ward-level user permissions
     user_perms = frappe.get_all(
         "User Permission",
         filters={"allow": "Ward"},
@@ -1467,10 +1523,14 @@ def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max
     if not wards:
         return {"created": [], "skipped": {"no_wards": "No User Permission rows for Ward found."}}
 
-    # Preload grids by ward (enabled=1, vaccination_grid=0)
+    # Preload eligible grids for these wards
     grid_rows = frappe.get_all(
         "Grid",
-        filters={"enabled": 1, "vaccination_grid": 0, "ward": ["in", wards]},
+        filters={
+            "enabled": 1,
+            "vaccination_grid": 0,
+            "ward": ["in", wards]
+        },
         fields=["name", "ward"]
     )
     grids_by_ward = {}
@@ -1480,94 +1540,60 @@ def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max
     created = []
     skipped = {"no_grid_for_ward": [], "validator_busy": [], "not_enough_buildings": [], "errors": []}
 
-    # ------------------------
-    # Iterate users
-    # ------------------------
     for up in user_perms:
         validator = up["user"]
         ward_name = up["for_value"]
 
-        # (3) Skip if user is already assigned a pending summary
+        # Skip if user already has a pending summary
         if validator in validators_in_use:
             skipped["validator_busy"].append({"user": validator, "ward": ward_name})
             continue
 
-        # Candidate grids for this ward, excluding those already pending
+        # Grids for this ward, excluding ones already pending
         candidates = [g for g in grids_by_ward.get(ward_name, []) if g not in pending_grids]
         if not candidates:
             skipped["no_grid_for_ward"].append({"user": validator, "ward": ward_name})
             continue
 
-        random.shuffle(candidates)
-
+        random.shuffle(candidates)  # simple load spread
         picked_doc = None
+
         for grid_name in candidates:
-            # ---- accumulate buildings while growing end_date ----
-            end_date = min(start_date + timedelta(days=7), today)
-            accum_by_name = {}  # dedupe by building name
-            last_error = None
-
-            while True:
-                try:
-                    resp = _call_get_buildings(grid_name, start_date, end_date) or {}
-                except Exception as e:
-                    # record error and break
-                    last_error = str(e)
-                    break
-
-                # Normalize where the buildings might be nested
-                batch = (resp.get("all_buildings")
-                         or (resp.get("buildings_to_validate") or {}).get("all_buildings")
-                         or [])
-                # Accumulate unique by name
-                for b in batch:
-                    nm = b.get("name")
-                    if nm and nm not in accum_by_name:
-                        accum_by_name[nm] = b
-
-                # If we have min_count, see if we should keep going up to max_count (or today)
-                if len(accum_by_name) >= int(min_count):
-                    if len(accum_by_name) >= int(max_count) or end_date >= today:
-                        break  # reached cap or today; stop extending
-                    # else extend to get closer to max_count
-                    end_date = min(end_date + timedelta(days=7), today)
-                    continue
-
-                # Haven't reached min_count yet; extend if possible
-                if end_date >= today:
-                    break
-                end_date = min(end_date + timedelta(days=7), today)
-
-            # If we had a call error, log it and try next grid
-            if last_error:
+            try:
+                rows = _fetch_valid_buildings_sql(
+                    grid_name=grid_name,
+                    start_d=start_date,
+                    today_d=today,
+                    cap=max_count
+                )
+            except Exception as e:
                 skipped["errors"].append(
-                    {"user": validator, "ward": ward_name, "grid": grid_name, "error": last_error}
+                    {"user": validator, "ward": ward_name, "grid": grid_name, "error": str(e)}
                 )
                 continue
 
-            accum_buildings = list(accum_by_name.values())
-
-            # Final acceptance check for this grid
-            if len(accum_buildings) < int(min_count):
-                # try next candidate grid
+            if len(rows) < int(min_count):
+                # Not enough on this grid—try next candidate
                 continue
 
-            # Trim to max_count for writing to child tables
-            buildings_to_use = accum_buildings[: int(max_count)]
+            # Compute actual_end_date from the data returned (tracks when cap was hit or last building date)
+            # rows are ordered by end_time ASC; take the last one
+            last_end_time = rows[-1]["end_time"] if rows and rows[-1].get("end_time") else None
+            actual_end_date = (last_end_time.date() if last_end_time else today)
 
-            # (6) Create the Enumeration Validation Summary + children
             try:
                 doc = frappe.new_doc("Enumeration Validation Summary")
                 doc.validator = validator
                 doc.start_date = start_date.isoformat()
-                doc.end_date = end_date.isoformat()
+                doc.end_date = actual_end_date.isoformat()
                 doc.status = "Pending"
                 doc.grid = grid_name
 
-                # Write children from buildings_to_use (cap at max_count). Set doctype_name first.
-                for b in buildings_to_use:
+                # Fill children from the returned rows
+                for b in rows:
+                    # enumeration_sample_responses
                     doc.append("enumeration_sample_responses", {
-                        "doctype_name": b.get("form") or "Building",
+                        "doctype_name": "Building",
                         "record": b.get("name"),
                         "settlement": b.get("settlement"),
                         "enumerator": b.get("owner"),
@@ -1576,8 +1602,9 @@ def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max
                         "building_picture": b.get("building_picture"),
                         "building_picture_2": b.get("building_picture_2"),
                     })
+                    # records_under_validation
                     doc.append("records_under_validation", {
-                        "doctype_name": b.get("form") or "Building",
+                        "doctype_name": "Building",
                         "record": b.get("name"),
                         "settlement": b.get("settlement"),
                         "enumerator": b.get("owner"),
@@ -1593,21 +1620,21 @@ def assign_enumeration_validations(start_date_str=None, min_count: int = 15, max
                     "grid": grid_name,
                     "start_date": doc.start_date,
                     "end_date": doc.end_date,
-                    "count": len(buildings_to_use),
-                    "accumulated": len(accum_buildings),  # total found across the extended window
+                    "count": len(rows),
                 })
 
-                # Mark as busy to prevent duplicates in this run
+                # Mark taken in this run
                 pending_grids.add(grid_name)
                 validators_in_use.add(validator)
                 picked_doc = doc
-                break
+                break  # done for this user
+
             except Exception as e:
                 frappe.db.rollback()
                 skipped["errors"].append(
                     {"user": validator, "ward": ward_name, "grid": grid_name, "error": str(e)}
                 )
-                continue
+                # Try next candidate grid
 
         if not picked_doc:
             skipped["not_enough_buildings"].append({"user": validator, "ward": ward_name})
