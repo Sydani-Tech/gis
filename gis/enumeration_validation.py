@@ -473,27 +473,171 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
         "selected_buildings": [{"form": "Building", **b} for b in valid_buildings]
     }
 
+# @frappe.whitelist()
+# def get_enumeration_validation_summaries(name=None):
+#     """
+#     Fetches all Enumeration Validation Summaries for the logged-in user.
+#     """
+
+#     user = frappe.session.user
+#     if user == "Guest":
+#         return {"error": "You must be logged in to access this data."}
+
+#     # Check if the user has the "Enumeration Validator" role
+#     user_roles = frappe.get_roles(user)
+#     if "Enumeration Validator" not in user_roles:
+#         return {
+#             "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
+#             "status": 401
+#         }
+    
+#     # Check if a specific name is provided
+#     if name:
+#         results = frappe.db.sql("""
+#             SELECT 
+#                 parent.name,
+#                 parent.grid, 
+#                 parent.ward, 
+#                 parent.local_government_area, 
+#                 parent.state, 
+#                 parent.validator, 
+#                 parent.status,
+#                 parent.modified,
+#                 parent.completion_percentage,
+#                 parent.completed_validations,
+#                 parent.total_buildings
+#             FROM `tabEnumeration Validation Summary` AS parent
+#             WHERE parent.name = %s AND parent.validator = %s
+#         """, (name, user), as_dict=True)
+
+#         if results:
+#             grid_name = frappe.get_value("Grid", results[0].grid, "title")
+#             ward_name = frappe.get_value("Ward", results[0].ward, "ward")
+#             lga_name = frappe.get_value("Local Government Area", results[0].local_government_area, "local_government_area")
+#             results[0]["grid_name"] = grid_name
+#             results[0]["ward_name"] = grid_name if grid_name else ward_name
+#             results[0]["local_government_area_name"] = lga_name
+#         else:
+#             return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
+
+#     else:
+#         # Fetch all summaries for the logged-in user
+#         results = frappe.db.sql("""
+#                     SELECT 
+#                         parent.name, 
+#                         parent.grid,
+#                         parent.ward, 
+#                         parent.local_government_area, 
+#                         parent.state,
+#                         parent.completion_percentage,
+#                         parent.completed_validations,
+#                         parent.total_buildings,
+#                         parent.validator, 
+#                         parent.status,
+#                         parent.modified
+#                     FROM `tabEnumeration Validation Summary` AS parent
+#                     WHERE parent.validator = %s
+#                     ORDER BY parent.creation DESC
+#                 """, (user,), as_dict=True)
+        
+#         if results:
+
+#             for row in results:
+#                 grid_name = frappe.get_value("Grid", results[0].grid, "title")
+#                 ward_name = frappe.get_value("Ward", row.ward, "ward")
+#                 lga_name = frappe.get_value("Local Government Area", row.local_government_area, "local_government_area")
+                
+#                 row["grid_name"] = grid_name
+#                 row["ward_name"] = grid_name if grid_name else ward_name
+#                 row["local_government_area_name"] = lga_name
+#         else:
+#             return {"message": "No Enumeration Validation summaries found for the user. Please contact your supervisor.", "status": 404}
+
+
+#     # Add child records as a dictionary under each parent
+
+#     for row in results:
+
+#         if row.get("status") == "Pending":
+#             child_records = frappe.db.get_list(
+#                 "Enumeration Sample Responses",
+#                 filters={"parent": row["name"]},
+#                 fields=["record AS building_name", "status AS building_validation_status", "settlement", "geolocation AS building_geolocation", "validation_responses", "response_geolocation", "last_modified"],
+#                 ignore_permissions=True
+#             )
+#             for building in child_records:
+#                 building_details = get_building_details(building["building_name"])
+#                 building_questions = building_details.get("data", {}) if building_details else {}
+#                 building["building_questions"] = building_questions
+
+#             row["buildings"] = child_records  # Assign child records under 'buildings'
+
+#         #else return empty list
+#         else:
+#             row["buildings"] = []
+
+
+#     return {
+#         "message": "Enumeration Validation Summaries fetched successfully.",
+#         "status": 200,
+#         "data": results
+
+#     }
+
+
+import json
+import re
+import frappe
+
+# ---- Helper: sanitize validation_responses ----
+BASE64_IMG_PREFIX_RE = re.compile(r"^\s*data:image\/[A-Za-z0-9.+-]+;base64,", re.IGNORECASE)
+
+def _sanitize_validation_responses_str(vr: str | None) -> str | None:
+    """
+    Remove base64 image payloads from 'updatedValue' in the stringified JSON array.
+    Keeps structure identical, but sets updatedValue=None when it contains data:image...;base64,...
+    """
+    if not vr:
+        return vr
+    try:
+        data = json.loads(vr)
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    uv = item.get("updatedValue")
+                    if isinstance(uv, str) and BASE64_IMG_PREFIX_RE.match(uv):
+                        item["updatedValue"] = None
+        return json.dumps(data, ensure_ascii=False)
+    except Exception:
+        # If malformed JSON, return original to avoid breaking clients.
+        return vr
+
+
 @frappe.whitelist()
 def get_enumeration_validation_summaries(name=None):
     """
-    Fetches all Enumeration Validation Summaries for the logged-in user.
+    Fetch Enumeration Validation Summaries for the logged-in user.
+    - Uses a single SQL to fetch children for all Pending summaries.
+    - Sanitizes 'validation_responses' by removing base64 image payloads in updatedValue.
+    - Preserves your existing behavior of calling get_building_details(...) to attach building_questions.
     """
 
     user = frappe.session.user
     if user == "Guest":
         return {"error": "You must be logged in to access this data."}
 
-    # Check if the user has the "Enumeration Validator" role
+    # Require Enumeration Validator role
     user_roles = frappe.get_roles(user)
     if "Enumeration Validator" not in user_roles:
         return {
             "message": "You do not have the required role to perform enumeration validation, please contact your supervisor.",
-            "status": 401
+            "status": 401,
         }
-    
-    # Check if a specific name is provided
+
+    # --- Fetch parent summaries ---
     if name:
-        results = frappe.db.sql("""
+        results = frappe.db.sql(
+            """
             SELECT 
                 parent.name,
                 parent.grid, 
@@ -508,7 +652,10 @@ def get_enumeration_validation_summaries(name=None):
                 parent.total_buildings
             FROM `tabEnumeration Validation Summary` AS parent
             WHERE parent.name = %s AND parent.validator = %s
-        """, (name, user), as_dict=True)
+            """,
+            (name, user),
+            as_dict=True,
+        )
 
         if results:
             grid_name = frappe.get_value("Grid", results[0].grid, "title")
@@ -521,68 +668,94 @@ def get_enumeration_validation_summaries(name=None):
             return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
 
     else:
-        # Fetch all summaries for the logged-in user
-        results = frappe.db.sql("""
-                    SELECT 
-                        parent.name, 
-                        parent.grid,
-                        parent.ward, 
-                        parent.local_government_area, 
-                        parent.state,
-                        parent.completion_percentage,
-                        parent.completed_validations,
-                        parent.total_buildings,
-                        parent.validator, 
-                        parent.status,
-                        parent.modified
-                    FROM `tabEnumeration Validation Summary` AS parent
-                    WHERE parent.validator = %s
-                    ORDER BY parent.creation DESC
-                """, (user,), as_dict=True)
-        
-        if results:
+        results = frappe.db.sql(
+            """
+            SELECT 
+                parent.name, 
+                parent.grid,
+                parent.ward, 
+                parent.local_government_area, 
+                parent.state,
+                parent.completion_percentage,
+                parent.completed_validations,
+                parent.total_buildings,
+                parent.validator, 
+                parent.status,
+                parent.modified
+            FROM `tabEnumeration Validation Summary` AS parent
+            WHERE parent.validator = %s
+            ORDER BY parent.creation DESC
+            """,
+            (user,),
+            as_dict=True,
+        )
 
+        if results:
             for row in results:
-                grid_name = frappe.get_value("Grid", results[0].grid, "title")
+                grid_name = frappe.get_value("Grid", row.grid, "title")
                 ward_name = frappe.get_value("Ward", row.ward, "ward")
                 lga_name = frappe.get_value("Local Government Area", row.local_government_area, "local_government_area")
-                
                 row["grid_name"] = grid_name
                 row["ward_name"] = grid_name if grid_name else ward_name
                 row["local_government_area_name"] = lga_name
         else:
             return {"message": "No Enumeration Validation summaries found for the user. Please contact your supervisor.", "status": 404}
 
+    # --- Fetch child rows for all Pending summaries in one SQL ---
+    pending_names = [r["name"] for r in results if r.get("status") == "Pending"]
 
-    # Add child records as a dictionary under each parent
+    if pending_names:
+        # Single SQL for all children
+        children = frappe.db.sql(
+            """
+            SELECT
+                parent,
+                `record` AS building_name,
+                `status` AS building_validation_status,
+                settlement,
+                geolocation AS building_geolocation,
+                validation_responses,
+                response_geolocation,
+                last_modified
+            FROM `tabEnumeration Sample Responses`
+            WHERE parent IN %(parents)s
+            """,
+            {"parents": tuple(pending_names)},
+            as_dict=True,
+        )
 
-    for row in results:
+        # Sanitize validation_responses
+        for ch in children:
+            ch["validation_responses"] = _sanitize_validation_responses_str(ch.get("validation_responses"))
 
-        if row.get("status") == "Pending":
-            child_records = frappe.db.get_list(
-                "Enumeration Sample Responses",
-                filters={"parent": row["name"]},
-                fields=["record AS building_name", "status AS building_validation_status", "settlement", "geolocation AS building_geolocation", "validation_responses", "response_geolocation", "last_modified"],
-                ignore_permissions=True
-            )
-            for building in child_records:
-                building_details = get_building_details(building["building_name"])
-                building_questions = building_details.get("data", {}) if building_details else {}
-                building["building_questions"] = building_questions
+        # Group children by parent summary
+        by_parent = {}
+        for ch in children:
+            by_parent.setdefault(ch["parent"], []).append(ch)
 
-            row["buildings"] = child_records  # Assign child records under 'buildings'
-
-        #else return empty list
-        else:
+        # Attach + preserve building_questions enrichment
+        for row in results:
+            if row.get("status") == "Pending":
+                child_records = by_parent.get(row["name"], [])
+                # Keep your per-building enrichment
+                for b in child_records:
+                    building_details = get_building_details(b["building_name"])
+                    building_questions = building_details.get("data", {}) if building_details else {}
+                    b["building_questions"] = building_questions
+                row["buildings"] = child_records
+            else:
+                row["buildings"] = []
+    else:
+        # No pending summaries; set empty lists
+        for row in results:
             row["buildings"] = []
-
 
     return {
         "message": "Enumeration Validation Summaries fetched successfully.",
         "status": 200,
-        "data": results
-
+        "data": results,
     }
+
 
 
 @frappe.whitelist()
@@ -1394,249 +1567,335 @@ def test_get_buildings():
     result = get_buildings(ward=ward, grid=grid, start_date=start_date, end_date=end_date)
     print(result)
 
+
+
 import frappe
-import random
 from datetime import datetime, date, timedelta
+from frappe.utils import now
+
+# ---------------------------
+# Helpers
+# ---------------------------
 
 def _parse_date(s: str) -> date:
-    """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date (defaults to 2025-05-01 if missing)."""
+    """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date; default 2025-05-01."""
     if not s:
-        return date(2024, 5, 1)
+        return date(2025, 5, 1)
     s = s.strip()
     for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
         try:
             return datetime.strptime(s, fmt).date()
         except ValueError:
-            continue
+            pass
     frappe.throw(f"Invalid start_date format: {s}. Use YYYY-MM-DD or DD-MM-YYYY.")
     return date.today()  # unreachable
 
-def _fetch_valid_buildings_sql(grid_name: str, start_d: date, today_d: date, cap: int):
+def _chunked_bulk_insert(doctype: str, fields: list[str], values: list[list], chunk_size: int = 1000):
+    """Avoid max_allowed_packet issues; safe no-op for empty values."""
+    if not values:
+        return
+    for i in range(0, len(values), chunk_size):
+        frappe.db.bulk_insert(doctype, fields, values[i:i+chunk_size])
+
+def _fetch_valid_buildings_sql_window(*, grid_name: str, start_ts: datetime, end_ts_excl: datetime, cap: int) -> list[dict]:
     """
-    Single SQL to fetch up to `cap` valid buildings in a grid between start_d and today_d,
-    ordered by end_time ASC so we know *when* max_count was reached.
-    A building is 'valid' if:
+    Pure SQL fetch of 'valid' buildings within a NON-overlapping window:
       - Building.status = 'Submitted'
+      - Building.grid = grid_name
+      - end_time >= start_ts AND end_time < end_ts_excl (note: '<' end boundary)
+      - end_time IS NOT NULL
       - Settlement.status = 'Approved'
-      - Has ≥1 Household(status='Submitted')
-      - Has ≥1 Children(status='Submitted') whose household is among the submitted households for that building
+      - EXISTS Household(status='Submitted') and Children(status='Submitted')
+    Returns up to `cap` rows ordered by end_time ASC.
     """
-    return frappe.db.sql(
+    rows = frappe.db.sql(
         """
         SELECT
             b.name,
-            b.grid,
             b.settlement,
             b.owner,
             b.geolocation,
             b.building_picture,
             b.building_picture_2,
             b.end_time
-        FROM `tabBuilding` b
-        INNER JOIN `tabSettlement` s
-            ON s.name = b.settlement
-           AND s.status = 'Approved'
+        FROM `tabBuilding` AS b USE INDEX (idx_building_grid_status_endtime)
         WHERE b.status = 'Submitted'
           AND b.grid = %(grid)s
           AND b.end_time IS NOT NULL
-          AND b.end_time BETWEEN %(start)s AND %(today)s
+          AND b.end_time >= %(start_ts)s
+          AND b.end_time <  %(end_ts)s
           AND EXISTS (
-                SELECT 1 FROM `tabHousehold` h
-                 WHERE h.building = b.name
-                   AND h.status = 'Submitted'
+                SELECT 1 FROM `tabSettlement` s USE INDEX (idx_settlement_status_name)
+                WHERE s.name = b.settlement AND s.status = 'Approved'
           )
           AND EXISTS (
-                SELECT 1
-                  FROM `tabChildren` c
-                 WHERE c.building = b.name
-                   AND c.status = 'Submitted'
-                   AND c.household IN (
-                        SELECT h2.name
-                          FROM `tabHousehold` h2
-                         WHERE h2.building = b.name
-                           AND h2.status = 'Submitted'
-                   )
+                SELECT 1 FROM `tabHousehold` h USE INDEX (building_status)
+                WHERE h.building = b.name AND h.status = 'Submitted' LIMIT 1
+          )
+          AND EXISTS (
+                SELECT 1 FROM `tabChildren` c USE INDEX (building_status_household)
+                WHERE c.building = b.name AND c.status = 'Submitted' LIMIT 1
           )
         ORDER BY b.end_time ASC
-        LIMIT %(cap)s
+        LIMIT %(limit)s
         """,
         {
             "grid": grid_name,
-            "start": datetime.combine(start_d, datetime.min.time()),
-            "today": datetime.combine(today_d, datetime.max.time()),
-            "cap": int(cap),
+            "start_ts": start_ts,
+            "end_ts": end_ts_excl,
+            "limit": int(cap),
         },
         as_dict=True,
     )
+    return rows
+
+
+# ---------------------------
+# Main function (drop-in)
+# ---------------------------
 
 @frappe.whitelist()
-def assign_enumeration_validations(start_date_str: str = None, min_count: int = 2, max_count: int = 10):
+def assign_enumeration_validations(start_date_str: str | None = None, min_count: int = 15, max_count: int = 30):
     """
-    Auto-create Enumeration Validation Summary for each validator (user) who has a Ward-level User Permission
-    and is not already the validator on a pending Summary.
+    Optimized enumerations assignment with unique, windowed fetch:
+      - Non-overlapping 7-day windows to avoid duplicate buildings.
+      - Skips grids that can't reach min_count (no padding).
+      - Sets parent.total_buildings to count of unique valid buildings.
+      - Bulk inserts children.
 
-    Logic:
-      - For each (user, ward) User Permission:
-          * Skip if user already has a Pending Summary.
-          * Pick a random eligible Grid in that ward (enabled=1, vaccination_grid=0, not already pending).
-          * Fetch up to `max_count` valid buildings between start_date and today using one SQL.
-          * If < min_count → skip this (user, ward).
-          * Else create a Summary:
-                validator=user
-                start_date = parsed start_date
-                end_date   = max(end_time) of returned buildings  ← tracks actual cap hit date
-                grid       = chosen grid
-                status     = "Pending"
-            Fill both child tables from the returned buildings.
-      - Returns a compact report.
-
-    Notes:
-      - No Python call to get_buildings; everything is SQL-based.
-      - `end_date` now reflects when the `max_count` (or the last returned building) was reached.
+    Also preloads:
+      - Pending validators/grids via SQL
+      - Candidate grids per ward via SQL
     """
+
+    # -------- Parse dates / guards --------
     start_date = _parse_date(start_date_str)
     today = date.today()
     if start_date > today:
         frappe.throw("start_date cannot be in the future.")
-    if min_count <= 0 or max_count <= 0:
-        frappe.throw("min_count and max_count must be positive integers.")
-    if min_count > max_count:
-        frappe.throw("min_count cannot be greater than max_count.")
 
-    # Pending summaries → who is busy & which grids are taken
-    pending_summaries = frappe.get_all(
-        "Enumeration Validation Summary",
-        filters={"status": "Pending"},
-        fields=["name", "validator", "grid"]
+    # -------- SQL preload pending validators & grids --------
+    pending_rows = frappe.db.sql(
+        """
+        SELECT validator, grid
+        FROM `tabEnumeration Validation Summary` USE INDEX (status_validator_grid)
+        WHERE status = 'Pending'
+        """,
+        as_dict=True,
     )
-    validators_in_use = {row["validator"] for row in pending_summaries if row.get("validator")}
-    pending_grids = {row["grid"] for row in pending_summaries if row.get("grid")}
+    validators_in_use = {r["validator"] for r in pending_rows if r.get("validator")}
+    pending_grids = {r["grid"] for r in pending_rows if r.get("grid")}
 
-    # All Ward-level user permissions
+    # -------- User-permission (Ward) --------
     user_perms = frappe.get_all(
         "User Permission",
         filters={"allow": "Ward"},
-        fields=["user", "for_value"]
+        fields=["user", "for_value"],
     )
     user_perms = [up for up in user_perms if up.get("user") and up.get("for_value")]
-    wards = sorted({up["for_value"] for up in user_perms})
-    if not wards:
+    if not user_perms:
         return {"created": [], "skipped": {"no_wards": "No User Permission rows for Ward found."}}
 
-    # Preload eligible grids for these wards
-    grid_rows = frappe.get_all(
-        "Grid",
-        filters={
-            "enabled": 1,
-            "vaccination_grid": 0,
-            "ward": ["in", wards]
-        },
-        fields=["name", "ward"]
+    wards = sorted({up["for_value"] for up in user_perms})
+
+    # -------- Preload candidate grids for all wards via SQL --------
+    grid_rows = frappe.db.sql(
+        """
+        SELECT name, ward
+        FROM `tabGrid` USE INDEX (ward_enabled_vacc)
+        WHERE enabled = 1
+          AND vaccination_grid = 0
+          AND ward IN %(wards)s
+        """,
+        {"wards": tuple(wards)},
+        as_dict=True,
     )
-    grids_by_ward = {}
+    grids_by_ward: dict[str, list[str]] = {}
     for gr in grid_rows:
         grids_by_ward.setdefault(gr["ward"], []).append(gr["name"])
 
     created = []
     skipped = {"no_grid_for_ward": [], "validator_busy": [], "not_enough_buildings": [], "errors": []}
 
+    # -------- Iterate each (user, ward) --------
     for up in user_perms:
         validator = up["user"]
         ward_name = up["for_value"]
 
-        # Skip if user already has a pending summary
+        # Skip if already has a pending summary
         if validator in validators_in_use:
             skipped["validator_busy"].append({"user": validator, "ward": ward_name})
             continue
 
-        # Grids for this ward, excluding ones already pending
+        # Candidate grids for the ward
         candidates = [g for g in grids_by_ward.get(ward_name, []) if g not in pending_grids]
         if not candidates:
             skipped["no_grid_for_ward"].append({"user": validator, "ward": ward_name})
             continue
 
-        random.shuffle(candidates)  # simple load spread
-        picked_doc = None
+        picked_summary_name = None
 
+        # Deterministic iteration (no shuffle)
         for grid_name in candidates:
             try:
-                rows = _fetch_valid_buildings_sql(
-                    grid_name=grid_name,
-                    start_d=start_date,
-                    today_d=today,
-                    cap=max_count
+                # Slide in non-overlapping 7-day windows; collect unique until min_count/max_count or today
+                # Window [ws, we): inclusive start, exclusive end
+                window_start = datetime.combine(start_date, datetime.min.time())
+                window_end = datetime.combine(min(start_date + timedelta(days=7), today) + timedelta(days=1), datetime.min.time())
+                all_rows: list[dict] = []
+                seen: set[str] = set()
+                actual_end_date = window_end.date() - timedelta(days=1)
+
+                while True:
+                    need = max_count - len(all_rows)
+                    if need <= 0:
+                        break
+
+                    batch = _fetch_valid_buildings_sql_window(
+                        grid_name=grid_name,
+                        start_ts=window_start,
+                        end_ts_excl=window_end,
+                        cap=need,
+                    )
+
+                    # Deduplicate by building name
+                    new_items = []
+                    for r in batch:
+                        nm = r["name"]
+                        if nm in seen:
+                            continue
+                        seen.add(nm)
+                        new_items.append(r)
+
+                    if new_items:
+                        all_rows.extend(new_items)
+                        # Track the *actual* end date reached (from the last row’s end_time)
+                        last_dt = new_items[-1]["end_time"]
+                        if last_dt:
+                            actual_end_date = max(actual_end_date, last_dt.date())
+
+                    # If we've met min_count, we can stop early (still no duplicates)
+                    if len(all_rows) >= int(min_count):
+                        break
+
+                    # Advance the window; stop if we've reached today's window already
+                    next_start_day = (window_end.date())  # since window_end is exclusive, this is the next day
+                    if next_start_day > today:
+                        break
+
+                    window_start = datetime.combine(next_start_day, datetime.min.time())
+                    next_end_day = min(next_start_day + timedelta(days=7), today)
+                    window_end = datetime.combine(next_end_day + timedelta(days=1), datetime.min.time())
+
+                    # If window_start has passed today, break
+                    if window_start.date() > today:
+                        break
+
+                # Decide if this grid qualifies (no padding)
+                if len(all_rows) < int(min_count):
+                    # Try next candidate grid
+                    continue
+
+                # ------------- Create parent & bulk insert children -------------
+                parent = frappe.get_doc({
+                    "doctype": "Enumeration Validation Summary",
+                    "validator": validator,
+                    "start_date": start_date.isoformat(),
+                    "end_date": actual_end_date.isoformat(),  # actual end date reached
+                    "status": "Pending",
+                    "grid": grid_name,
+                    "total_buildings": len(all_rows), 
+                    "pending_validations": len(all_rows),         # set total to count of unique valid buildings
+                })
+                parent.flags.ignore_mandatory = True
+                parent.insert(ignore_permissions=True)
+                summary_name = parent.name
+
+                # Prepare child rows
+                ts = now()
+                owner = frappe.session.user
+
+                # Child: Enumeration Sample Responses
+                esr_fields = [
+                    "name","owner","creation","modified","last_modified","modified_by",
+                    "parent","parenttype","parentfield","idx","docstatus",
+                    "doctype_name","record","settlement","enumerator","status",
+                    "geolocation","building_picture","building_picture_2",
+                ]
+                esr_values = []
+                for idx, b in enumerate(all_rows, start=1):
+                    esr_values.append([
+                        frappe.generate_hash(length=12),
+                        owner, ts, ts, ts, owner,
+                        summary_name, "Enumeration Validation Summary", "enumeration_sample_responses", idx, 0,
+                        "Building", b.get("name"), b.get("settlement"), b.get("owner"), "Pending",
+                        b.get("geolocation"), b.get("building_picture"), b.get("building_picture_2"),
+                    ])
+
+                # Child: Records Under Validation
+                ruv_fields = [
+                    "name","owner","creation","modified","modified_by",
+                    "parent","parenttype","parentfield","idx","docstatus",
+                    "doctype_name","record","settlement","enumerator","status",
+                ]
+                ruv_values = []
+                for idx, b in enumerate(all_rows, start=1):
+                    ruv_values.append([
+                        frappe.generate_hash(length=12),
+                        owner, ts, ts, owner,
+                        summary_name, "Enumeration Validation Summary", "records_under_validation", idx, 0,
+                        "Building", b.get("name"), b.get("settlement"), b.get("owner"), "Pending",
+                    ])
+
+                # Bulk insert children
+                _chunked_bulk_insert("Enumeration Sample Responses", esr_fields, esr_values)
+                _chunked_bulk_insert("Records Under Validation", ruv_fields, ruv_values)
+
+                # --- compute & persist rollups on the parent ---
+                pending = len(all_rows)
+                total = len(all_rows)
+
+                frappe.db.set_value(
+                    "Enumeration Validation Summary",
+                    summary_name,
+                    {
+                        "pending_validations": pending,
+                        "total_buildings": total,
+                    },
+                    update_modified=False,  # avoid bumping modified if you prefer
                 )
-            except Exception as e:
-                skipped["errors"].append(
-                    {"user": validator, "ward": ward_name, "grid": grid_name, "error": str(e)}
-                )
-                continue
 
-            if len(rows) < int(min_count):
-                # Not enough on this grid—try next candidate
-                continue
+                # reflect the values in the object we’re about to echo back
+                parent.reload()
 
-            # Compute actual_end_date from the data returned (tracks when cap was hit or last building date)
-            # rows are ordered by end_time ASC; take the last one
-            last_end_time = rows[-1]["end_time"] if rows and rows[-1].get("end_time") else None
-            actual_end_date = (last_end_time.date() if last_end_time else today)
 
-            try:
-                doc = frappe.new_doc("Enumeration Validation Summary")
-                doc.validator = validator
-                doc.start_date = start_date.isoformat()
-                doc.end_date = actual_end_date.isoformat()
-                doc.status = "Pending"
-                doc.grid = grid_name
-
-                # Fill children from the returned rows
-                for b in rows:
-                    # enumeration_sample_responses
-                    doc.append("enumeration_sample_responses", {
-                        "doctype_name": "Building",
-                        "record": b.get("name"),
-                        "settlement": b.get("settlement"),
-                        "enumerator": b.get("owner"),
-                        "status": "Pending",
-                        "geolocation": b.get("geolocation"),
-                        "building_picture": b.get("building_picture"),
-                        "building_picture_2": b.get("building_picture_2"),
-                    })
-                    # records_under_validation
-                    doc.append("records_under_validation", {
-                        "doctype_name": "Building",
-                        "record": b.get("name"),
-                        "settlement": b.get("settlement"),
-                        "enumerator": b.get("owner"),
-                        "status": "Pending",
-                    })
-
-                doc.insert(ignore_permissions=True)
                 frappe.db.commit()
 
                 created.append({
-                    "summary": doc.name,
+                    "summary": summary_name,
                     "validator": validator,
                     "grid": grid_name,
-                    "start_date": doc.start_date,
-                    "end_date": doc.end_date,
-                    "count": len(rows),
+                    "start_date": parent.start_date,
+                    "end_date": parent.end_date,
+                    "count": len(all_rows),
+                    "total_buildings": len(all_rows),
+                    "pending_validations": len(all_rows),
                 })
 
-                # Mark taken in this run
+                # Mark as in-use to avoid duplicates in this run
                 pending_grids.add(grid_name)
                 validators_in_use.add(validator)
-                picked_doc = doc
-                break  # done for this user
+                picked_summary_name = summary_name
+                break
 
             except Exception as e:
                 frappe.db.rollback()
                 skipped["errors"].append(
                     {"user": validator, "ward": ward_name, "grid": grid_name, "error": str(e)}
                 )
-                # Try next candidate grid
+                # try next candidate
 
-        if not picked_doc:
+        if not picked_summary_name:
             skipped["not_enough_buildings"].append({"user": validator, "ward": ward_name})
 
     return {
@@ -1646,5 +1905,5 @@ def assign_enumeration_validations(start_date_str: str = None, min_count: int = 
             "start_date": start_date.isoformat(),
             "min_count": int(min_count),
             "max_count": int(max_count),
-        }
+        },
     }
