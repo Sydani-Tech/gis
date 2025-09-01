@@ -941,32 +941,6 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
             })
         return {"status": 200, "response": "Success", "data": data}
 
-    # Ward provided (no settlement) → counts per Settlement + response_geolocation (Point) from Settlement.doctype
-    # if ward and not settlement:
-    #     try:
-    #         rows = _group_aggregates("settlement")
-    #     except Exception as e:
-    #         return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
-
-    #     data = []
-    #     for r in rows:
-    #         label = r["label"]
-    #         point_fc = _fetch_geo(
-    #             doctype="Settlement",
-    #             key=label,
-    #             fieldname="response_geolocation",
-    #             fallback_fields=["settlement", "name"],  # your label field on Settlement
-    #             wrap_fc=True
-    #         )
-    #         data.append({
-    #             "settlement": label,
-    #             "total_settlements": int(r["total_settlements"]),
-    #             "urban_settlements": int(r["urban_settlements"]),
-    #             "rural_settlements": int(r["rural_settlements"]),
-    #             "centroid": centroid,
-    #         })
-    #     return {"status": 200, "response": "Success", "data": data}
-
     # Fallback → original rows
     settlement_query = f"""
         SELECT name, type_of_settlement, archetype_for_rural, archetype_for_urban,
@@ -979,3 +953,1265 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
         return {"status": 200, "response": "Success", "data": rows}
     except Exception as e:
         return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+        
+
+@frappe.whitelist()
+def table_overview(
+    project=None,
+    grid=None,
+    settlement=None,
+    ward=None,
+    lga=None,
+    state=None,
+    form=None,
+    page: int = 1,
+    page_size: int = 200,
+    download_all=None,
+):
+    """
+    Fetch data for the dashboard based on selected form: Settlement, Building, Household, Children, or Vaccination.
+    New:
+      - Pagination: page, page_size (allowed: 100, 200, 350, 500; default 100)
+      - Returns total_count and total_pages
+      - download_all: if truthy, returns xlsx_file_url for a workbook with multiple sheets
+    """
+    # --- Basic guards ---
+    if not project:
+        return {"message": "Please provide a project to return the data for the dashboard.", "status": 400}
+
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+
+    user_roles = frappe.get_roles(user)
+    if "Dashboard Viewer" not in user_roles:
+        return {"message": "You do not have the required role to visualize the dashboard, please contact the project manager.", "status": 401}
+
+    # --- Normalize & validate pagination ---
+    allowed_sizes = {100, 200, 350, 500}
+    try:
+        page = int(page) if page else 1
+    except Exception:
+        page = 1
+    if page < 1:
+        page = 1
+
+    try:
+        page_size = int(page_size) if page_size else 100
+    except Exception:
+        page_size = 100
+    if page_size not in allowed_sizes:
+        page_size = 100
+
+    # --- User permissions → default filters ---
+    user_permissions = frappe.get_all(
+        "User Permission",
+        filters={"user": user},
+        fields=["allow", "for_value", "is_default"]
+    )
+
+    filters = {}
+    for allow_value in ["State", "Local Government Area", "Ward", "Settlement"]:
+        allowed_records = [perm for perm in user_permissions if perm["allow"] == allow_value]
+        if allowed_records:
+            default_record = next((perm for perm in allowed_records if perm["is_default"]), None)
+            if default_record:
+                filters[allow_value.lower().replace(" ", "_")] = default_record["for_value"]
+            else:
+                filters[allow_value.lower().replace(" ", "_")] = ("in", [perm["for_value"] for perm in allowed_records])
+
+    # Explicit filters override
+    if grid:
+        filters["grid"] = grid
+    if settlement:
+        filters["settlement"] = settlement
+    if ward:
+        filters["ward"] = ward
+    if lga:
+        filters["local_government_area"] = lga
+    if state:
+        filters["state"] = state
+    if project:
+        filters["project"] = project
+
+    # Build WHERE clause and values; we’ll always qualify with alias `t` to avoid ambiguity
+    sql_conditions = ["t.status = 'Approved'"]
+    sql_values = []
+    for key, value in filters.items():
+        col = f"t.`{key}`"
+        if isinstance(value, tuple) and value[0] == "in":
+            sql_conditions.append(f"{col} IN %s")
+            sql_values.append(tuple(value[1]))
+        else:
+            sql_conditions.append(f"{col} = %s")
+            sql_values.append(value)
+    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+
+    # --- Form → table/fields mapping ---
+    form_table_mapping = {
+        "Settlement": "tabSettlement",
+        "Building": "tabBuilding",
+        "Household": "tabHousehold",
+        "Children": "tabChildren",
+        "Vaccination": "tabVaccination",
+    }
+
+    field_selection = {
+        "Settlement": [
+            "name_of_settlement", "type_of_settlement", "archetype_for_rural", "archetype_for_urban",
+            "name_of_settlementcommunity_head", "name_of_disease_surveillance_community_informant",
+            "names_of_other_influential_members_within_settlement", "is_there_a_vdc",
+            "how_often_does_the_vdc_meet", "ward", "local_government_area", "state"
+        ],
+        "Building": [
+            "building_address", "building_picture", "building_picture_2", "building_type",
+            "establishment_type", "health_facility", "how_many_households_occupy_this_building",
+            "settlement", "ward", "local_government_area", "state"
+        ],
+        "Children": [
+            "full_name", "date_of_birth", "vaccination_status", "gender", "last_vaccination_date",
+            "vaccines_taken", "settlement", "ward", "local_government_area", "state"
+        ],
+        "Vaccination": [
+            "full_name", "vaccination_status", "date_of_birth", "vaccination_date", "vaccines_taken",
+            "next_vaccination_date", "gender", "care_givers_name", "household", "children", "facility",
+            "settlement", "ward", "local_government_area", "state"
+        ],
+        "Household": [
+            "name_of_household_head", "gender_of_household_head", "date_of_birth_of_household_head",
+            "educational_level_of_household_head", "is_the_household_head_employed", "industry_of_employment",
+            "average_monthly_income", "is_the_household_residing_in_a_rented_apartment",
+            "how_many_people_live_in_the_household", "what_is_the_nearest_facility",
+            "exact_distance_in_km", "settlement", "ward", "local_government_area", "state"
+        ],
+    }
+
+    if form not in form_table_mapping:
+        return {"message": "Invalid form type provided.", "status": 400}
+
+    # Resolve selected table & fields
+    table_name = form_table_mapping[form]
+    selected_fields = field_selection.get(form, [])
+
+    # Labels per field
+    field_labels = {}
+    for field in selected_fields:
+        label = frappe.db.get_value("DocField", {"parent": form, "fieldname": field}, "label")
+        field_labels[field] = label if label else field
+
+    # Build SELECT field list (qualify with `t.`); convert DOB to Age (months → years+months)
+    select_parts = []
+    for field in selected_fields:
+        if "date_of_birth" in field:
+            # Return Age (months) as Age, we’ll pretty print below
+            select_parts.append(f"TIMESTAMPDIFF(MONTH, t.`{field}`, CURDATE()) AS `Age`")
+            field_labels[field] = "Age"
+        else:
+            select_parts.append(f"t.`{field}`")
+    field_names_str = ", ".join(select_parts) if select_parts else "t.name"
+
+    # --- Paginated data query for the chosen form ---
+    # Count
+    count_sql = f"SELECT COUNT(*) AS cnt FROM `{table_name}` t WHERE {where_clause}"
+    total_count = frappe.db.sql(count_sql, tuple(sql_values), as_dict=True)[0]["cnt"] if sql_values is not None else 0
+    total_pages = (total_count + page_size - 1) // page_size if page_size else 1
+    if total_pages == 0:
+        total_pages = 1
+
+    # Page slice
+    offset = (page - 1) * page_size
+    page_sql = f"""
+        SELECT {field_names_str}
+        FROM `{table_name}` t
+        WHERE {where_clause}
+        ORDER BY t.modified DESC
+        LIMIT %s OFFSET %s
+    """
+    page_values = tuple(sql_values) + (page_size, offset)
+    records = frappe.db.sql(page_sql, page_values, as_dict=True)
+
+    # Post-process label→human readable names (kept as in your original)
+    if records:
+        for record in records:
+            if "ward" in record and record["ward"]:
+                record["ward"] = frappe.db.get_value("Ward", record["ward"], "ward")
+            if "local_government_area" in record and record["local_government_area"]:
+                record["local_government_area"] = frappe.db.get_value("Local Government Area", record["local_government_area"], "local_government_area")
+            if "state" in record and record["state"]:
+                record["state"] = frappe.db.get_value("State", record["state"], "state")
+            if "household" in record and record["household"]:
+                record["household"] = frappe.db.get_value("Household", record["household"], "name_of_household_head")
+            if "children" in record and record["children"]:
+                record["children"] = frappe.db.get_value("Children", record["children"], "full_name")
+            if "facility" in record and record["facility"]:
+                record["facility"] = frappe.db.get_value("Facility", record["facility"], "facility_name")
+            if "what_is_the_nearest_facility" in record and record["what_is_the_nearest_facility"]:
+                record["what_is_the_nearest_facility"] = frappe.db.get_value("Facility", record["what_is_the_nearest_facility"], "facility_name")
+            if "health_facility" in record and record["health_facility"]:
+                record["health_facility"] = frappe.db.get_value("Facility", record["health_facility"], "facility_name")
+            if "Age" in record:
+                months = record["Age"]
+                if months is not None:
+                    if months < 12:
+                        record["Age"] = f"{months} months"
+                    else:
+                        years = months // 12
+                        remaining_months = months % 12
+                        record["Age"] = f"{years} years {remaining_months} months"
+
+    # Build headers in the same order as selected_fields
+    headers = [field_labels[field] for field in selected_fields]
+    data = [list(r.values()) for r in records]
+
+    # --- KPI counts (kept as in your original, but qualified) ---
+    # Reuse where_clause/sql_values for each table, changing only the table name and alias.
+    def _count_on(table):
+        sql = f"SELECT COUNT(*) AS count FROM `{table}` t WHERE {where_clause}"
+        return frappe.db.sql(sql, tuple(sql_values), as_dict=True)[0]["count"]
+
+    settlement_count = _count_on("tabSettlement")
+    building_count = _count_on("tabBuilding")
+    residential_building_count = frappe.db.sql(
+        f"SELECT COUNT(*) AS count FROM `tabBuilding` t WHERE t.building_type = 'Residential' AND {where_clause}",
+        tuple(sql_values),
+        as_dict=True
+    )[0]["count"]
+    total_buildings = building_count
+    residential_percentage = round((residential_building_count / total_buildings) * 100, 2) if total_buildings > 0 else 0
+    household_count = _count_on("tabHousehold")
+    children_count = _count_on("tabChildren")
+    male_children_count = frappe.db.sql(
+        f"SELECT COUNT(*) AS count FROM `tabChildren` t WHERE t.gender = 'Male' AND {where_clause}",
+        tuple(sql_values),
+        as_dict=True
+    )[0]["count"]
+    female_children_count = frappe.db.sql(
+        f"SELECT COUNT(*) AS count FROM `tabChildren` t WHERE t.gender = 'Female' AND {where_clause}",
+        tuple(sql_values),
+        as_dict=True
+    )[0]["count"]
+    vaccination_count = _count_on("tabVaccination")
+
+    # --- Optional: export all forms to XLSX (multi-sheet) ---
+    xlsx_file_url = None
+    if str(download_all).strip().lower() in {"1", "true"}:
+        try:
+            from openpyxl import Workbook
+            from openpyxl.utils import get_column_letter
+            import io
+
+            # Helper to fetch full (unpaginated) rows for a form
+            def _fetch_all_for_form(form_key: str):
+                tbl = form_table_mapping[form_key]
+                fields = field_selection[form_key]
+                parts = []
+                labels = {}
+                for f in fields:
+                    if "date_of_birth" in f:
+                        parts.append(f"TIMESTAMPDIFF(MONTH, t.`{f}`, CURDATE()) AS `Age`")
+                        labels[f] = "Age"
+                    else:
+                        parts.append(f"t.`{f}`")
+                        labels[f] = frappe.db.get_value("DocField", {"parent": form_key, "fieldname": f}, "label") or f
+                select_str = ", ".join(parts) if parts else "t.name"
+                sql = f"SELECT {select_str} FROM `{tbl}` t WHERE {where_clause} ORDER BY t.modified DESC"
+                rows = frappe.db.sql(sql, tuple(sql_values), as_dict=True)
+                # Humanize some fields like above (kept consistent)
+                for rec in rows:
+                    if "ward" in rec and rec["ward"]:
+                        rec["ward"] = frappe.db.get_value("Ward", rec["ward"], "ward")
+                    if "local_government_area" in rec and rec["local_government_area"]:
+                        rec["local_government_area"] = frappe.db.get_value("Local Government Area", rec["local_government_area"], "local_government_area")
+                    if "state" in rec and rec["state"]:
+                        rec["state"] = frappe.db.get_value("State", rec["state"], "state")
+                    if "household" in rec and rec["household"]:
+                        rec["household"] = frappe.db.get_value("Household", rec["household"], "name_of_household_head")
+                    if "children" in rec and rec["children"]:
+                        rec["children"] = frappe.db.get_value("Children", rec["children"], "full_name")
+                    if "facility" in rec and rec["facility"]:
+                        rec["facility"] = frappe.db.get_value("Facility", rec["facility"], "facility_name")
+                    if "what_is_the_nearest_facility" in rec and rec["what_is_the_nearest_facility"]:
+                        rec["what_is_the_nearest_facility"] = frappe.db.get_value("Facility", rec["what_is_the_nearest_facility"], "facility_name")
+                    if "health_facility" in rec and rec["health_facility"]:
+                        rec["health_facility"] = frappe.db.get_value("Facility", rec["health_facility"], "facility_name")
+                    if "Age" in rec:
+                        months = rec["Age"]
+                        if months is not None:
+                            if months < 12:
+                                rec["Age"] = f"{months} months"
+                            else:
+                                years = months // 12
+                                rem = months % 12
+                                rec["Age"] = f"{years} years {rem} months"
+                # Headers in same order
+                hdrs = [labels[f] for f in fields]
+                rows_list = [list(r.values()) for r in rows]
+                return hdrs, rows_list, fields
+
+            # Build workbook
+            wb = Workbook()
+            # First sheet: requested form
+            ws = wb.active
+            ws.title = (form or "Data")[:31]
+            # Use current page headers + rows
+            for col_idx, header in enumerate(headers, start=1):
+                ws.cell(row=1, column=col_idx, value=header)
+            for r_idx, row in enumerate(data, start=2):
+                for c_idx, value in enumerate(row, start=1):
+                    ws.cell(row=r_idx, column=c_idx, value=value)
+            for col_idx in range(1, max(1, len(headers)) + 1):
+                ws.column_dimensions[get_column_letter(col_idx)].width = 18
+
+            # Additional sheets for the other forms
+            other_forms = [k for k in form_table_mapping.keys() if k != form]
+            for fkey in other_forms:
+                hdrs, rows_list, _ = _fetch_all_for_form(fkey)
+                ws2 = wb.create_sheet(title=fkey[:31])
+                for c, h in enumerate(hdrs, start=1):
+                    ws2.cell(row=1, column=c, value=h)
+                for r_i, row in enumerate(rows_list, start=2):
+                    for c_i, v in enumerate(row, start=1):
+                        ws2.cell(row=r_i, column=c_i, value=v)
+                for col_idx in range(1, max(1, len(hdrs)) + 1):
+                    ws2.column_dimensions[get_column_letter(col_idx)].width = 18
+
+            # Save to File doc
+            buf = io.BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+
+            filename = f"table_overview_{frappe.utils.now_datetime().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            file_doc = frappe.get_doc({
+                "doctype": "File",
+                "file_name": filename,
+                "attached_to_doctype": None,
+                "attached_to_name": None,
+                "is_private": 0,  # public
+                "content": buf.getvalue(),
+                "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            })
+            file_doc.insert(ignore_permissions=True)
+            frappe.db.commit()
+
+            site_url = frappe.utils.get_url()  # e.g., https://admin.coveragetrackr.com
+            xlsx_file_url = site_url + file_doc.file_url
+
+        except Exception as e:
+            frappe.log_error(f"Failed to build/export XLSX: {e}", "table_overview XLSX")
+            xlsx_file_url = None
+
+    # --- Final payload ---
+    if not records:
+        return {
+            "message": "No records found for the selected criteria.",
+            "status": 404,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "page": page,
+            "page_size": page_size,
+            "xlsx_file_url": xlsx_file_url,
+        }
+
+    return {
+        "headers": headers,
+        "data": data,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "page": page,
+        "page_size": page_size,
+        "total_settlements": settlement_count,
+        "total_buildings": building_count,
+        "residential_building_count": residential_building_count,
+        "residential_building_percentage": residential_percentage,
+        "total_households": household_count,
+        "total_children": children_count,
+        "total_male_children": male_children_count,
+        "total_female_children": female_children_count,
+        "total_vaccinations": vaccination_count,
+        "xlsx_file_url": xlsx_file_url,
+        "status": 200,
+        "response": "Success",
+    }
+
+
+# @frappe.whitelist()
+# def vaccination_overview(
+#     project=None,
+#     grid=None,
+#     settlement=None,
+#     ward=None,
+#     lga=None,
+#     state=None,
+#     gender=None,                 # "Male" | "Female" (optional)
+#     vaccination_status=None,     # exact string (optional)
+#     start_age=None,              # in months (optional, int-like)
+#     end_age=None,                # in months (optional, int-like)
+#     under2_only=None,            # "1"/"true"/True => restrict DOB <= 24 months
+#     trend_granularity="monthly"  # "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
+# ):
+#     """
+#     Aggregated vaccination stats (Approved only) + grouped multi-bar chart + trend analysis.
+#     """
+
+#     # --- Auth / role checks ---
+#     user = frappe.session.user
+#     if user == "Guest":
+#         return {"message": "You must be logged in to access this data.", "status": 401}
+
+#     user_roles = frappe.get_roles(user)
+#     if "Dashboard Viewer" not in user_roles:
+#         return {"message": "You do not have the required role to visualize the dashboard, please contact the project manager.", "status": 401}
+
+#     # --- Permission-driven filters (same pattern as your endpoints) ---
+#     user_permissions = frappe.get_all(
+#         "User Permission",
+#         filters={"user": user},
+#         fields=["allow", "for_value", "is_default"]
+#     )
+
+#     filters = {}
+#     for allow_value in ["State", "Local Government Area", "Ward", "Settlement"]:
+#         allowed_records = [p for p in user_permissions if p["allow"] == allow_value]
+#         if allowed_records:
+#             default_record = next((p for p in allowed_records if p.get("is_default")), None)
+#             if default_record:
+#                 filters[allow_value.lower().replace(" ", "_")] = default_record["for_value"]
+#             else:
+#                 filters[allow_value.lower().replace(" ", "_")] = ("in", [p["for_value"] for p in allowed_records])
+
+#     # Explicit API filters
+#     if grid:
+#         filters["grid"] = grid
+#     if settlement:
+#         filters["settlement"] = settlement
+#     if ward:
+#         filters["ward"] = ward
+#     if lga:
+#         filters["local_government_area"] = lga
+#     if state:
+#         filters["state"] = state
+#     if project:
+#         filters["project"] = project
+
+#     # --- Vaccination WHERE clause (positional params for aggregations) ---
+#     v_where = ["status = 'Approved'"]
+#     v_vals = []
+
+#     for key, value in filters.items():
+#         if isinstance(value, tuple) and value[0] == "in":
+#             v_where.append(f"`{key}` IN %s")
+#             v_vals.append(tuple(value[1]))
+#         else:
+#             v_where.append(f"`{key}` = %s")
+#             v_vals.append(value)
+
+#     if gender:
+#         v_where.append("gender = %s")
+#         v_vals.append(gender)
+
+#     if vaccination_status:
+#         v_where.append("vaccination_status = %s")
+#         v_vals.append(vaccination_status)
+
+#     # Age filters via date_of_birth
+#     if start_age is not None and end_age is not None:
+#         v_where.append("date_of_birth IS NOT NULL")
+#         v_where.append("TIMESTAMPDIFF(MONTH, date_of_birth, CURDATE()) BETWEEN %s AND %s")
+#         v_vals.extend([int(start_age), int(end_age)])
+#     else:
+#         if str(under2_only).strip().lower() in {"1", "true"}:
+#             v_where.append("date_of_birth IS NOT NULL")
+#             v_where.append("TIMESTAMPDIFF(MONTH, date_of_birth, CURDATE()) <= 24")
+
+#     v_where_clause = " AND ".join(v_where)
+
+#     # --- Primary totals aggregation (Vaccination) ---
+#     row = frappe.db.sql(
+#         f"""
+#         SELECT
+#             COUNT(*)                                                        AS total_vaccinations,
+
+#             SUM(CASE WHEN gender='Male'   THEN 1 ELSE 0 END)               AS total_male_vaccinations,
+#             SUM(CASE WHEN gender='Female' THEN 1 ELSE 0 END)               AS total_female_vaccinations,
+
+#             -- Fully Vaccinated (Measles 2)
+#             SUM(CASE WHEN vaccination_status='Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 END)                                   AS fully_vaccinated_total,
+#             SUM(CASE WHEN vaccination_status='Fully Vaccinated (Measles 2)' AND gender='Male'   THEN 1 ELSE 0 END)               AS fully_vaccinated_male,
+#             SUM(CASE WHEN vaccination_status='Fully Vaccinated (Measles 2)' AND gender='Female' THEN 1 ELSE 0 END)               AS fully_vaccinated_female,
+
+#             -- Vaccinated to Age
+#             SUM(CASE WHEN vaccination_status='Vaccinated to Age' THEN 1 ELSE 0 END)                                              AS vaccinated_to_age_total,
+#             SUM(CASE WHEN vaccination_status='Vaccinated to Age' AND gender='Male'   THEN 1 ELSE 0 END)                          AS vaccinated_to_age_male,
+#             SUM(CASE WHEN vaccination_status='Vaccinated to Age' AND gender='Female' THEN 1 ELSE 0 END)                          AS vaccinated_to_age_female,
+
+#             -- Under Immunized
+#             SUM(CASE WHEN vaccination_status='Under Immunized' THEN 1 ELSE 0 END)                                                AS under_immunized_total,
+#             SUM(CASE WHEN vaccination_status='Under Immunized' AND gender='Male'   THEN 1 ELSE 0 END)                             AS under_immunized_male,
+#             SUM(CASE WHEN vaccination_status='Under Immunized' AND gender='Female' THEN 1 ELSE 0 END)                             AS under_immunized_female,
+
+#             -- Zero Dose
+#             SUM(CASE WHEN vaccination_status='Zero Dose' THEN 1 ELSE 0 END)                                                       AS zero_dose_total,
+#             SUM(CASE WHEN vaccination_status='Zero Dose' AND gender='Male'   THEN 1 ELSE 0 END)                                   AS zero_dose_male,
+#             SUM(CASE WHEN vaccination_status='Zero Dose' AND gender='Female' THEN 1 ELSE 0 END)                                   AS zero_dose_female,
+
+#             -- Never Vaccinated
+#             SUM(CASE WHEN vaccination_status='Never Vaccinated' THEN 1 ELSE 0 END)                                                AS never_vaccinated_total,
+#             SUM(CASE WHEN vaccination_status='Never Vaccinated' AND gender='Male'   THEN 1 ELSE 0 END)                            AS never_vaccinated_male,
+#             SUM(CASE WHEN vaccination_status='Never Vaccinated' AND gender='Female' THEN 1 ELSE 0 END)                            AS never_vaccinated_female,
+
+#             -- From Enumeration (children is not null)
+#             SUM(CASE WHEN children IS NOT NULL AND children <> '' THEN 1 ELSE 0 END)                                              AS from_enumeration_count
+
+#         FROM `tabVaccination`
+#         WHERE {v_where_clause}
+#         """,
+#         tuple(v_vals),
+#         as_dict=True,
+#     )
+
+#     if not row:
+#         return {"message": "No records found for the selected criteria.", "status": 404}
+
+#     r = row[0]
+#     total = r.get("total_vaccinations", 0) or 0
+#     from_enum = r.get("from_enumeration_count", 0) or 0
+#     not_from_enum = max(total - from_enum, 0)
+
+#     pct_from_enum = round((from_enum / total) * 100.0, 2) if total else 0.0
+#     pct_not_from_enum = round((not_from_enum / total) * 100.0, 2) if total else 0.0
+
+#     # Pie chart
+#     # piechart = {
+#     #     "labels": ["From Enumeration", "From Other Outreaches"],
+#     #     "counts": [from_enum, not_from_enum],
+#     #     "percentages": [pct_from_enum, pct_not_from_enum],
+#     #     "total": total
+#     # }
+
+#     data = [
+#         {"type": "From Enumeration", "percentage": pct_from_enum, "count": from_enum},
+#         {"type": "From Other Outreaches", "percentage": pct_not_from_enum, "count": not_from_enum}
+#     ]
+
+
+#     # ----------------------------
+#     # Multi-bar grouped chart
+#     # ----------------------------
+#     # Decide grouping level
+#     if not state:
+#         group_by = "state"
+#         group_label_sql = "state"
+#     elif state and not lga:
+#         group_by = "local_government_area"
+#         group_label_sql = "local_government_area"
+#     elif state and lga and not ward:
+#         group_by = "ward"
+#         group_label_sql = "ward"
+#     else:
+#         group_by = "settlement"
+#         group_label_sql = "settlement"
+
+#     # Vaccination grouped
+#     v_groups = frappe.db.sql(
+#         f"""
+#         SELECT
+#             {group_label_sql} AS label,
+#             COUNT(*) AS total_vaccination,
+#             SUM(CASE WHEN children IS NOT NULL AND children <> '' THEN 1 ELSE 0 END) AS vaccinated_from_enumeration
+#         FROM `tabVaccination`
+#         WHERE {v_where_clause}
+#         GROUP BY {group_label_sql}
+#         """,
+#         tuple(v_vals),
+#         as_dict=True,
+#     )
+
+#     # Children under-2 grouped (Approved, <24 months) mirroring filters
+#     c_where = ["status = 'Approved'", "TIMESTAMPDIFF(MONTH, date_of_birth, CURDATE()) < 24"]
+#     c_vals = []
+#     for key, value in filters.items():
+#         if isinstance(value, tuple) and value[0] == "in":
+#             c_where.append(f"`{key}` IN %s")
+#             c_vals.append(tuple(value[1]))
+#         else:
+#             c_where.append(f"`{key}` = %s")
+#             c_vals.append(value)
+#     if gender:
+#         c_where.append("gender = %s")
+#         c_vals.append(gender)
+#     c_where_clause = " AND ".join(c_where)
+
+#     c_groups = frappe.db.sql(
+#         f"""
+#         SELECT
+#             {group_label_sql} AS label,
+#             COUNT(*) AS under2_children_enumerated
+#         FROM `tabChildren`
+#         WHERE {c_where_clause}
+#         GROUP BY {group_label_sql}
+#         """,
+#         tuple(c_vals),
+#         as_dict=True,
+#     )
+
+#     c_map = {row["label"]: row["under2_children_enumerated"] for row in c_groups}
+#     groups_out = []
+#     for vg in v_groups:
+#         label = vg["label"]
+#         total_vaccination = vg["total_vaccination"] or 0
+#         vaccinated_from_enumeration = vg["vaccinated_from_enumeration"] or 0
+#         under2 = c_map.get(label, 0)
+#         pct = round((vaccinated_from_enumeration / under2) * 100.0, 2) if under2 != 0 else 0.0
+
+#         groups_out.append({
+#             "label": label,
+#             "total_vaccination": total_vaccination,
+#             "enumerated_children": under2,
+#             "vaccinated_from_enumeration": vaccinated_from_enumeration,
+#             "percentage_vaccinated_from_enumeration": pct,
+#             "target": "15%",
+            
+#         })
+
+#     # ----------------------------
+#     # Trend analysis (period-first & antigen-first)
+#     # ----------------------------
+#     antigens = ["Measles 2", "OPV 0", "BCG", "HEP B0", "PENTA 1", "PENTA 3"]
+
+#     # Map granularity to MySQL DATE_FORMAT / expressions
+#     if trend_granularity == "daily":
+#         period_sql = "DATE_FORMAT(v.creation, '%%d-%%m-%%y')"
+#     elif trend_granularity == "weekly":
+#         # Get the Monday date of the ISO week
+#         # period_sql = "STR_TO_DATE(CONCAT(YEARWEEK(v.creation, 3), ' Monday'), '%X%V %W')"
+#         period_sql = "STR_TO_DATE(CONCAT(YEARWEEK(v.creation, 3), ' Monday'), '%%X%%V %%W')"
+
+#     elif trend_granularity == "quarterly":
+#         period_sql = "CONCAT(YEAR(v.creation), '-Q', QUARTER(v.creation))"
+#     elif trend_granularity == "yearly":
+#         period_sql = "YEAR(v.creation)"
+#     else:  # monthly default
+#         period_sql = "DATE_FORMAT(v.creation, '%%b %%y')"
+
+
+#     # Build named WHERE for trend to allow %(antigens)s
+#     v2_where = ["v.status = 'Approved'"]
+#     v2_params = {}
+
+#     def _add_param(name, val):
+#         # Helper to avoid collisions; names are unique here
+#         v2_params[name] = val
+#         return f"%({name})s"
+
+#     # Same filter logic, but with table alias v. and named params
+#     for key, value in filters.items():
+#         if isinstance(value, tuple) and value[0] == "in":
+#             placeholder = _add_param(f"in_{key}", tuple(value[1]))
+#             v2_where.append(f"v.`{key}` IN {placeholder}")
+#         else:
+#             placeholder = _add_param(key, value)
+#             v2_where.append(f"v.`{key}` = {placeholder}")
+
+#     if gender:
+#         v2_where.append(f"v.gender = {_add_param('gender', gender)}")
+
+#     if vaccination_status:
+#         v2_where.append(f"v.vaccination_status = {_add_param('vaccination_status', vaccination_status)}")
+
+#     if start_age is not None and end_age is not None:
+#         v2_where.append("v.date_of_birth IS NOT NULL")
+#         v2_where.append(f"TIMESTAMPDIFF(MONTH, v.date_of_birth, CURDATE()) BETWEEN {_add_param('age_start', int(start_age))} AND {_add_param('age_end', int(end_age))}")
+#     else:
+#         if str(under2_only).strip().lower() in {"1", "true"}:
+#             v2_where.append("v.date_of_birth IS NOT NULL")
+#             v2_where.append("TIMESTAMPDIFF(MONTH, v.date_of_birth, CURDATE()) <= 24")
+
+#     named_where_clause = " AND ".join(v2_where)
+#     v2_params["antigens"] = tuple(antigens)
+
+#     trend_sql = f"""
+#         SELECT
+#             {period_sql} AS period,
+#             vm.vaccine AS antigen,
+#             COUNT(*) AS count,
+#             MIN(v.creation) AS period_sort
+#         FROM `tabVaccination` v
+#         INNER JOIN `tabVaccine Multiselect` vm
+#             ON vm.parent = v.name
+#         WHERE {named_where_clause}
+#           AND vm.vaccine IN %(antigens)s
+#         GROUP BY period, vm.vaccine
+#         ORDER BY period_sort ASC, vm.vaccine ASC
+#     """
+#     trend_rows = frappe.db.sql(trend_sql, v2_params, as_dict=True)
+
+#     # Build both antigen-first and period-first structures
+#     antigen_map = {a: {} for a in antigens}
+#     period_label_order = []
+#     seen_periods = set()
+#     weekly_mode = (trend_granularity == "weekly")
+
+#     def _format_yearweek_label(yw):
+#         try:
+#             s = str(yw)
+#             if len(s) < 6:
+#                 return s
+#             year, week = s[:4], s[4:]
+#             return f"{year}-W{int(week):02d}"
+#         except Exception:
+#             return str(yw)
+
+#     for ri in trend_rows:
+#         per_raw = ri["period"]
+#         label = _format_yearweek_label(per_raw) if weekly_mode else str(per_raw)
+#         if label not in seen_periods:
+#             seen_periods.add(label)
+#             period_label_order.append(label)
+
+#         ag = ri["antigen"]
+#         cnt = ri["count"] or 0
+#         if ag in antigen_map:
+#             antigen_map[ag][label] = cnt
+
+#     # Antigen-first
+#     lines = []
+#     for ag in antigens:
+#         line_points = [{"period": p, "count": antigen_map[ag].get(p, 0)} for p in period_label_order]
+#         lines.append({"antigen": ag, "data": line_points})
+
+#     # Period-first (chronological, each period holds a dict of antigen counts)
+#     trend_by_period = []
+#     for p in period_label_order:
+#         counts = {ag: antigen_map[ag].get(p, 0) for ag in antigens}
+#         trend_by_period.append({"period": p, "counts": counts})
+
+#     # --- Final payload ---
+#     payload = {
+#         "total_vaccinations": total,
+#         "total_male_vaccinations": r.get("total_male_vaccinations", 0) or 0,
+#         "total_female_vaccinations": r.get("total_female_vaccinations", 0) or 0,
+
+#         "fully_vaccinated_children": {
+#             "total":  r.get("fully_vaccinated_total", 0) or 0,
+#             "male":   r.get("fully_vaccinated_male", 0) or 0,
+#             "female": r.get("fully_vaccinated_female", 0) or 0,
+#             "percentage": round((r.get("fully_vaccinated_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+#         },
+#         "vaccinated_to_age": {
+#             "total":  r.get("vaccinated_to_age_total", 0) or 0,
+#             "male":   r.get("vaccinated_to_age_male", 0) or 0,
+#             "female": r.get("vaccinated_to_age_female", 0) or 0,
+#             "percentage": round((r.get("vaccinated_to_age_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+#         },
+#         "under_immunized": {
+#             "total":  r.get("under_immunized_total", 0) or 0,
+#             "male":   r.get("under_immunized_male", 0) or 0,
+#             "female": r.get("under_immunized_female", 0) or 0,
+#             "percentage": round((r.get("under_immunized_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+#         },
+#         "zero_dose": {
+#             "total":  r.get("zero_dose_total", 0) or 0,
+#             "male":   r.get("zero_dose_male", 0) or 0,
+#             "female": r.get("zero_dose_female", 0) or 0,
+#             "percentage": round((r.get("zero_dose_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+#         },
+#         "never_vaccinated": {
+#             "total":  r.get("never_vaccinated_total", 0) or 0,
+#             "male":   r.get("never_vaccinated_male", 0) or 0,
+#             "female": r.get("never_vaccinated_female", 0) or 0,
+#             "percentage": round((r.get("never_vaccinated_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+#         },
+
+#         "percentage_vaccination_from_enumeration": {
+#             "count": from_enum,
+#             "percentage": pct_from_enum,
+#             "piechart": data
+#         },
+
+#         "multi_bar": {
+#             "group_by": group_by,   # "state" | "local_government_area" | "ward" | "settlement"
+#             "groups": groups_out
+#         },
+
+#         "trend_analysis": {
+#             "granularity": trend_granularity,
+#             "periods": period_label_order,
+#             "lines": lines
+#         },
+#         "trend_by_period": {
+#             "granularity": trend_granularity,
+#             "data": trend_by_period
+#         },
+
+#         "status": 200,
+#         "response": "Success"
+#     }
+
+#     return payload
+
+
+@frappe.whitelist()
+def vaccination_overview(
+    project=None,
+    grid=None,
+    settlement=None,
+    ward=None,
+    lga=None,
+    state=None,
+    gender=None,                 # "Male" | "Female" (optional)
+    vaccination_status=None,     # exact string (optional)
+    start_age=None,              # in months (optional, int-like)
+    end_age=None,                # in months (optional, int-like)
+    under2_only=None,            # "1"/"true"/True => restrict DOB <= 24 months
+    trend_granularity="monthly"  # "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
+):
+    """
+    Aggregated vaccination stats (Approved only) + grouped multi-bar chart + trend analysis.
+    """
+
+    # --- Auth / role checks ---
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+
+    user_roles = frappe.get_roles(user)
+    if "Dashboard Viewer" not in user_roles:
+        return {"message": "You do not have the required role to visualize the dashboard, please contact the project manager.", "status": 401}
+
+    # --- Permission-driven filters (same pattern as your endpoints) ---
+    user_permissions = frappe.get_all(
+        "User Permission",
+        filters={"user": user},
+        fields=["allow", "for_value", "is_default"]
+    )
+
+    filters = {}
+    for allow_value in ["State", "Local Government Area", "Ward", "Settlement"]:
+        allowed_records = [p for p in user_permissions if p["allow"] == allow_value]
+        if allowed_records:
+            default_record = next((p for p in allowed_records if p.get("is_default")), None)
+            if default_record:
+                filters[allow_value.lower().replace(" ", "_")] = default_record["for_value"]
+            else:
+                filters[allow_value.lower().replace(" ", "_")] = ("in", [p["for_value"] for p in allowed_records])
+
+    # Explicit API filters
+    if grid:
+        filters["grid"] = grid
+    if settlement:
+        filters["settlement"] = settlement
+    if ward:
+        filters["ward"] = ward
+    if lga:
+        filters["local_government_area"] = lga
+    if state:
+        filters["state"] = state
+    if project:
+        filters["project"] = project
+
+    # --- Vaccination WHERE clause (positional params for aggregations) ---
+    v_where = ["status = 'Approved'"]
+    v_vals = []
+
+    for key, value in filters.items():
+        if isinstance(value, tuple) and value[0] == "in":
+            v_where.append(f"`{key}` IN %s")
+            v_vals.append(tuple(value[1]))
+        else:
+            v_where.append(f"`{key}` = %s")
+            v_vals.append(value)
+
+    if gender:
+        v_where.append("gender = %s")
+        v_vals.append(gender)
+
+    if vaccination_status:
+        v_where.append("vaccination_status = %s")
+        v_vals.append(vaccination_status)
+
+    # Age filters via date_of_birth
+    if start_age is not None and end_age is not None:
+        v_where.append("date_of_birth IS NOT NULL")
+        v_where.append("TIMESTAMPDIFF(MONTH, date_of_birth, CURDATE()) BETWEEN %s AND %s")
+        v_vals.extend([int(start_age), int(end_age)])
+    else:
+        if str(under2_only).strip().lower() in {"1", "true"}:
+            v_where.append("date_of_birth IS NOT NULL")
+            v_where.append("TIMESTAMPDIFF(MONTH, date_of_birth, CURDATE()) <= 24")
+
+    v_where_clause = " AND ".join(v_where)
+
+    # --- Primary totals aggregation (Vaccination) ---
+    row = frappe.db.sql(
+        f"""
+        SELECT
+            COUNT(*)                                                        AS total_vaccinations,
+
+            SUM(CASE WHEN gender='Male'   THEN 1 ELSE 0 END)               AS total_male_vaccinations,
+            SUM(CASE WHEN gender='Female' THEN 1 ELSE 0 END)               AS total_female_vaccinations,
+
+            -- Fully Vaccinated (Measles 2)
+            SUM(CASE WHEN vaccination_status='Fully Vaccinated (Measles 2)' THEN 1 ELSE 0 END)                                   AS fully_vaccinated_total,
+            SUM(CASE WHEN vaccination_status='Fully Vaccinated (Measles 2)' AND gender='Male'   THEN 1 ELSE 0 END)               AS fully_vaccinated_male,
+            SUM(CASE WHEN vaccination_status='Fully Vaccinated (Measles 2)' AND gender='Female' THEN 1 ELSE 0 END)               AS fully_vaccinated_female,
+
+            -- Vaccinated to Age
+            SUM(CASE WHEN vaccination_status='Vaccinated to Age' THEN 1 ELSE 0 END)                                              AS vaccinated_to_age_total,
+            SUM(CASE WHEN vaccination_status='Vaccinated to Age' AND gender='Male'   THEN 1 ELSE 0 END)                          AS vaccinated_to_age_male,
+            SUM(CASE WHEN vaccination_status='Vaccinated to Age' AND gender='Female' THEN 1 ELSE 0 END)                          AS vaccinated_to_age_female,
+
+            -- Under Immunized
+            SUM(CASE WHEN vaccination_status='Under Immunized' THEN 1 ELSE 0 END)                                                AS under_immunized_total,
+            SUM(CASE WHEN vaccination_status='Under Immunized' AND gender='Male'   THEN 1 ELSE 0 END)                             AS under_immunized_male,
+            SUM(CASE WHEN vaccination_status='Under Immunized' AND gender='Female' THEN 1 ELSE 0 END)                             AS under_immunized_female,
+
+            -- Zero Dose
+            SUM(CASE WHEN vaccination_status='Zero Dose' THEN 1 ELSE 0 END)                                                       AS zero_dose_total,
+            SUM(CASE WHEN vaccination_status='Zero Dose' AND gender='Male'   THEN 1 ELSE 0 END)                                   AS zero_dose_male,
+            SUM(CASE WHEN vaccination_status='Zero Dose' AND gender='Female' THEN 1 ELSE 0 END)                                   AS zero_dose_female,
+
+            -- Never Vaccinated
+            SUM(CASE WHEN vaccination_status='Never Vaccinated' THEN 1 ELSE 0 END)                                                AS never_vaccinated_total,
+            SUM(CASE WHEN vaccination_status='Never Vaccinated' AND gender='Male'   THEN 1 ELSE 0 END)                            AS never_vaccinated_male,
+            SUM(CASE WHEN vaccination_status='Never Vaccinated' AND gender='Female' THEN 1 ELSE 0 END)                            AS never_vaccinated_female,
+
+            -- From Enumeration (children is not null)
+            SUM(CASE WHEN children IS NOT NULL AND children <> '' THEN 1 ELSE 0 END)                                              AS from_enumeration_count
+
+        FROM `tabVaccination`
+        WHERE {v_where_clause}
+        """,
+        tuple(v_vals),
+        as_dict=True,
+    )
+
+    if not row:
+        return {"message": "No records found for the selected criteria.", "status": 404}
+
+    r = row[0]
+    total = r.get("total_vaccinations", 0) or 0
+    from_enum = r.get("from_enumeration_count", 0) or 0
+    not_from_enum = max(total - from_enum, 0)
+
+    pct_from_enum = round((from_enum / total) * 100.0, 2) if total else 0.0
+    pct_not_from_enum = round((not_from_enum / total) * 100.0, 2) if total else 0.0
+
+    # Pie chart
+    data = [
+        {"type": "From Enumeration", "percentage": pct_from_enum, "count": from_enum},
+        {"type": "From Other Outreaches", "percentage": pct_not_from_enum, "count": not_from_enum}
+    ]
+
+
+    # ----------------------------
+    # Multi-bar grouped chart
+    # ----------------------------
+    # Decide grouping level
+    if not state:
+        group_by = "state"
+        group_label_sql = "state"
+    elif state and not lga:
+        group_by = "local_government_area"
+        group_label_sql = "local_government_area"
+    elif state and lga and not ward:
+        group_by = "ward"
+        group_label_sql = "ward"
+    else:
+        group_by = "settlement"
+        group_label_sql = "settlement"
+
+    # Vaccination grouped
+    v_groups = frappe.db.sql(
+        f"""
+        SELECT
+            {group_label_sql} AS label,
+            COUNT(*) AS total_vaccination,
+            SUM(CASE WHEN children IS NOT NULL AND children <> '' THEN 1 ELSE 0 END) AS vaccinated_from_enumeration
+        FROM `tabVaccination`
+        WHERE {v_where_clause}
+        GROUP BY {group_label_sql}
+        """,
+        tuple(v_vals),
+        as_dict=True,
+    )
+
+    # Children under-2 grouped (Approved, <24 months) mirroring filters
+    c_where = ["status = 'Approved'", "TIMESTAMPDIFF(MONTH, date_of_birth, CURDATE()) < 24"]
+    c_vals = []
+    for key, value in filters.items():
+        if isinstance(value, tuple) and value[0] == "in":
+            c_where.append(f"`{key}` IN %s")
+            c_vals.append(tuple(value[1]))
+        else:
+            c_where.append(f"`{key}` = %s")
+            c_vals.append(value)
+    if gender:
+        c_where.append("gender = %s")
+        c_vals.append(gender)
+    c_where_clause = " AND ".join(c_where)
+
+    c_groups = frappe.db.sql(
+        f"""
+        SELECT
+            {group_label_sql} AS label,
+            COUNT(*) AS under2_children_enumerated
+        FROM `tabChildren`
+        WHERE {c_where_clause}
+        GROUP BY {group_label_sql}
+        """,
+        tuple(c_vals),
+        as_dict=True,
+    )
+
+    c_map = {row["label"]: row["under2_children_enumerated"] for row in c_groups}
+    groups_out = []
+    for vg in v_groups:
+        label = vg["label"]
+        total_vaccination = vg["total_vaccination"] or 0
+        vaccinated_from_enumeration = vg["vaccinated_from_enumeration"] or 0
+        under2 = c_map.get(label, 0)
+        pct = round((vaccinated_from_enumeration / under2) * 100.0, 2) if under2 != 0 else 0.0
+
+        groups_out.append({
+            "label": label,
+            "total_vaccination": total_vaccination,
+            "enumerated_children": under2,
+            "vaccinated_from_enumeration": vaccinated_from_enumeration,
+            "percentage_vaccinated_from_enumeration": pct,
+            "target": "15%",
+            
+        })
+
+    # ----------------------------
+    # Trend analysis (period-first & antigen-first)
+    # ----------------------------
+    antigens = ["Measles 2", "OPV 0", "BCG", "HEP B0", "PENTA 1", "PENTA 3"]
+
+    # Map granularity to MySQL DATE_FORMAT / expressions
+    if trend_granularity == "daily":
+        period_sql = "DATE_FORMAT(v.creation, '%%d-%%m-%%y')"
+    elif trend_granularity == "weekly":
+        # Get the Monday date of the ISO week
+        period_sql = "STR_TO_DATE(CONCAT(YEARWEEK(v.creation, 3), ' Monday'), '%%X%%V %%W')"
+    elif trend_granularity == "quarterly":
+        period_sql = "CONCAT(YEAR(v.creation), '-Q', QUARTER(v.creation))"
+    elif trend_granularity == "yearly":
+        period_sql = "YEAR(v.creation)"
+    else:  # monthly default
+        period_sql = "DATE_FORMAT(v.creation, '%%b %%y')"
+
+    # Build named WHERE for trend to allow %(antigens)s
+    v2_where = ["v.status = 'Approved'"]
+    v2_params = {}
+
+    def _add_param(name, val):
+        # Helper to avoid collisions; names are unique here
+        v2_params[name] = val
+        return f"%({name})s"
+
+    # Same filter logic, but with table alias v. and named params
+    for key, value in filters.items():
+        if isinstance(value, tuple) and value[0] == "in":
+            placeholder = _add_param(f"in_{key}", tuple(value[1]))
+            v2_where.append(f"v.`{key}` IN {placeholder}")
+        else:
+            placeholder = _add_param(key, value)
+            v2_where.append(f"v.`{key}` = {placeholder}")
+
+    if gender:
+        v2_where.append(f"v.gender = {_add_param('gender', gender)}")
+
+    if vaccination_status:
+        v2_where.append(f"v.vaccination_status = {_add_param('vaccination_status', vaccination_status)}")
+
+    if start_age is not None and end_age is not None:
+        v2_where.append("v.date_of_birth IS NOT NULL")
+        v2_where.append(f"TIMESTAMPDIFF(MONTH, v.date_of_birth, CURDATE()) BETWEEN {_add_param('age_start', int(start_age))} AND {_add_param('age_end', int(end_age))}")
+    else:
+        if str(under2_only).strip().lower() in {"1", "true"}:
+            v2_where.append("v.date_of_birth IS NOT NULL")
+            v2_where.append("TIMESTAMPDIFF(MONTH, v.date_of_birth, CURDATE()) <= 24")
+
+    named_where_clause = " AND ".join(v2_where)
+    v2_params["antigens"] = tuple(antigens)
+
+    trend_sql = f"""
+        SELECT
+            {period_sql} AS period,
+            vm.vaccine AS antigen,
+            COUNT(*) AS count,
+            MIN(v.creation) AS period_sort
+        FROM `tabVaccination` v
+        INNER JOIN `tabVaccine Multiselect` vm
+            ON vm.parent = v.name
+        WHERE {named_where_clause}
+          AND vm.vaccine IN %(antigens)s
+        GROUP BY period, vm.vaccine
+        ORDER BY period_sort ASC, vm.vaccine ASC
+    """
+    trend_rows = frappe.db.sql(trend_sql, v2_params, as_dict=True)
+
+    # ----------------------------
+    # FILL MISSING PERIODS WITH ZEROS (no other changes)
+    # ----------------------------
+    from datetime import date, timedelta
+
+    def _period_series_labels(granularity: str, start_dt: date, end_dt: date) -> list[str]:
+        labels = []
+        if not start_dt or not end_dt or start_dt > end_dt:
+            return labels
+
+        if granularity == "daily":
+            cur = start_dt
+            while cur <= end_dt:
+                labels.append(cur.strftime("%d-%m-%y"))
+                cur += timedelta(days=1)
+
+        elif granularity == "weekly":
+            # Normalize to Monday
+            cur = start_dt - timedelta(days=start_dt.weekday())
+            end_last_monday = end_dt - timedelta(days=end_dt.weekday())
+            while cur <= end_last_monday:
+                labels.append(cur.strftime("%Y-%m-%d"))  # Monday date label
+                cur += timedelta(days=7)
+
+        elif granularity == "monthly":
+            y, m = start_dt.year, start_dt.month
+            end_y, end_m = end_dt.year, end_dt.month
+            while (y < end_y) or (y == end_y and m <= end_m):
+                d = date(y, m, 1)
+                labels.append(d.strftime("%b %y"))
+                m += 1
+                if m == 13:
+                    m, y = 1, y + 1
+
+        elif granularity == "quarterly":
+            def _q(d: date) -> int: return ((d.month - 1) // 3) + 1
+            y, q = start_dt.year, _q(start_dt)
+            end_y, end_q = end_dt.year, _q(end_dt)
+            while (y < end_y) or (y == end_y and q <= end_q):
+                labels.append(f"{y}-Q{q}")
+                q += 1
+                if q == 5:
+                    q, y = 1, y + 1
+
+        else:  # yearly
+            y = start_dt.year
+            while y <= end_dt.year:
+                labels.append(str(y))
+                y += 1
+
+        return labels
+
+    # Min/max creation under same filters (no antigen restriction)
+    minmax_sql = f"""
+        SELECT MIN(v.creation) AS min_c, MAX(v.creation) AS max_c
+        FROM `tabVaccination` v
+        WHERE {named_where_clause}
+    """
+    _mm_params = dict(v2_params)
+    _mm_params.pop("antigens", None)
+    mm = frappe.db.sql(minmax_sql, _mm_params, as_dict=True)
+
+    if mm and mm[0]["min_c"] and mm[0]["max_c"]:
+        start_dt = mm[0]["min_c"].date()
+        end_dt   = mm[0]["max_c"].date()
+    else:
+        start_dt = date.today()
+        end_dt   = date.today()
+
+    series_labels = _period_series_labels(trend_granularity, start_dt, end_dt)
+
+    antigen_map = {a: {} for a in antigens}
+
+    for ri in trend_rows:
+        per_raw = ri["period"]
+        if trend_granularity == "daily":
+            label = str(per_raw)          # 'dd-mm-yy'
+        elif trend_granularity == "weekly":
+            label = str(per_raw)          # 'YYYY-MM-DD' (Monday)
+        else:
+            label = str(per_raw)          # monthly '%b %y', quarterly 'YYYY-Q#', yearly 'YYYY'
+        antigen = ri["antigen"]
+        cnt = int(ri["count"] or 0)
+        if antigen in antigen_map:
+            antigen_map[antigen][label] = cnt
+
+    # Antigen-first (lines)
+    lines = []
+    for ag in antigens:
+        line_points = [{"period": p, "count": antigen_map[ag].get(p, 0)} for p in series_labels]
+        lines.append({"antigen": ag, "data": line_points})
+
+    # Period-first (each period holds all antigen counts)
+    trend_by_period = []
+    for p in series_labels:
+        counts = {ag: antigen_map[ag].get(p, 0) for ag in antigens}
+        trend_by_period.append({"period": p, "counts": counts})
+
+    period_label_order = series_labels
+    # ----------------------------
+
+    # --- Final payload ---
+    payload = {
+        "total_vaccinations": total,
+        "total_male_vaccinations": r.get("total_male_vaccinations", 0) or 0,
+        "total_female_vaccinations": r.get("total_female_vaccinations", 0) or 0,
+
+        "fully_vaccinated_children": {
+            "total":  r.get("fully_vaccinated_total", 0) or 0,
+            "male":   r.get("fully_vaccinated_male", 0) or 0,
+            "female": r.get("fully_vaccinated_female", 0) or 0,
+            "percentage": round((r.get("fully_vaccinated_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+        },
+        "vaccinated_to_age": {
+            "total":  r.get("vaccinated_to_age_total", 0) or 0,
+            "male":   r.get("vaccinated_to_age_male", 0) or 0,
+            "female": r.get("vaccinated_to_age_female", 0) or 0,
+            "percentage": round((r.get("vaccinated_to_age_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+        },
+        "under_immunized": {
+            "total":  r.get("under_immunized_total", 0) or 0,
+            "male":   r.get("under_immunized_male", 0) or 0,
+            "female": r.get("under_immunized_female", 0) or 0,
+            "percentage": round((r.get("under_immunized_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+        },
+        "zero_dose": {
+            "total":  r.get("zero_dose_total", 0) or 0,
+            "male":   r.get("zero_dose_male", 0) or 0,
+            "female": r.get("zero_dose_female", 0) or 0,
+            "percentage": round((r.get("zero_dose_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+        },
+        "never_vaccinated": {
+            "total":  r.get("never_vaccinated_total", 0) or 0,
+            "male":   r.get("never_vaccinated_male", 0) or 0,
+            "female": r.get("never_vaccinated_female", 0) or 0,
+            "percentage": round((r.get("never_vaccinated_total", 0) or 0) / total * 100.0, 0) if total else 0.0
+        },
+
+        "percentage_vaccination_from_enumeration": {
+            "count": from_enum,
+            "percentage": pct_from_enum,
+            "piechart": data
+        },
+
+        "multi_bar": {
+            "group_by": group_by,   # "state" | "local_government_area" | "ward" | "settlement"
+            "groups": groups_out
+        },
+
+        "trend_analysis": {
+            "granularity": trend_granularity,
+            "periods": period_label_order,
+            "lines": lines
+        },
+        "trend_by_period": {
+            "granularity": trend_granularity,
+            "data": trend_by_period
+        },
+
+        "status": 200,
+        "response": "Success"
+    }
+
+    return payload
