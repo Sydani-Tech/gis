@@ -219,7 +219,7 @@ def settlements(ward, lga, state):
     if settlements:
         settlements = sorted(settlements, key=lambda x: x['name'])
         # Limit to the first 20 results
-        settlements = settlements[:20]
+        # settlements = settlements[:20]
         set_res(settlements=settlements)
     else:
         set_res(message="No settlements found.")

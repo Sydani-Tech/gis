@@ -1985,7 +1985,7 @@ def vaccination_overview(
     # ----------------------------
     # Trend analysis (period-first & antigen-first)
     # ----------------------------
-    antigens = ["Measles 2", "OPV 0", "BCG", "HEP B0", "PENTA 1", "PENTA 3"]
+    antigens = ["BCG", "OPV 0", "HEP B0", "PENTA 1", "PENTA 3", "Measles 2"]
 
     # Map granularity to MySQL DATE_FORMAT / expressions
     if trend_granularity == "daily":
