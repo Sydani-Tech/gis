@@ -32,7 +32,7 @@ def match_vaccination_to_children():
     vaccinations = frappe.get_all(
         "Vaccination", 
         filters={"status": "Approved", "children": ("is", "not set")},
-        fields=["name", "full_name", "date_of_birth", "gender", "ward"]
+        fields=["name", "full_name", "date_of_birth", "gender", "ward", "state"]
     )
     
     for vaccination in vaccinations:
@@ -42,7 +42,7 @@ def match_vaccination_to_children():
                 "status": "Approved", 
                 "date_of_birth": vaccination["date_of_birth"], 
                 "gender": vaccination["gender"], 
-                "ward": vaccination["ward"]
+                "state": vaccination["state"]
             },
             fields=["name", "full_name"]
         )
