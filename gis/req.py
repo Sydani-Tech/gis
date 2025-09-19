@@ -18,107 +18,6 @@ from gis.access_to_records import (
 from gis.grid import (grid_facilities, grid_buildings, 
 grid_states, grid_lgas, grid_wards, grid_settlements, grid_households)
 
-# Auth
-# @frappe.whitelist(allow_guest=True)
-# def login(email, password):
-#   if is_valid_email(email):
-#     try:
-#       login_manager = frappe.auth.LoginManager()
-#       login_manager.authenticate(user=email, pwd=password)
-#       login_manager.post_login()
-#     except frappe.exceptions.AuthenticationError:
-#       frappe.clear_messages()
-#       set_error(code=401)
-#       return
-
-#     user = generate_keys(email)
-#     roles = frappe.permissions.get_roles(user=email)
-#     user_roles = [x for x in roles if x not in ['All', 'Guest']]
-#     # user={
-#     #   "message": "Authenticated",
-#     #   "sid": frappe.session.sid,
-#     #   "api_key": user.api_key,
-#     #   "api_secret": user.api_secret,
-#     #   "username": user.username,
-#     #   "email": user.email,
-#     #   'roles': user_roles
-#     # }
-#     set_res(user=user)
-#   else:
-#     return set_res(error=401)
-#     # return {'status': 'Failed', 'message': 'Invalid Email'}
-
-# @frappe.whitelist(allow_guest=True)
-# def login(email, password):
-#     if is_valid_email(email):
-#         try:
-#             login_manager = frappe.auth.LoginManager()
-#             login_manager.authenticate(user=email, pwd=password)
-#             login_manager.post_login()
-#         except frappe.exceptions.AuthenticationError:
-#             frappe.clear_messages()
-#             frappe.response["error"] = {"code": 401, "message": "Authentication Failed"}
-#             return
-
-#         user_doc = frappe.get_doc("User", email)
-
-#         fields = ['key']
-#         filters = {'name': email}
-#         user_key = fetch_db_resource(doc='Sec Keys', fields=fields, filters=filters)
-
-#         # api_secret = frappe.cache().get_value(email)
-#         if user_key:
-#           api_secret = user_key[0]['key']
-#         else:          
-#           api_secret = frappe.generate_hash(length=18)
-#           nk = frappe.get_doc({'doctype': 'Sec Keys', 'usr': email, 'key': api_secret})
-#           nk.save(ignore_permissions=True)
-#           # frappe.cache().set_value(email, api_secret)
-#           user_doc.api_secret = nk.key
-#           user_doc.save(ignore_permissions=True)
-          
-#         if hasattr(user_doc, "api_key"):
-#           pass
-#         else:
-#           user_doc.api_key = frappe.generate_hash(length=18)
-#           user_doc.save(ignore_permissions=True)
-
-#         # user_data = frappe.db.get_value("User", email, ["username", "full_name", "phone","user_image"], as_dict=True)
-#         roles = frappe.permissions.get_roles(user=email)
-#         user_roles = [x for x in roles if x not in ["All", "Guest", "Desk Access"]]
-
-#         frappe.response["message"] = "Success"
-#         frappe.response["home_page"] = "/app"
-#         frappe.response["full_name"] = user_doc.full_name
-#         frappe.response["status"] = 200
-#         frappe.response["user"] = {
-#             "api_key": user_doc.api_key,
-#             "api_secret": api_secret,
-#             "username": user_doc.username,
-#             "email": email,
-#             "roles": user_roles,
-#             "phone": user_doc.phone,
-#             "user_image": user_doc.user_image
-#         }
-
-#         # Prepare response
-#         # frappe.response["message"] = "Success"
-#         # frappe.response["home_page"] = "/app"
-#         # frappe.response["full_name"] = user_data.get("full_name")
-#         # frappe.response["status"] = 200
-#         # frappe.response["user"] = {
-#         #     "api_key": user_doc.api_key,
-#         #     "api_secret": api_secret,
-#         #     "username": user_data.get("username"),
-#         #     "email": email,
-#         #     "roles": user_roles,
-#         #     "phone": user_data.get("phone"),
-#         #     "user_image": user_data.get("user_image")
-#         # }
-#     else:
-#         frappe.response["error"] = {"code": 401, "message": "Invalid Email"}
-
-
 import frappe
 from frappe.utils.password import set_encrypted_password
 
@@ -282,21 +181,6 @@ def change_password(email, old_password, new_password):
     reset_user_password(email, new_password)
     return login(email, new_password)
 
-# def building_fields():
-#   file_dir = '/home/frappe/frappe-bench/apps/gis/gis/fixtures'
-#   file_name = f'{file_dir}/doctype.json'
-#   json_dict = read_json_as_dict(file_name)
-#   filtered_doc = None
-
-#   for doc in json_dict:
-#     if doc["autoname"] == "format:{building_number} - {street_name}":
-#       filtered_doc = doc
-
-#   if filtered_doc:
-#     for field in filtered_doc['fields']:
-#       print(field)
-#       print(" ")
-
 
 # get all states
 @frappe.whitelist()
@@ -399,21 +283,6 @@ def settlements(stateName=None, lgaName=None, wardName=None):
 
   set_res(settlements=settlements)  # Return all records if no filters are applied
 
-# get all wards facilities
-# @frappe.whitelist(allow_guest=True)
-# def facilities(stateName= None, lgaName=None, wardName=None):
-#   fields = [
-#     'name', 'facility_name', 'facility_address', 
-#     'ward', 'local_government_area', 
-#     'state', 'country', 'geolocation'
-#   ]
-#   filters = {'state': stateName, 'local_government_area': lgaName, 'ward': wardName}
-#   facilities = fetch_db_resource(
-#     doc='Facility', fields=fields, filters=filters)
-
-#   if facilities:
-#     set_res(facilities=facilities)
-
 
 @frappe.whitelist()
 def facilities(ward=None, lga=None, state=None):
@@ -427,7 +296,8 @@ def facilities(ward=None, lga=None, state=None):
     filters = {
         'ward': ward,
         'local_government_area': lga,
-        'state': state
+        'state': state,
+        'selected_facility': 1
     }
     filters = {k: v for k, v in filters.items() if v}  # Remove keys with None values
     
@@ -439,27 +309,10 @@ def facilities(ward=None, lga=None, state=None):
     )
 
      # Limit the result to 20 records
-    facilities = facilities[:20]
+    # facilities = facilities[:20]
     
     # Return the fetched records
     set_res(facilities=facilities)
-
-
-# @frappe.whitelist(allow_guest=True)
-# def facilities(stateName, lgaName, wardName):
-#   fields = [
-#     'name', 'facility_name', 'facility_address', 
-#     'ward', 'local_government_area', 
-#     'state', 'country', 'geolocation'
-#   ]
-#   filters = {'state': stateName, 'local_government_area': lgaName, 'ward': wardName}
-#   facilities = fetch_db_resource(
-#     doc='Facility', fields=fields, filters=filters)
-
-#   if facilities:
-#     set_res(facilities=facilities)
-
-
 
 # get all wards facilities
 @frappe.whitelist()
@@ -475,6 +328,35 @@ def facility(facilityName):
 
   if facility:
     set_res(facility=facility)
+
+@frappe.whitelist()
+def facility_list(ward=None, lga=None, state=None):
+    fields = [
+    'name', 'facility_name'
+  ]
+    
+    # Create filters only if arguments are provided
+    filters = {
+        'ward': ward,
+        'local_government_area': lga,
+        'state': state,
+        'selected_facility': 1
+    }
+    filters = {k: v for k, v in filters.items() if v}  # Remove keys with None values
+    
+    # Fetch facilities with filters if provided, else fetch all records
+    facilities = fetch_db_resource(
+        doc='Facility', 
+        fields=fields, 
+        filters=filters if filters else None
+    )
+
+     # Limit the result to 20 records
+    # facilities = facilities[:20]
+    
+    # Return the fetched records
+    set_res(facilities=facilities)
+
 
 @frappe.whitelist()
 def get_building(settlement=None, ward=None, lga=None, state=None):

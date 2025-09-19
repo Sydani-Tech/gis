@@ -384,7 +384,7 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
     date_filter = "AND end_time IS NOT NULL AND end_time BETWEEN %(start_datetime)s AND %(end_datetime)s"
 
     buildings = frappe.db.sql(f"""
-        SELECT name, grid, settlement, owner, geolocation, building_picture, building_picture_2
+        SELECT name, grid, settlement, owner, building_type, geolocation, building_picture, building_picture_2
         FROM `tabBuilding`
         WHERE status = 'Submitted'
         {grid_filter}
@@ -417,18 +417,21 @@ def get_buildings(ward=None, start_date=None, end_date=None, grid=None):
             fields=["name"]
         )
 
-        if not households:
+        if not households and building["building_type"] == "Residential":
             continue  # Skip if no valid household
+        elif households or building["building_type"] != "Residential":
+            valid_buildings.append(building)  # Add residential buildings with households and all non-residential buildings
 
-        # Ensure the building has at least one valid Child
-        children = frappe.db.get_list(
-            "Children",
-            filters={"building": building["name"], "household": ["in", [h["name"] for h in households]], "status": "Submitted"},
-            fields=["name"]
-        )
+        # # Ensure the building has at least one valid Child
+        # children = frappe.db.get_list(
+        #     "Children",
+        #     filters={"building": building["name"], "household": ["in", [h["name"] for h in households]], "status": "Submitted"},
+        #     fields=["name"]
+        # )
 
-        if children:
-            valid_buildings.append(building)  # Only add if children exist
+        # if children:
+        #     valid_buildings.append(building)  # Only add if children exist
+        
 
     total_valid = len(valid_buildings)
     # print("Valid Buildings: ", total_valid)
@@ -661,8 +664,8 @@ def get_enumeration_validation_summaries(name=None):
             grid_name = frappe.get_value("Grid", results[0].grid, "title")
             ward_name = frappe.get_value("Ward", results[0].ward, "ward")
             lga_name = frappe.get_value("Local Government Area", results[0].local_government_area, "local_government_area")
-            results[0]["grid_name"] = grid_name
-            results[0]["ward_name"] = grid_name if grid_name else ward_name
+            results[0]["grid_name"] = grid_name if grid_name else ward_name
+            results[0]["ward_name"] = ward_name if ward_name else grid_name
             results[0]["local_government_area_name"] = lga_name
         else:
             return {"message": "No Enumeration Validation summary found with the provided name.", "status": 404}
@@ -1376,60 +1379,189 @@ def test_prettify_validation_responses():
 #     # Commit changes after all updates
 #     frappe.db.commit()
 
+# def update_enumeration_records_from_sample_responses(doc, method):
+#     """
+#     Sync status of records in Records Under Validation with
+#     the corresponding record in Enumeration Sample Responses.
+#     """
+
+#     # Fetch all sample responses linked to the current document
+#     sample_responses = frappe.get_all(
+#         "Enumeration Sample Responses",
+#         filters={"parent": doc.name},
+#         fields=["record", "status"]
+#     )
+
+#     # Build a map of record -> status for quick lookup
+#     sample_status_map = {resp["record"]: resp["status"] for resp in sample_responses}
+
+#     # Fetch all records under validation linked to the current document
+#     records_under_validation = frappe.get_all(
+#         "Records Under Validation",
+#         filters={"parent": doc.name},
+#         fields=["name", "record", "status"]
+#     )
+
+#     for record in records_under_validation:
+#         record_name = record["record"]
+#         if record_name in sample_status_map:
+#             new_status = sample_status_map[record_name]
+#             frappe.db.set_value("Records Under Validation", record["name"], "status", new_status)
+
+#             # Update Building
+#             frappe.db.set_value("Building", record_name, "status", new_status)
+
+#             # Fetch and update Households
+#             households = frappe.get_all(
+#                 "Household",
+#                 filters={"building": record_name, "status": "Submitted"},
+#                 fields=["name"]
+#             )
+#             for household in households:
+#                 frappe.db.set_value("Household", household["name"], "status", new_status)
+
+#             # Fetch and update Children
+#             children = frappe.get_all(
+#                 "Children",
+#                 filters={"building": record_name, "status": "Submitted"},
+#                 fields=["name"]
+#             )
+#             for child in children:
+#                 frappe.db.set_value("Children", child["name"], "status", new_status)
+
+
+
+#     # Commit changes after all updates
+#     frappe.db.commit()
+
+
+# gis/enumeration_validation.py
+import frappe
+from typing import Dict, List
+
+
 def update_enumeration_records_from_sample_responses(doc, method):
     """
-    Sync status of records in Records Under Validation with
-    the corresponding record in Enumeration Sample Responses.
+    Lightweight submit handler: enqueue the real work on the 'long' queue so the UI doesn't block.
     """
+    if not getattr(doc, "name", None):
+        return
 
-    # Fetch all sample responses linked to the current document
-    sample_responses = frappe.get_all(
-        "Enumeration Sample Responses",
-        filters={"parent": doc.name},
-        fields=["record", "status"]
+    frappe.enqueue(
+        "gis.enumeration_validation._update_enumeration_records_job",
+        queue="long",
+        job_name=f"EV Sync: {doc.name}",
+        enqueue_after_commit=True,
+        summary_name=doc.name,
     )
 
-    # Build a map of record -> status for quick lookup
-    sample_status_map = {resp["record"]: resp["status"] for resp in sample_responses}
 
-    # Fetch all records under validation linked to the current document
-    records_under_validation = frappe.get_all(
-        "Records Under Validation",
-        filters={"parent": doc.name},
-        fields=["name", "record", "status"]
-    )
+def _update_enumeration_records_job(summary_name: str):
+    """
+    Background job:
+      - Read Records Under Validation (RUV) for this summary
+      - For each RUV row, use its current status (no sample response lookup)
+      - Bulk update:
+          * Building.status  = RUV.status
+          * Household.status = RUV.status  (only where current status = 'Submitted')
+          * Children.status  = RUV.status  (only where current status = 'Submitted')
+    """
+    stats = {
+        "ruv_rows": 0,
+        "groups": 0,
+        "buildings_updated": 0,
+        "households_updated": 0,
+        "children_updated": 0,
+    }
 
-    for record in records_under_validation:
-        record_name = record["record"]
-        if record_name in sample_status_map:
-            new_status = sample_status_map[record_name]
-            frappe.db.set_value("Records Under Validation", record["name"], "status", new_status)
+    try:
+        # 1) Load RUV rows (record=Building name, status=current status to propagate)
+        ruv_rows = frappe.get_all(
+            "Records Under Validation",
+            filters={"parent": summary_name},
+            fields=["record", "status"],
+            ignore_permissions=True,
+        )
+        stats["ruv_rows"] = len(ruv_rows)
+        if not ruv_rows:
+            frappe.logger().info(f"[EV Sync] {summary_name}: no RUV rows; nothing to do.")
+            return
 
-            # Update Building
-            frappe.db.set_value("Building", record_name, "status", new_status)
+        # 2) Group target building names by the RUV status (so we can bulk-update per status)
+        by_status: Dict[str, List[str]] = {}
+        for r in ruv_rows:
+            bname = r.get("record")
+            st = r.get("status")
+            if not bname or not st:
+                continue
+            by_status.setdefault(st, []).append(bname)
 
-            # Fetch and update Households
-            households = frappe.get_all(
-                "Household",
-                filters={"building": record_name, "status": "Submitted"},
-                fields=["name"]
+        stats["groups"] = len(by_status)
+
+        if not by_status:
+            frappe.logger().info(f"[EV Sync] {summary_name}: no valid records to update.")
+            return
+
+        # 3) Bulk updates per status
+        for st, names in by_status.items():
+            if not names:
+                continue
+            names_tuple = tuple(set(names))  # de-duplicate
+
+            user = frappe.session.user
+
+            # Buildings
+            frappe.db.sql(
+                """
+                UPDATE `tabBuilding`
+                SET status = %(st)s,
+                    modified = NOW(),
+                    modified_by = %(user)s
+                WHERE name IN %(names)s
+                """,
+                {"st": st, "names": names_tuple, "user": user},
             )
-            for household in households:
-                frappe.db.set_value("Household", household["name"], "status", new_status)
+            stats["buildings_updated"] += frappe.db.sql("SELECT ROW_COUNT()")[0][0]
 
-            # Fetch and update Children
-            children = frappe.get_all(
-                "Children",
-                filters={"building": record_name, "status": "Submitted"},
-                fields=["name"]
+            # Households under those buildings (only if currently 'Submitted')
+            frappe.db.sql(
+                """
+                UPDATE `tabHousehold`
+                SET status = %(st)s,
+                    modified = NOW(),
+                    modified_by = %(user)s
+                WHERE building IN %(names)s
+                AND status = 'Submitted'
+                """,
+                {"st": st, "names": names_tuple, "user": user},
             )
-            for child in children:
-                frappe.db.set_value("Children", child["name"], "status", new_status)
+            stats["households_updated"] += frappe.db.sql("SELECT ROW_COUNT()")[0][0]
+
+            # Children under those buildings (only if currently 'Submitted')
+            frappe.db.sql(
+                """
+                UPDATE `tabChildren`
+                SET status = %(st)s,
+                    modified = NOW(),
+                    modified_by = %(user)s
+                WHERE building IN %(names)s
+                AND status = 'Submitted'
+                """,
+                {"st": st, "names": names_tuple, "user": user},
+            )
+            stats["children_updated"] += frappe.db.sql("SELECT ROW_COUNT()")[0][0]
 
 
+        frappe.db.commit()
+        frappe.logger().info(f"[EV Sync] {summary_name} done: {stats}")
 
-    # Commit changes after all updates
-    frappe.db.commit()
+    except Exception as e:
+        frappe.db.rollback()
+        frappe.log_error(
+            f"[EV Sync] {summary_name} failed: {e}",
+            "Enumeration Validation Sync Error",
+        )
+
 
 
 # def update_enumeration_records_from_sample_responses_on_save(doc, method):
@@ -1578,9 +1710,9 @@ from frappe.utils import now
 # ---------------------------
 
 def _parse_date(s: str) -> date:
-    """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date; default 2025-05-01."""
+    """Parse 'YYYY-MM-DD' or 'DD-MM-YYYY' to date; default 2025-08-01."""
     if not s:
-        return date(2025, 5, 1)
+        return date(2025, 8, 1)
     s = s.strip()
     for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
         try:
@@ -1655,7 +1787,7 @@ def _fetch_valid_buildings_sql_window(*, grid_name: str, start_ts: datetime, end
 # ---------------------------
 
 @frappe.whitelist()
-def assign_enumeration_validations(start_date_str: str | None = None, min_count: int = 15, max_count: int = 30):
+def assign_enumeration_validations(start_date_str: str | None = None, min_count: int = 15, max_count: int = 125):
     """
     Optimized enumerations assignment with unique, windowed fetch:
       - Non-overlapping 7-day windows to avoid duplicate buildings.

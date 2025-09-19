@@ -10,6 +10,7 @@
   "settlement_type_section",
   "name_of_settlement",
   "settlement",
+  "major_ethnic_group",
   "column_break_qkel",
   "type_of_settlement",
   "archetype_for_rural",
@@ -24,6 +25,10 @@
   "is_there_a_vdc",
   "column_break_ahrb",
   "how_often_does_the_vdc_meet",
+  "sessions_section",
+  "type_of_session",
+  "column_break_ukhl",
+  "session_frequency",
   "location_tab",
   "location_section",
   "name_of_nearest_facility_to_settlement",
@@ -329,6 +334,31 @@
    "fieldtype": "Button",
    "label": "Set Geolocation",
    "permlevel": 2
+  },
+  {
+   "fieldname": "sessions_section",
+   "fieldtype": "Section Break",
+   "label": "Sessions"
+  },
+  {
+   "fieldname": "type_of_session",
+   "fieldtype": "Select",
+   "label": "Type of Session",
+   "options": "\nFixed Session\nOutreach Session"
+  },
+  {
+   "fieldname": "column_break_ukhl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "session_frequency",
+   "fieldtype": "Data",
+   "label": "Session Frequency"
+  },
+  {
+   "fieldname": "major_ethnic_group",
+   "fieldtype": "Data",
+   "label": "Major Ethnic Group"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -346,7 +376,7 @@
    "link_fieldname": "settlement"
   }
  ],
- "modified": "2025-08-06 09:26:02.083539",
+ "modified": "2025-09-13 20:51:03.731391",
  "modified_by": "Administrator",
  "module": "Location",
  "name": "Settlement",
@@ -453,6 +483,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
