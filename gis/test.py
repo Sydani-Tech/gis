@@ -535,7 +535,7 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
                 SUM(CASE WHEN type_of_settlement = 'Urban' THEN 1 ELSE 0 END) AS urban_settlements,
                 SUM(CASE WHEN type_of_settlement = 'Rural' THEN 1 ELSE 0 END) AS rural_settlements
             FROM `tabSettlement`
-            WHERE {full_where}
+            WHERE {full_where} AND `status` = 'Approved'
               AND `{field_name}` IS NOT NULL
               AND TRIM(`{field_name}`) != ''
             GROUP BY `{field_name}`
