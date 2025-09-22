@@ -9,6 +9,9 @@
  "field_order": [
   "details_section",
   "facility_name",
+  "facility_type",
+  "name_of_oic",
+  "contact_of_oic",
   "facility_address",
   "selected_facility",
   "column_break_xcpr",
@@ -16,6 +19,8 @@
   "longitude",
   "latitude",
   "set_geolocation",
+  "section_break_dbie",
+  "facility_catchment_area",
   "location_tab",
   "location_section",
   "ward",
@@ -120,8 +125,36 @@
    "fieldname": "selected_facility",
    "fieldtype": "Check",
    "label": "Selected Facility"
+  },
+  {
+   "fieldname": "section_break_dbie",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "facility_catchment_area",
+   "fieldtype": "Table",
+   "label": "Facility Catchment Area",
+   "options": "Facility Catchment Area"
+  },
+  {
+   "fieldname": "facility_type",
+   "fieldtype": "Select",
+   "label": "Facility Type",
+   "options": "\nPrivate\nPublic"
+  },
+  {
+   "fieldname": "name_of_oic",
+   "fieldtype": "Data",
+   "label": "Name of OIC"
+  },
+  {
+   "fieldname": "contact_of_oic",
+   "fieldtype": "Data",
+   "label": "Contact of OIC",
+   "options": "Phone"
   }
  ],
+ "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [
   {
@@ -137,7 +170,7 @@
    "link_fieldname": "health_facility"
   }
  ],
- "modified": "2025-05-15 15:26:58.525135",
+ "modified": "2025-09-21 19:49:59.364699",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",
@@ -216,6 +249,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

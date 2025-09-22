@@ -413,38 +413,39 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
 
     # -- Normalize settlement_type shortcuts --
 
-    if settlement_archetype == "IDP Camp" and type_of_settlement == "Urban":
-        archetype_for_urban = "IDP Camp"
-    elif settlement_archetype == "Urban Slum" and type_of_settlement == "Urban":
-        archetype_for_urban = "Urban Slum"
-    elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Urban":
-        archetype_for_urban = "Security-Compromised"
-    elif settlement_archetype == "Riverine" and type_of_settlement == "Urban":
-        archetype_for_urban = "Riverine"
-    elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Rural":
-        archetype_for_rural = "Security-Compromised"
-    elif settlement_archetype == "IDP Camp" and type_of_settlement == "Rural":
-        archetype_for_rural = "IDP Camp"
-    elif settlement_archetype == "Hard to reach" and type_of_settlement == "Rural":
-        archetype_for_rural = "Hard to reach"
-    elif settlement_archetype == "Riverine" and type_of_settlement == "Rural":
-        archetype_for_rural = "Riverine"
-    elif settlement_archetype == "Nomadic" and type_of_settlement == "Rural":
-        archetype_for_rural = "Nomadic"
+    # if settlement_archetype == "IDP Camp" and type_of_settlement == "Urban":
+    #     archetype_for_urban = "IDP Camp"
+    # elif settlement_archetype == "Urban Slum" and type_of_settlement == "Urban":
+    #     archetype_for_urban = "Urban Slum"
+    # elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Urban":
+    #     archetype_for_urban = "Security-Compromised"
+    # elif settlement_archetype == "Riverine" and type_of_settlement == "Urban":
+    #     archetype_for_urban = "Riverine"
+    # elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Rural":
+    #     archetype_for_rural = "Security-Compromised"
+    # elif settlement_archetype == "IDP Camp" and type_of_settlement == "Rural":
+    #     archetype_for_rural = "IDP Camp"
+    # elif settlement_archetype == "Hard to reach" and type_of_settlement == "Rural":
+    #     archetype_for_rural = "Hard to reach"
+    # elif settlement_archetype == "Riverine" and type_of_settlement == "Rural":
+    #     archetype_for_rural = "Riverine"
+    # elif settlement_archetype == "Nomadic" and type_of_settlement == "Rural":
+    #     archetype_for_rural = "Nomadic"
 
-    elif type_of_settlement == "Urban" and not settlement_archetype:
-        type_of_settlement = "Urban"
-    elif type_of_settlement == "Rural" and not settlement_archetype:
-        type_of_settlement = "Rural"
+    # elif type_of_settlement == "Urban" and not settlement_archetype:
+    #     type_of_settlement = "Urban"
+    # elif type_of_settlement == "Rural" and not settlement_archetype:
+    #     type_of_settlement = "Rural"
 
     # -- Filters dict (used for SQL) --
     filters = {}
     if grid:        filters["grid"] = grid
-    if settlement:  filters["settlement"] = settlement
+    if settlement:  filters["name"] = settlement
     if ward:        filters["ward"] = ward
     if lga:         filters["local_government_area"] = lga   # building table field
     if state:       filters["state"] = state
     if status:      filters["status"] = status
+    if type_of_settlement: filters["type_of_settlement"] = type_of_settlement
 
     # Build WHERE clause & values
     sql_conditions, sql_values = [], []
@@ -542,16 +543,6 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
         """
         return frappe.db.sql(q, tuple(sql_values), as_dict=True)
 
-    # ---- routing ----
-    # If grid or ward or settlement is provided → return the original rows
-    # if grid or settlement or ward:
-    #     settlement_query = f"""
-    #         SELECT name, type_of_settlement, distance_from_settlement_to_facility, name_of_settlementcommunity_head, contact_of_settlementcommunity_head, type_of_session, session_frequency, major_ethnic_group, archetype_for_rural, archetype_for_urban,
-    #                response_geolocation, settlement, grid
-    #         FROM `tabSettlement`
-    #         WHERE {full_where}
-    #     """
-
     # If grid or ward or settlement is provided → return the original rows + aggregates
     if grid or settlement or ward:
         settlement_query = f"""
@@ -561,6 +552,7 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
                 s.distance_from_settlement_to_facility,
                 s.name_of_settlementcommunity_head,
                 s.contact_of_settlementcommunity_head,
+                s.name_of_disease_surveillance_community_informant,
                 s.type_of_session,
                 s.session_frequency,
                 s.major_ethnic_group,
@@ -714,6 +706,258 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
     except Exception as e:
         return {"message": f"Error fetching data: {str(e)}", "status": "error"}
   
+
+
+@frappe.whitelist()
+def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, facility_type=None):
+    # -- Auth & guards --
+    user = frappe.session.user
+    if user == "Guest":
+        return {"message": "You must be logged in to access this data.", "status": 401}
+
+    if "Dashboard Viewer" not in frappe.get_roles(user):
+        return {"message": "You do not have the required role to view the map, please contact the project manager.", "status": 401}
+
+    # -- Filters dict (used for SQL) --
+    filters = {}
+    if grid:        filters["grid"] = grid
+    if settlement:  filters["settlement"] = settlement
+    if ward:        filters["ward"] = ward
+    if lga:         filters["local_government_area"] = lga   # building table field
+    if state:       filters["state"] = state
+    if facility_type:      filters["facility_type"] = facility_type
+
+    # Build WHERE clause & values
+    sql_conditions, sql_values = [], []
+    for key, value in filters.items():
+        if value is None:
+            continue
+        if isinstance(value, tuple) and value[0] == "in":
+            sql_conditions.append(f"`{key}` IN %s")
+            sql_values.append(tuple(value[1]))
+        else:
+            sql_conditions.append(f"`{key}` = %s")
+            sql_values.append(value)
+    where_clause = " AND ".join(sql_conditions) if sql_conditions else "1=1"
+    full_where = f"{where_clause}"
+
+    # ---- helpers ----
+    def _to_geojson(val):
+        """Return a GeoJSON object (dict) or None."""
+        if val is None:
+            return None
+        if isinstance(val, dict):
+            return val
+        if isinstance(val, (bytes, bytearray)):
+            try:
+                return json.loads(val.decode("utf-8", "ignore"))
+            except Exception:
+                return None
+        if isinstance(val, str):
+            s = val.strip()
+            if not s:
+                return None
+            try:
+                return json.loads(s)
+            except Exception:
+                return None
+        return None
+
+    def _wrap_as_fc(geom_or_feat):
+        """Wrap a Geometry/Feature into a FeatureCollection with a single Feature for consistent output."""
+        if geom_or_feat is None:
+            return None
+        if isinstance(geom_or_feat, dict):
+            t = geom_or_feat.get("type")
+            if t == "FeatureCollection":
+                return geom_or_feat
+            if t == "Feature":
+                return {"type": "FeatureCollection", "features": [geom_or_feat]}
+            # assume Geometry
+            return {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {}, "geometry": geom_or_feat}]}
+        return None
+
+    def _fetch_geo(doctype, key, fieldname, fallback_fields=None, wrap_fc=True):
+        """
+        Fetch a GeoJSON from a doctype (by name or label field), returning dict (optionally wrapped as FC).
+        - For State/LGA/Ward: fieldname='centroid'
+        - For Facility: fieldname='geolocation'
+        """
+        if not key:
+            return None
+        val = frappe.db.get_value(doctype, key, fieldname)
+        if not val and fallback_fields:
+            for fld in fallback_fields:
+                try:
+                    docname = frappe.db.get_value(doctype, {fld: key}, "name")
+                    if docname:
+                        val = frappe.db.get_value(doctype, docname, fieldname)
+                        if val:
+                            break
+                except Exception:
+                    pass
+        gj = _to_geojson(val)
+        return _wrap_as_fc(gj) if wrap_fc else gj
+
+    def _group_aggregates(field_name):
+        """
+        Single, efficient aggregation query per level.
+        Returns rows with label and all requested aggregates.
+        """
+        allowed = {"state", "local_government_area", "ward", "settlement"}
+        if field_name not in allowed:
+            frappe.throw(f"Invalid group-by field: {field_name}")
+
+        q = f"""
+            SELECT
+                `{field_name}` AS label,
+                COUNT(*) AS total_facilities,
+                SUM(CASE WHEN facility_type = 'Private' THEN 1 ELSE 0 END) AS private_facilities,
+                SUM(CASE WHEN facility_type = 'Public' THEN 1 ELSE 0 END) AS public_facilities
+            FROM `tabFacility`
+            WHERE {full_where}
+              AND `{field_name}` IS NOT NULL
+              AND TRIM(`{field_name}`) != ''
+              AND selected_facility = 1
+            GROUP BY `{field_name}`
+            ORDER BY `{field_name}`
+        """
+        return frappe.db.sql(q, tuple(sql_values), as_dict=True)
+
+    # If grid or ward or settlement is provided → return the original rows + aggregates
+    if grid or settlement or ward:
+        facility_query = f"""
+      
+        SELECT
+            f.name,
+            f.facility_type,
+            f.facility_name,
+            f.name_of_oic,
+            f.contact_of_oic,
+            COALESCE(COUNT(DISTINCT c.name), 0) AS catchment_settlement_count,
+            COALESCE(
+            GROUP_CONCAT(DISTINCT c.settlement ORDER BY c.settlement SEPARATOR ', '),
+            ''
+            ) AS catchment_settlements
+        FROM (
+            SELECT
+                name, facility_type, facility_name, name_of_oic, contact_of_oic
+            FROM `tabFacility`
+            WHERE {full_where}
+            AND selected_facility = 1
+        ) f
+        LEFT JOIN `tabFacility Catchment Area` c
+            ON c.parent = f.name
+            AND c.parenttype = 'Facility'
+            AND c.parentfield = 'facility_catchment_area'
+        GROUP BY
+            f.name, f.facility_type, f.facility_name, f.name_of_oic, f.contact_of_oic
+        ORDER BY f.name;
+        """
+        try:
+            rows = frappe.db.sql(facility_query, tuple(sql_values), as_dict=True)
+            return {"status": 200, "response": "Success", "data": rows}
+        except Exception as e:
+            return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+
+    # No state/lga/ward/settlement → counts per State + centroid (State.doctype)
+    if not state and not lga and not ward and not settlement:
+        try:
+            rows = _group_aggregates("state")
+        except Exception as e:
+            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+        data = []
+        for r in rows:
+            label = r["label"]
+            centroid = _fetch_geo(
+                doctype="State",
+                key=label,
+                fieldname="centroid",
+                fallback_fields=["state", "name"],  # your label field on State
+                wrap_fc=True
+            )
+            data.append({
+                "state": label,
+                "actual_name": frappe.db.get_value("State", label, "state"),
+                "total_facilities": int(r["total_facilities"]),
+                "private_facilities": int(r["private_facilities"]),
+                "public_facilities": int(r["public_facilities"]),
+                "centroid": centroid,
+            })
+        return {"status": 200, "response": "Success", "data": data}
+
+    # State provided → counts per LGA + centroid (LGA.doctype)
+    if state and not lga and not ward and not settlement:
+        try:
+            rows = _group_aggregates("local_government_area")
+        except Exception as e:
+            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+        data = []
+        for r in rows:
+            label = r["label"]
+            centroid = _fetch_geo(
+                doctype="Local Government Area",
+                key=label,
+                fieldname="centroid",
+                fallback_fields=["local_government_Area", "name"],  # your label field on LGA
+                wrap_fc=True
+            )
+            data.append({
+                "lga": label,
+                "actual_name": frappe.db.get_value("Local Government Area", label, "local_government_area"),
+                "total_facilities": int(r["total_facilities"]),
+                "private_facilities": int(r["private_facilities"]),
+                "public_facilities": int(r["public_facilities"]),
+                "centroid": centroid,
+            })
+        return {"status": 200, "response": "Success", "data": data}
+
+    # LGA provided → counts per Ward + centroid (Ward.doctype)
+    if lga and not ward and not settlement:
+        try:
+            rows = _group_aggregates("ward")
+        except Exception as e:
+            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+
+        data = []
+        for r in rows:
+            label = r["label"]
+            centroid = _fetch_geo(
+                doctype="Ward",
+                key=label,
+                fieldname="centroid",
+                fallback_fields=["ward", "name"],  # your label field on Ward
+                wrap_fc=True
+            )
+            data.append({
+                "ward": label,
+                "actual_name": frappe.db.get_value("Ward", label, "ward"),
+                "total_facilities": int(r["total_facilities"]),
+                "private_facilities": int(r["private_facilities"]),
+                "public_facilities": int(r["public_facilities"]),
+                "centroid": centroid,
+            })
+        return {"status": 200, "response": "Success", "data": data}
+
+    # Fallback → original rows
+    settlement_query = f"""
+        SELECT name, distance_from_settlement_to_facility, type_of_settlement, archetype_for_rural, archetype_for_urban,
+                response_geolocation, major_ethnic_group, settlement, grid
+        FROM `tabSettlement`
+        WHERE {full_where}
+    """
+    try:
+        rows = frappe.db.sql(building_query, tuple(sql_values), as_dict=True)
+        return {"status": 200, "response": "Success", "data": rows}
+    except Exception as e:
+        return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+  
+
+
+
+
 
 
 import frappe

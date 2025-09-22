@@ -2065,7 +2065,7 @@ def vaccination_overview(
 
 
 @frappe.whitelist()
-def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=None, lga=None, state=None):
+def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=None, lga=None, state=None, type_of_settlement=None):
     """
     Fetch data for the settlement dashboard.
     Filters applied: user permissions, settlement, ward, lga, state.
@@ -2112,6 +2112,8 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
         filters['local_government_area'] = lga
     if state:
         filters['state'] = state
+    # if type_of_settlement:
+    #     filters['type_of_settlement'] = type_of_settlement
 
     sql_conditions = []
     sql_values = []
@@ -2139,6 +2141,9 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
             "response": "No data found",
             "data": {
                 "settlement_count": 0,
+                "total_population": 0,
+                "total_children": 0,
+                "total_pregnant_women": 0,
                 "avg_distance_from_facility": 0,
                 "settlement_type_distribution": [],
                 "settlement_archetype": {},
@@ -2152,6 +2157,27 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
                 "vdc_periodic_meeting_count": 0
             }
         }
+
+    # Calculate total population: sum of people in households, sum of pregnant women, and count of children
+    total_population_query = f"""
+        SELECT 
+            SUM(how_many_people_live_in_the_household) AS total_people,
+            SUM(how_many_pregnant_women_are_there) AS total_pregnant_women
+        FROM `tabHousehold`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    total_population_result = frappe.db.sql(total_population_query, tuple(sql_values), as_dict=True)[0]
+    total_people = total_population_result.get("total_people", 0) or 0
+    total_pregnant_women = total_population_result.get("total_pregnant_women", 0) or 0
+
+    # Count children by counting records in tabChildren
+    children_count_query = f"""
+        SELECT COUNT(*) AS total_children
+        FROM `tabChildren`
+        WHERE status = 'Approved' AND {where_clause}
+    """
+    children_count_result = frappe.db.sql(children_count_query, tuple(sql_values), as_dict=True)[0]
+    total_children = children_count_result.get("total_children", 0) or 0
 
     avg_distance_query = f"""
         SELECT AVG(distance_from_settlement_to_facility) AS average_distance
@@ -2264,6 +2290,9 @@ def settlement_dashboard(project=None, grid=None, name_of_settlement=None, ward=
         "response": "Success",
         "data": {
             "settlement_count": settlement_count,
+            "total_population": total_people,
+            "total_children": total_children,
+            "total_pregnant_women": total_pregnant_women,
             "avg_distance_from_facility": avg_distance_from_facility,
             "settlement_type_distribution": settlement_type_distribution,
             "settlement_archetype": settlement_archetype,
