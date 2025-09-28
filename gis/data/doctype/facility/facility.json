@@ -133,6 +133,7 @@
   {
    "fieldname": "facility_catchment_area",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Facility Catchment Area",
    "options": "Facility Catchment Area"
   },
@@ -170,7 +171,7 @@
    "link_fieldname": "health_facility"
   }
  ],
- "modified": "2025-09-21 19:49:59.364699",
+ "modified": "2025-09-29 00:02:31.101058",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Facility",
