@@ -709,7 +709,7 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
 
 
 @frappe.whitelist()
-def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, facility_type=None):
+def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, facility_type=None, facility_name=None):
     # -- Auth & guards --
     user = frappe.session.user
     if user == "Guest":
@@ -824,6 +824,233 @@ def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, fa
         """
         return frappe.db.sql(q, tuple(sql_values), as_dict=True)
 
+    # if facility_name:
+    #     # 1) Facility row + count of catchment settlements
+    #     facility_sql = """
+    #         SELECT
+    #             f.name,
+    #             f.facility_type,
+    #             f.facility_name,
+    #             f.name_of_oic,
+    #             f.contact_of_oic,
+    #             f.geolocation,
+    #             COALESCE((
+    #                 SELECT COUNT(DISTINCT c.settlement)
+    #                 FROM `tabFacility Catchment Area` c
+    #                 WHERE c.parent = f.name
+    #                 AND c.parenttype = 'Facility'
+    #                 AND c.parentfield = 'facility_catchment_area'
+    #                 AND c.settlement IS NOT NULL AND c.settlement <> ''
+    #             ), 0) AS catchment_settlement_count
+    #         FROM `tabFacility` f
+    #         WHERE f.name = %s
+    #         AND f.selected_facility = 1
+    #         LIMIT 1
+    #     """
+    #     try:
+    #         facility_rows = frappe.db.sql(facility_sql, (facility_name,), as_dict=True)
+    #         if not facility_rows:
+    #             return {"message": f"No facility found with name '{facility_name}'", "status": "error"}
+
+    #         facility = facility_rows[0]
+
+    #         # 2) Detailed settlements list for the facility’s catchment
+    #         settlements_sql = """
+    #             SELECT
+    #                 s.name,
+    #                 s.type_of_settlement,
+    #                 s.distance_from_settlement_to_facility,
+    #                 s.name_of_settlementcommunity_head,
+    #                 s.contact_of_settlementcommunity_head,
+    #                 s.name_of_disease_surveillance_community_informant,
+    #                 s.type_of_session,
+    #                 s.session_frequency,
+    #                 s.major_ethnic_group,
+    #                 s.archetype_for_rural,
+    #                 s.archetype_for_urban,
+    #                 s.response_geolocation,
+    #                 s.settlement,
+    #                 s.grid,
+
+    #                 -- Aggregates per settlement
+    #                 COALESCE(hh_agg.total_population, 0)     AS total_population,
+    #                 COALESCE(hh_agg.total_pregnant_women, 0) AS total_pregnant_women,
+    #                 COALESCE(ch_agg.total_children, 0)       AS total_children
+
+    #             FROM `tabSettlement` s
+
+    #             -- Sum population for Approved households; sum pregnant women only where household flag is 'Yes'
+    #             LEFT JOIN (
+    #                 SELECT
+    #                     hh.settlement,
+    #                     SUM(COALESCE(hh.how_many_people_live_in_the_household, 0)) AS total_population,
+    #                     SUM(
+    #                         CASE
+    #                             WHEN hh.are_there_any_pregnant_women_in_the_household = 'Yes'
+    #                             THEN COALESCE(hh.how_many_pregnant_women_are_there, 0)
+    #                             ELSE 0
+    #                         END
+    #                     ) AS total_pregnant_women
+    #                 FROM `tabHousehold` hh
+    #                 WHERE hh.status = 'Approved'
+    #                 AND hh.settlement IS NOT NULL AND hh.settlement <> ''
+    #                 GROUP BY hh.settlement
+    #             ) hh_agg
+    #                 ON hh_agg.settlement = s.name
+
+    #             -- Count Approved children per settlement (via Household link)
+    #             LEFT JOIN (
+    #                 SELECT
+    #                     h.settlement,
+    #                     COUNT(*) AS total_children
+    #                 FROM `tabChildren` c
+    #                 JOIN `tabHousehold` h
+    #                 ON h.name = c.household
+    #                 WHERE c.status = 'Approved'
+    #                 AND h.settlement IS NOT NULL AND h.settlement <> ''
+    #                 GROUP BY h.settlement
+    #             ) ch_agg
+    #                 ON ch_agg.settlement = s.name
+
+    #             WHERE s.name IN (
+    #                 SELECT c.settlement
+    #                 FROM `tabFacility Catchment Area` c
+    #                 WHERE c.parent = %s
+    #                 AND c.parenttype = 'Facility'
+    #                 AND c.parentfield = 'facility_catchment_area'
+    #                 AND c.settlement IS NOT NULL AND c.settlement <> ''
+    #             )
+    #             ORDER BY s.name
+    #         """
+    #         settlements = frappe.db.sql(settlements_sql, (facility_name,), as_dict=True)
+
+    #         # Attach the list of dicts to the facility payload
+    #         facility["catchment_settlements"] = settlements or []
+    #         facility["catchment_settlement_count"] = len(settlements)  # keep count consistent with list
+
+    #         return {"status": 200, "response": "Success", "data": [facility]}
+    #     except Exception as e:
+    #         return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+
+# ... facility_rows / facility = facility_rows[0] as in your code above ...
+
+    # Guard: we need the facility's *display* name to match settlements
+    # facility_display_name = facility.get("facility_name")
+    # if not facility_display_name:
+    #     return {"message": f"Facility '{facility_name}' has no facility_name set.", "status": "error"}
+
+    
+    if facility_name:
+        facility_sql = """
+            SELECT
+                f.name,
+                f.facility_type,
+                f.facility_name,
+                f.name_of_oic,
+                f.contact_of_oic,
+                f.geolocation,
+                COALESCE((
+                    SELECT COUNT(DISTINCT c.settlement)
+                    FROM `tabFacility Catchment Area` c
+                    WHERE c.parent = f.name
+                    AND c.parenttype = 'Facility'
+                    AND c.parentfield = 'facility_catchment_area'
+                    AND c.settlement IS NOT NULL AND c.settlement <> ''
+                ), 0) AS catchment_settlement_count
+            FROM `tabFacility` f
+            WHERE f.name = %s
+            AND f.selected_facility = 1
+            LIMIT 1
+        """
+
+        try:
+            facility_rows = frappe.db.sql(facility_sql, (facility_name,), as_dict=True)
+            if not facility_rows:
+                return {"message": f"No facility found with name '{facility_name}'", "status": "error"}
+
+            facility = facility_rows[0]
+
+            # Guard: we need the human/display name to match settlements
+            # facility_display_name = facility.get("facility_name")
+            # if not facility_display_name:
+            #     return {
+            #         "message": f"Facility '{facility_name}' has no facility_name set.",
+            #         "status": "error",
+            #     }
+
+            # 2) Settlements for this facility by nearest-facility field (CHANGED)
+            settlements_sql = """
+                SELECT
+                    s.name,
+                    s.type_of_settlement,
+                    s.distance_from_settlement_to_facility,
+                    s.name_of_settlementcommunity_head,
+                    s.contact_of_settlementcommunity_head,
+                    s.name_of_disease_surveillance_community_informant,
+                    s.type_of_session,
+                    s.session_frequency,
+                    s.major_ethnic_group,
+                    s.archetype_for_rural,
+                    s.archetype_for_urban,
+                    s.response_geolocation,
+                    s.settlement,
+                    s.grid,
+
+                    -- Aggregates per settlement (Households)
+                    COALESCE(hh_agg.total_population, 0)     AS total_population,
+                    COALESCE(hh_agg.total_pregnant_women, 0) AS total_pregnant_women,
+
+                    -- Aggregates per settlement (Children)
+                    COALESCE(ch_agg.total_children, 0)       AS total_children
+
+                FROM `tabSettlement` s
+
+                LEFT JOIN (
+                    SELECT
+                        hh.settlement,
+                        SUM(COALESCE(hh.how_many_people_live_in_the_household, 0)) AS total_population,
+                        SUM(
+                            CASE
+                                WHEN hh.are_there_any_pregnant_women_in_the_household = 'Yes'
+                                THEN COALESCE(hh.how_many_pregnant_women_are_there, 0)
+                                ELSE 0
+                            END
+                        ) AS total_pregnant_women
+                    FROM `tabHousehold` hh
+                    WHERE hh.status = 'Approved'
+                    AND hh.settlement IS NOT NULL AND hh.settlement <> ''
+                    GROUP BY hh.settlement
+                ) hh_agg
+                ON hh_agg.settlement = s.name
+
+                LEFT JOIN (
+                    SELECT
+                        h.settlement,
+                        COUNT(*) AS total_children
+                    FROM `tabChildren` c
+                    JOIN `tabHousehold` h
+                    ON h.name = c.household
+                    WHERE c.status = 'Approved'
+                    AND h.settlement IS NOT NULL AND h.settlement <> ''
+                    GROUP BY h.settlement
+                ) ch_agg
+                ON ch_agg.settlement = s.name
+
+                WHERE s.name_of_nearest_facility_to_settlement = %s
+                ORDER BY s.name
+            """
+            
+            settlements = frappe.db.sql(settlements_sql, (facility_name,), as_dict=True)
+
+            # Keep structure exactly the same:
+            facility["catchment_settlements"] = settlements or []
+            facility["catchment_settlement_count"] = len(settlements or [])
+
+            return {"status": 200, "response": "Success", "data": [facility]}
+
+        except Exception as e:
+            return {"message": f"Error fetching data: {str(e)}", "status": "error"}
+
     # If grid or ward or settlement is provided → return the original rows + aggregates
     if grid or settlement or ward:
         facility_query = f"""
@@ -834,6 +1061,7 @@ def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, fa
             f.facility_name,
             f.name_of_oic,
             f.contact_of_oic,
+            f.geolocation,
             COALESCE(COUNT(DISTINCT c.name), 0) AS catchment_settlement_count,
             COALESCE(
             GROUP_CONCAT(DISTINCT c.settlement ORDER BY c.settlement SEPARATOR ', '),
@@ -841,7 +1069,7 @@ def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, fa
             ) AS catchment_settlements
         FROM (
             SELECT
-                name, facility_type, facility_name, name_of_oic, contact_of_oic
+                name, facility_type, facility_name, name_of_oic, contact_of_oic, geolocation
             FROM `tabFacility`
             WHERE {full_where}
             AND selected_facility = 1

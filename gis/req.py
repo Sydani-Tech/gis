@@ -515,6 +515,71 @@ def get_user_records(project, form=None, status=None):
         set_res(message="No records found")
 
 
+import frappe
+
+@frappe.whitelist()
+def get_building_records(building: str, only_approved: int = 1):
+    """
+    Return Building (all fields), Households (all fields) and their Children (all fields)
+    without N+1 queries and without column aliasing.
+    - only_approved=1 filters both Household.status and Children.status to 'Approved'
+    """
+
+    if not building:
+        return {"status": "error", "message": "Building parameter is required."}
+
+    # --- Building (all fields)
+    b = frappe.db.get_value("Building", building, fieldname="*", as_dict=True)
+    if not b:
+        return {"status": "error", "message": f"Building '{building}' not found."}
+
+    # --- Households (all columns) for this building
+    h_status_clause = "AND h.status = 'Approved'" if int(only_approved) else ""
+    households = frappe.db.sql(
+        f"""
+        SELECT h.*
+          FROM `tabHousehold` h
+         WHERE h.building = %s
+           {h_status_clause}
+         ORDER BY h.name
+        """,
+        (building,),
+        as_dict=True,
+    )
+
+    if not households:
+        return {"status": "success", "building": b, "households": []}
+
+    # --- Children (all columns) for those households — single IN(...) query
+    names = [h["name"] for h in households]
+    # Build placeholders safely for the IN list
+    placeholders = ", ".join(["%s"] * len(names))
+    c_status_clause = "AND c.status = 'Approved'" if int(only_approved) else ""
+    children = frappe.db.sql(
+        f"""
+        SELECT c.*
+          FROM `tabChildren` c
+         WHERE c.household IN ({placeholders})
+           {c_status_clause}
+         ORDER BY c.household, c.name
+        """,
+        tuple(names),
+        as_dict=True,
+    )
+
+    # --- Group children by household
+    kids_by_household = {}
+    for c in children:
+        kids_by_household.setdefault(c["household"], []).append(c)
+
+    # Attach children to each household
+    for h in households:
+        h["children"] = kids_by_household.get(h["name"], [])
+
+    return {"status": "success", "building": b, "households": households}
+
+
+
 @frappe.whitelist()
 def get_user_location(longitude, latitude):
 
