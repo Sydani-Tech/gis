@@ -411,32 +411,6 @@ def settlement_map(grid=None, settlement=None, ward=None, lga=None, state=None, 
     if "Dashboard Viewer" not in frappe.get_roles(user):
         return {"message": "You do not have the required role to view the map, please contact the project manager.", "status": 401}
 
-    # -- Normalize settlement_type shortcuts --
-
-    # if settlement_archetype == "IDP Camp" and type_of_settlement == "Urban":
-    #     archetype_for_urban = "IDP Camp"
-    # elif settlement_archetype == "Urban Slum" and type_of_settlement == "Urban":
-    #     archetype_for_urban = "Urban Slum"
-    # elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Urban":
-    #     archetype_for_urban = "Security-Compromised"
-    # elif settlement_archetype == "Riverine" and type_of_settlement == "Urban":
-    #     archetype_for_urban = "Riverine"
-    # elif settlement_archetype == "Security-Compromised" and type_of_settlement == "Rural":
-    #     archetype_for_rural = "Security-Compromised"
-    # elif settlement_archetype == "IDP Camp" and type_of_settlement == "Rural":
-    #     archetype_for_rural = "IDP Camp"
-    # elif settlement_archetype == "Hard to reach" and type_of_settlement == "Rural":
-    #     archetype_for_rural = "Hard to reach"
-    # elif settlement_archetype == "Riverine" and type_of_settlement == "Rural":
-    #     archetype_for_rural = "Riverine"
-    # elif settlement_archetype == "Nomadic" and type_of_settlement == "Rural":
-    #     archetype_for_rural = "Nomadic"
-
-    # elif type_of_settlement == "Urban" and not settlement_archetype:
-    #     type_of_settlement = "Urban"
-    # elif type_of_settlement == "Rural" and not settlement_archetype:
-    #     type_of_settlement = "Rural"
-
     # -- Filters dict (used for SQL) --
     filters = {}
     if grid:        filters["grid"] = grid
@@ -877,70 +851,6 @@ def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, fa
 
             facility = facility_rows[0]
 
-            # # 2) Settlements for this facility by nearest-facility field (CHANGED)
-            # settlements_sql = """
-            #     SELECT
-            #         s.name,
-            #         s.type_of_settlement,
-            #         s.distance_from_settlement_to_facility,
-            #         s.name_of_settlementcommunity_head,
-            #         s.contact_of_settlementcommunity_head,
-            #         s.name_of_disease_surveillance_community_informant,
-            #         s.type_of_session,
-            #         s.session_frequency,
-            #         s.major_ethnic_group,
-            #         s.archetype_for_rural,
-            #         s.archetype_for_urban,
-            #         s.response_geolocation,
-            #         s.settlement,
-            #         s.grid,
-
-            #         -- Aggregates per settlement (Households)
-            #         COALESCE(hh_agg.total_population, 0)     AS total_population,
-            #         COALESCE(hh_agg.total_pregnant_women, 0) AS total_pregnant_women,
-
-            #         -- Aggregates per settlement (Children)
-            #         COALESCE(ch_agg.total_children, 0)       AS total_children
-
-            #     FROM `tabSettlement` s
-
-            #     LEFT JOIN (
-            #         SELECT
-            #             hh.settlement,
-            #             SUM(COALESCE(hh.how_many_people_live_in_the_household, 0)) AS total_population,
-            #             SUM(
-            #                 CASE
-            #                     WHEN hh.are_there_any_pregnant_women_in_the_household = 'Yes'
-            #                     THEN COALESCE(hh.how_many_pregnant_women_are_there, 0)
-            #                     ELSE 0
-            #                 END
-            #             ) AS total_pregnant_women
-            #         FROM `tabHousehold` hh
-            #         WHERE hh.status = 'Approved'
-            #         AND hh.settlement IS NOT NULL AND hh.settlement <> ''
-            #         GROUP BY hh.settlement
-            #     ) hh_agg
-            #     ON hh_agg.settlement = s.name
-
-            #     LEFT JOIN (
-            #         SELECT
-            #             h.settlement,
-            #             COUNT(*) AS total_children
-            #         FROM `tabChildren` c
-            #         JOIN `tabHousehold` h
-            #         ON h.name = c.household
-            #         WHERE c.status = 'Approved'
-            #         AND h.settlement IS NOT NULL AND h.settlement <> ''
-            #         GROUP BY h.settlement
-            #     ) ch_agg
-            #     ON ch_agg.settlement = s.name
-
-            #     WHERE s.name_of_nearest_facility_to_settlement = %s
-            #     ORDER BY s.name
-            # """
-            
-            # settlements = frappe.db.sql(settlements_sql, (facility_name,), as_dict=True)
-
             # NOTE: The WHERE uses the Settlement Link field, so %s must be the Facility *ID* (f.name), not the display label.
             settlements_sql = """
                 SELECT
@@ -1023,11 +933,11 @@ def facility_map(grid=None, settlement=None, ward=None, lga=None, state=None, fa
                         if fid:
                             r["name_of_nearest_facility_to_settlement"] = fac_map.get(fid, fid)
 
-                        # Keep structure exactly the same:
-                        facility["catchment_settlements"] = settlements or []
-                        facility["catchment_settlement_count"] = len(settlements or [])
+                    # Keep structure exactly the same:
+                    facility["catchment_settlements"] = settlements or []
+                    facility["catchment_settlement_count"] = len(settlements or [])
 
-                        return {"status": 200, "response": "Success", "data": [facility]}
+                    return {"status": 200, "response": "Success", "data": [facility]}
 
         except Exception as e:
             return {"message": f"Error fetching data: {str(e)}", "status": "error"}
