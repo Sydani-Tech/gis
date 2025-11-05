@@ -170,24 +170,6 @@ def save_image(request, field_name, img_name):
     return "";
 
 
-
-# def get_proxies():
-#   proxy_url = 'https://free-proxy-list.net/'
-#   response = requests.get(proxy_url)
-#   soup = BeautifulSoup(response.text, 'html.parser')
-#   table = soup.find('textarea', onclick='select(this)')
-#   table = table.text.split(' ', 1)
-#   table = table[1].split('\n')
-#   table = table[3:-1]
- 
-#   return table
-
-# def get_rand_proxy():
-#   proxies = get_proxies()
-#   if session.proxies:
-#       print('proxy')
-#   return random.choice(proxies)
-
 def reset_user_password(user_email, new_password):
     print(new_password)
     user = frappe.get_doc("User", user_email)
@@ -285,3 +267,237 @@ def sanitize_name(name):
     # Collapse multiple spaces into one
     name = re.sub(r"\s+", " ", name)
     return name
+
+import json
+import frappe
+
+# ============== Public API =================
+@frappe.whitelist()
+def update_all_centroids(store_geometry_only: int = 0, batch_size: int = 500):
+    """
+    Compute and store centroid for *all* records in these doctypes:
+      - State
+      - Local Government Area
+      - Ward
+
+    Writes to field 'centroid' as GeoJSON.
+      - If store_geometry_only=1 → stores a Geometry (Point) object only
+      - Else (default) → stores a Feature with Point geometry
+
+    Returns a summary dict.
+    """
+    doctypes = ["State", "Local Government Area", "Ward"]
+    geo_field = "geolocation"
+    out = {}
+
+    for dt in doctypes:
+        res = _process_doctype(dt, geo_field, "centroid",
+                               store_geometry_only=bool(int(store_geometry_only)),
+                               batch_size=int(batch_size))
+        out[dt] = res
+
+    frappe.db.commit()
+    return out
+
+
+# ============== Internal Helpers =================
+def _process_doctype(doctype, geom_field, centroid_field, store_geometry_only=False, batch_size=500):
+    logger = frappe.logger("update_all_centroids")
+    # sanity checks for fields
+    if not frappe.db.has_column(doctype, geom_field):
+        msg = f"{doctype}: missing field `{geom_field}`"
+        logger.warning(msg)
+        return {"updated": 0, "skipped": 0, "missing_geolocation_field": True}
+
+    if not frappe.db.has_column(doctype, centroid_field):
+        msg = f"{doctype}: missing field `{centroid_field}` (create it as JSON/Long Text)"
+        logger.warning(msg)
+        return {"updated": 0, "skipped": 0, "missing_centroid_field": True}
+
+    updated = 0
+    skipped = 0
+    start = 0
+
+    while True:
+        rows = frappe.get_all(
+            doctype,
+            fields=["name", geom_field],
+            limit_start=start,
+            limit_page_length=batch_size,
+        )
+        if not rows:
+            break
+
+        for r in rows:
+            name = r.get("name")
+            raw_geo = r.get(geom_field)
+
+            gj = _safe_parse_geojson(raw_geo)
+            if not gj:
+                skipped += 1
+                continue
+
+            geom = _extract_geometry(gj)
+            poly_geom = _largest_polygon_geometry(geom)
+            if not poly_geom:
+                skipped += 1
+                continue
+
+            cx, cy = _centroid_for_polygon_geometry(poly_geom)
+
+            if store_geometry_only:
+                value = json.dumps({"type": "Point", "coordinates": [cx, cy]}, ensure_ascii=False)
+            else:
+                value = json.dumps({
+                    "type": "Feature",
+                    "properties": {
+                        "source_doctype": doctype,
+                        "source_name": name,
+                        "derived": "centroid"
+                    },
+                    "geometry": {"type": "Point", "coordinates": [cx, cy]}
+                }, ensure_ascii=False)
+
+            # Write without touching modified timestamp if you prefer — change update_modified to True if needed
+            frappe.db.set_value(doctype, name, centroid_field, value, update_modified=False)
+            updated += 1
+
+        start += batch_size
+        frappe.db.commit()  # commit per batch to avoid long transactions
+
+    return {"updated": updated, "skipped": skipped, "batch_size": batch_size}
+
+
+# ---- GeoJSON utilities (pure Python) ----
+def _safe_parse_geojson(val):
+    if not val:
+        return None
+    if isinstance(val, dict):
+        return val
+    if isinstance(val, (bytes, bytearray)):
+        try:
+            return json.loads(val.decode("utf-8", "ignore"))
+        except Exception:
+            return None
+    if isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return None
+        try:
+            return json.loads(s)
+        except Exception:
+            # tolerate NDJSON-ish blobs
+            features = []
+            for line in s.splitlines():
+                line = line.strip()
+                if not line or not line.startswith("{"):
+                    continue
+                try:
+                    obj = json.loads(line)
+                    if obj.get("type") == "Feature":
+                        features.append(obj)
+                    elif obj.get("type") == "FeatureCollection":
+                        features.extend(obj.get("features", []))
+                except Exception:
+                    pass
+            if features:
+                return {"type": "FeatureCollection", "features": features}
+    return None
+
+
+def _extract_geometry(obj):
+    if not isinstance(obj, dict):
+        return None
+    t = obj.get("type")
+    if t in ("Polygon", "MultiPolygon", "Point", "LineString", "MultiLineString", "MultiPoint"):
+        return obj
+    if t == "Feature":
+        return obj.get("geometry")
+    if t == "FeatureCollection":
+        feats = obj.get("features") or []
+        if feats:
+            return feats[0].get("geometry")
+    return None
+
+
+def _largest_polygon_geometry(geom):
+    gtype = (geom or {}).get("type")
+    coords = (geom or {}).get("coordinates")
+
+    if gtype == "Polygon":
+        return {"type": "Polygon", "coordinates": coords}
+
+    if gtype == "MultiPolygon":
+        if not coords:
+            return None
+        best = None
+        best_area = 0.0
+        for poly in coords:
+            if not poly or not poly[0]:
+                continue
+            area = abs(_ring_area(poly[0]))
+            if area > best_area:
+                best_area = area
+                best = poly
+        return {"type": "Polygon", "coordinates": best} if best else None
+
+    return None  # ignore non-polygonal geometries
+
+
+def _centroid_for_polygon_geometry(polygon_geom):
+    rings = polygon_geom.get("coordinates") or []
+    total_area = 0.0
+    cx_sum = 0.0
+    cy_sum = 0.0
+
+    for ring in rings:
+        if not ring or len(ring) < 3:
+            continue
+        if ring[0] != ring[-1]:
+            ring = ring + [ring[0]]
+        A = _ring_area(ring)   # signed
+        Cx, Cy = _ring_centroid(ring, A)
+        total_area += A
+        cx_sum += Cx
+        cy_sum += Cy
+
+    if abs(total_area) < 1e-12:
+        # degenerate fallback
+        pts = [pt for ring in rings for pt in ring]
+        if not pts:
+            return (0.0, 0.0)
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        return (sum(xs)/len(xs), sum(ys)/len(ys))
+
+    return (cx_sum / total_area, cy_sum / total_area)
+
+
+def _ring_area(ring):
+    A = 0.0
+    for i in range(len(ring) - 1):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[i + 1][0], ring[i + 1][1]
+        A += (x1 * y2 - x2 * y1)
+    return 0.5 * A
+
+
+def _ring_centroid(ring, signed_area=None):
+    if signed_area is None:
+        signed_area = _ring_area(ring)
+    if abs(signed_area) < 1e-12:
+        xs = [p[0] for p in ring]
+        ys = [p[1] for p in ring]
+        return (sum(xs)/len(xs), sum(ys)/len(ys))
+
+    Cx = 0.0
+    Cy = 0.0
+    for i in range(len(ring) - 1):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[i + 1][0], ring[i + 1][1]
+        cross = (x1 * y2 - x2 * y1)
+        Cx += (x1 + x2) * cross
+        Cy += (y1 + y2) * cross
+
+    # A-weighted partial sums (divide by 6 here, divide by total area later)
+    return ((1.0/6.0) * Cx, (1.0/6.0) * Cy)

@@ -790,7 +790,7 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
 
     # ---- routing ----
     # If grid or settlement is provided → return the original rows
-    if grid or settlement:
+    if grid or settlement or ward:
         building_query = f"""
             SELECT name, percentage_of_vaccinated_children, building_vaccination_status,
                    geolocation, building_type, establishment_type, health_facility, settlement, grid
@@ -900,36 +900,36 @@ def map_overview(project=None, grid=None, settlement=None, ward=None, lga=None, 
         return {"status": 200, "response": "Success", "data": data}
 
     # Ward provided (no settlement) → counts per Settlement + response_geolocation (Point) from Settlement.doctype
-    if ward and not settlement:
-        try:
-            rows = _group_aggregates("settlement")
-        except Exception as e:
-            return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
+    # if ward and not settlement:
+    #     try:
+    #         rows = _group_aggregates("settlement")
+    #     except Exception as e:
+    #         return {"message": f"Error fetching grouped data: {str(e)}", "status": "error"}
 
-        data = []
-        for r in rows:
-            label = r["label"]
-            point_fc = _fetch_geo(
-                doctype="Settlement",
-                key=label,
-                fieldname="response_geolocation",
-                fallback_fields=["settlement", "name"],  # your label field on Settlement
-                wrap_fc=True
-            )
-            data.append({
-                "settlement": label,
-                "actual_name": frappe.db.get_value("Settlement", label, "settlement"),
-                "total_buildings": int(r["total_buildings"]),
-                "residential_buildings": int(r["residential_buildings"]),
-                "non_residential_buildings": int(r["non_residential_buildings"]),
-                "health_facilities": int(r["health_facilities"]),
-                "schools": int(r["schools"]),
-                "mosques": int(r["mosques"]),
-                "churches": int(r["churches"]),
-                "commercial_buildings": int(r["commercial_buildings"]),
-                "geolocation": point_fc,  # original point
-            })
-        return {"status": 200, "response": "Success", "data": data}
+    #     data = []
+    #     for r in rows:
+    #         label = r["label"]
+    #         point_fc = _fetch_geo(
+    #             doctype="Settlement",
+    #             key=label,
+    #             fieldname="response_geolocation",
+    #             fallback_fields=["settlement", "name"],  # your label field on Settlement
+    #             wrap_fc=True
+    #         )
+    #         data.append({
+    #             "settlement": label,
+    #             "actual_name": frappe.db.get_value("Settlement", label, "settlement"),
+    #             "total_buildings": int(r["total_buildings"]),
+    #             "residential_buildings": int(r["residential_buildings"]),
+    #             "non_residential_buildings": int(r["non_residential_buildings"]),
+    #             "health_facilities": int(r["health_facilities"]),
+    #             "schools": int(r["schools"]),
+    #             "mosques": int(r["mosques"]),
+    #             "churches": int(r["churches"]),
+    #             "commercial_buildings": int(r["commercial_buildings"]),
+    #             "geolocation": point_fc,  # original point
+    #         })
+    #     return {"status": 200, "response": "Success", "data": data}
 
     # Fallback → original rows
     building_query = f"""

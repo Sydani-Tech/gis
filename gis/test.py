@@ -37,8 +37,8 @@ def test_fields():
 def geolocation():
     try:
         # Fetch the Building record with the specified name
-        # building = frappe.get_doc("Grid", "vuha6hqe62")
-        building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
+        building = frappe.get_doc("Ward", "City Center 1-Municipal Area Council-Fct")
+        # building = frappe.get_doc("Building", "11c - Nsikak Edet Crescent")
         # Update the geolocation field
         # print(building.response_geolocation)
         print(building.geolocation)
