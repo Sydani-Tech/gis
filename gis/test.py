@@ -62,7 +62,7 @@ def geolocation():
         #                 "type": "Point",
         #                 # "coordinates": [7.475866, 9.042452]  # Longitude first, then Latitude (Sydani)
         #                 # "coordinates": [7.4042, 9.1099]  # Longitude first, then Latitude (Gwarinpa)
-        #                 # "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunsine Homes)
+        #                 # "coordinates": [7.476275, 8.97323]  # Longitude first, then Latitude (Sunshine Homes)
         #                 # "coordinates": [6.553486, 9.591894]  # Longitude first, then Latitude (Haske Hotel, Niger)
         #                 # "coordinates": [7.4951, 9.0579]  # Longitude first, then Latitude (Asokoro)
         #                 # "coordinates": [6.1532668192084, 8.99168425242635]  # Longitude first, then Latitude (Alukusu)

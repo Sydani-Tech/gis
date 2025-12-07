@@ -271,141 +271,293 @@ def update_fully_vaccinated_households():
 #     print(f"Updated vaccination status for {len(results)} buildings.")
 
 
+# def update_building_vaccination_status():
+#     """
+#     Compute vaccination % and status for Approved buildings using SQL-only aggregation,
+#     then update tabBuilding in small batches to avoid lock waits.
+#     No new indexes are created on base tables; only TEMP tables are used.
+#     Outcome identical to original Python logic.
+#     """
+#     ok1 = "Vaccinated to Age"
+#     ok2 = "Fully Vaccinated (Measles 2)"
+
+#     # be tolerant to existing temp tables from a previous crash
+#     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_c_agg")
+#     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_v_agg")
+#     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_sum")
+#     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_changes")
+
+#     # keep read view light; keep lock waits reasonable for this job
+#     frappe.db.sql("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+#     frappe.db.sql("SET SESSION innodb_lock_wait_timeout = 120")
+
+#     # 1) Pre-aggregate CHILDREN by building (Approved only)
+#     frappe.db.sql(f"""
+#         CREATE TEMPORARY TABLE tmp_c_agg
+#         AS
+#         SELECT
+#             c.building,
+#             SUM(c.status = 'Approved') AS tot,
+#             SUM(c.status = 'Approved' AND c.vaccination_status IN ('{ok1}','{ok2}')) AS ok,
+#             SUM(c.status = 'Approved' AND c.vaccination_status IS NOT NULL) AS s_cnt,
+#             SUM(c.status = 'Approved' AND c.vaccination_status = '{ok1}') AS age_cnt,
+#             SUM(c.status = 'Approved' AND c.vaccination_status = '{ok2}') AS full_cnt,
+#             SUM(c.status = 'Approved' AND c.vaccination_status IS NOT NULL
+#                                       AND c.vaccination_status NOT IN ('{ok1}','{ok2}')) AS non_ok
+#         FROM `tabChildren` c
+#         WHERE c.building IS NOT NULL
+#         GROUP BY c.building
+#     """)
+#     # Temp table key (fast join, doesn't touch real schema)
+#     frappe.db.sql("ALTER TABLE tmp_c_agg ADD PRIMARY KEY (building)")
+
+#     # 2) Pre-aggregate VACCINATION by building (Approved only)
+#     frappe.db.sql(f"""
+#         CREATE TEMPORARY TABLE tmp_v_agg
+#         AS
+#         SELECT
+#             v.building,
+#             SUM(v.status = 'Approved') AS tot,
+#             SUM(v.status = 'Approved' AND v.vaccination_status IN ('{ok1}','{ok2}')) AS ok,
+#             SUM(v.status = 'Approved' AND v.vaccination_status IS NOT NULL) AS s_cnt,
+#             SUM(v.status = 'Approved' AND v.vaccination_status = '{ok1}') AS age_cnt,
+#             SUM(v.status = 'Approved' AND v.vaccination_status = '{ok2}') AS full_cnt,
+#             SUM(v.status = 'Approved' AND v.vaccination_status IS NOT NULL
+#                                       AND v.vaccination_status NOT IN ('{ok1}','{ok2}')) AS non_ok
+#         FROM `tabVaccination` v
+#         WHERE v.building IS NOT NULL
+#         GROUP BY v.building
+#     """)
+#     frappe.db.sql("ALTER TABLE tmp_v_agg ADD PRIMARY KEY (building)")
+
+#     # 3) Sum the two aggregates together (no row expansion)
+#     frappe.db.sql("""
+#         CREATE TEMPORARY TABLE tmp_sum
+#         AS
+#         SELECT 
+#             b.name AS building_name,
+#             COALESCE(c.tot,0)  + COALESCE(v.tot,0)  AS total_items,
+#             COALESCE(c.ok,0)   + COALESCE(v.ok,0)   AS ok_items,
+#             COALESCE(c.s_cnt,0)+ COALESCE(v.s_cnt,0) AS status_count,
+#             COALESCE(c.age_cnt,0)+COALESCE(v.age_cnt,0) AS age_count,
+#             COALESCE(c.full_cnt,0)+COALESCE(v.full_cnt,0) AS full_count,
+#             COALESCE(c.non_ok,0)+ COALESCE(v.non_ok,0) AS non_ok_count
+#         FROM `tabBuilding` b
+#         LEFT JOIN tmp_c_agg c ON c.building = b.name
+#         LEFT JOIN tmp_v_agg v ON v.building = b.name
+#         WHERE b.status = 'Approved'
+#     """)
+#     frappe.db.sql("ALTER TABLE tmp_sum ADD PRIMARY KEY (building_name)")
+
+#     # 4) Compute final desired values & keep only rows that would change
+#     frappe.db.sql(f"""
+#         CREATE TEMPORARY TABLE tmp_changes
+#         AS
+#         SELECT
+#             b.name AS name,
+#             IF(s.total_items > 0, ROUND(100 * s.ok_items / s.total_items), 0) AS new_pct,
+#             CASE
+#                 WHEN s.status_count = 0 THEN 'gray'
+#                 WHEN s.non_ok_count > 0 THEN 'red'
+#                 WHEN (s.age_count > 0)
+#                      AND (s.non_ok_count = 0)
+#                      AND (s.full_count + s.age_count = s.status_count) THEN 'yellow'
+#                 WHEN s.full_count = s.status_count THEN 'green'
+#                 ELSE 'gray'
+#             END AS new_status
+#         FROM tmp_sum s
+#         JOIN `tabBuilding` b ON b.name = s.building_name
+#         WHERE b.status = 'Approved'
+#           AND (
+#               b.percentage_of_vaccinated_children <>
+#                   IF(s.total_items > 0, ROUND(100 * s.ok_items / s.total_items), 0)
+#               OR b.building_vaccination_status <>
+#                   CASE
+#                       WHEN s.status_count = 0 THEN 'gray'
+#                       WHEN s.non_ok_count > 0 THEN 'red'
+#                       WHEN (s.age_count > 0)
+#                            AND (s.non_ok_count = 0)
+#                            AND (s.full_count + s.age_count = s.status_count) THEN 'yellow'
+#                       WHEN s.full_count = s.status_count THEN 'green'
+#                       ELSE 'gray'
+#                   END
+#           )
+#     """)
+#     frappe.db.sql("ALTER TABLE tmp_changes ADD PRIMARY KEY (name)")
+
+#     # 5) Update in small, short transactions; retry on lock waits by shrinking batch
+#     batch = 1000  # start size; will auto-shrink on lock waits
+#     total = 0
+
+#     while True:
+#         # get a deterministic slice of keys to update
+#         names = frappe.db.sql(f"""
+#             SELECT name FROM tmp_changes
+#             ORDER BY name
+#             LIMIT {batch}
+#         """)
+#         if not names:
+#             break
+
+#         # bind list for IN (...)
+#         keys = [n[0] for n in names]
+#         placeholders = ", ".join(["%s"] * len(keys))
+
+#         try:
+#             # one small transaction per batch
+#             frappe.db.sql("""
+#                 UPDATE `tabBuilding` b
+#                 JOIN tmp_changes t ON t.name = b.name
+#                 SET b.percentage_of_vaccinated_children = t.new_pct,
+#                     b.building_vaccination_status = t.new_status
+#                 WHERE b.name IN (""" + placeholders + ")",
+#                 keys,
+#             )
+#             affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
+#             total += affected
+
+#             # remove processed keys from tmp_changes (keeps next LIMIT fast)
+#             frappe.db.sql("DELETE FROM tmp_changes WHERE name IN (" + placeholders + ")", keys)
+#             frappe.db.commit()
+
+#             # if we had to shrink before, gradually grow back up (optional)
+#             if batch < 1000:
+#                 batch = min(1000, int(batch * 1.5))
+
+#         except Exception as e:
+#             # If lock wait / deadlock, shrink batch and retry that slice later
+#             frappe.db.rollback()
+#             msg = str(e)
+#             if "Lock wait timeout" in msg or "Deadlock" in msg or "1205" in msg or "1213" in msg:
+#                 batch = max(50, batch // 2)
+#             else:
+#                 # unexpected; re-raise
+#                 raise
+
+#     print(f"Updated vaccination status for {total} buildings.")
+
+
 def update_building_vaccination_status():
     """
-    Compute vaccination % and status for Approved buildings using SQL-only aggregation,
-    then update tabBuilding in small batches to avoid lock waits.
-    No new indexes are created on base tables; only TEMP tables are used.
-    Outcome identical to original Python logic.
+    Recompute building_vaccination_status and percentage_of_vaccinated_children
+    for ALL Approved Buildings using ONLY Approved Children rows.
+
+    Rules (Children.status == 'Approved' only):
+      - If approved_total_rows = 0                -> gray, 0%
+      - Else if non_ok_count > 0                  -> red
+      - Else if age_count > 0 and all are OK      -> yellow
+      - Else if full_count == status_count > 0    -> green
+      - Else                                      -> gray (fallback)
     """
     ok1 = "Vaccinated to Age"
     ok2 = "Fully Vaccinated (Measles 2)"
 
-    # be tolerant to existing temp tables from a previous crash
+    # Clean up any leftovers
     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_c_agg")
-    frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_v_agg")
     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_sum")
     frappe.db.sql("DROP TEMPORARY TABLE IF EXISTS tmp_changes")
 
-    # keep read view light; keep lock waits reasonable for this job
+    # Reasonable session settings for long batch jobs
     frappe.db.sql("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
     frappe.db.sql("SET SESSION innodb_lock_wait_timeout = 120")
 
-    # 1) Pre-aggregate CHILDREN by building (Approved only)
+    # 1) Aggregate ONLY Approved Children by building
     frappe.db.sql(f"""
         CREATE TEMPORARY TABLE tmp_c_agg
         AS
         SELECT
             c.building,
-            SUM(c.status = 'Approved') AS tot,
-            SUM(c.status = 'Approved' AND c.vaccination_status IN ('{ok1}','{ok2}')) AS ok,
-            SUM(c.status = 'Approved' AND c.vaccination_status IS NOT NULL) AS s_cnt,
-            SUM(c.status = 'Approved' AND c.vaccination_status = '{ok1}') AS age_cnt,
-            SUM(c.status = 'Approved' AND c.vaccination_status = '{ok2}') AS full_cnt,
+            /* count of Approved children (whether or not vaccination_status is set) */
+            SUM(c.status = 'Approved') AS appr_tot,
+            /* Approved children that have a non-NULL vaccination_status */
+            SUM(c.status = 'Approved' AND c.vaccination_status IS NOT NULL) AS status_count,
+            /* breakdown of Approved children by vaccination_status */
+            SUM(c.status = 'Approved' AND c.vaccination_status = '{ok1}') AS age_count,
+            SUM(c.status = 'Approved' AND c.vaccination_status = '{ok2}') AS full_count,
             SUM(c.status = 'Approved' AND c.vaccination_status IS NOT NULL
-                                      AND c.vaccination_status NOT IN ('{ok1}','{ok2}')) AS non_ok
+                                AND c.vaccination_status NOT IN ('{ok1}','{ok2}')) AS non_ok_count
         FROM `tabChildren` c
         WHERE c.building IS NOT NULL
         GROUP BY c.building
     """)
-    # Temp table key (fast join, doesn't touch real schema)
     frappe.db.sql("ALTER TABLE tmp_c_agg ADD PRIMARY KEY (building)")
 
-    # 2) Pre-aggregate VACCINATION by building (Approved only)
-    frappe.db.sql(f"""
-        CREATE TEMPORARY TABLE tmp_v_agg
-        AS
-        SELECT
-            v.building,
-            SUM(v.status = 'Approved') AS tot,
-            SUM(v.status = 'Approved' AND v.vaccination_status IN ('{ok1}','{ok2}')) AS ok,
-            SUM(v.status = 'Approved' AND v.vaccination_status IS NOT NULL) AS s_cnt,
-            SUM(v.status = 'Approved' AND v.vaccination_status = '{ok1}') AS age_cnt,
-            SUM(v.status = 'Approved' AND v.vaccination_status = '{ok2}') AS full_cnt,
-            SUM(v.status = 'Approved' AND v.vaccination_status IS NOT NULL
-                                      AND v.vaccination_status NOT IN ('{ok1}','{ok2}')) AS non_ok
-        FROM `tabVaccination` v
-        WHERE v.building IS NOT NULL
-        GROUP BY v.building
-    """)
-    frappe.db.sql("ALTER TABLE tmp_v_agg ADD PRIMARY KEY (building)")
-
-    # 3) Sum the two aggregates together (no row expansion)
+    # 2) Join to ALL Approved Buildings so buildings without any Approved children get zeros
     frappe.db.sql("""
         CREATE TEMPORARY TABLE tmp_sum
         AS
-        SELECT 
+        SELECT
             b.name AS building_name,
-            COALESCE(c.tot,0)  + COALESCE(v.tot,0)  AS total_items,
-            COALESCE(c.ok,0)   + COALESCE(v.ok,0)   AS ok_items,
-            COALESCE(c.s_cnt,0)+ COALESCE(v.s_cnt,0) AS status_count,
-            COALESCE(c.age_cnt,0)+COALESCE(v.age_cnt,0) AS age_count,
-            COALESCE(c.full_cnt,0)+COALESCE(v.full_cnt,0) AS full_count,
-            COALESCE(c.non_ok,0)+ COALESCE(v.non_ok,0) AS non_ok_count
+            COALESCE(c.appr_tot, 0)      AS approved_total_rows,
+            COALESCE(c.status_count, 0)  AS status_count,
+            COALESCE(c.age_count, 0)     AS age_count,
+            COALESCE(c.full_count, 0)    AS full_count,
+            COALESCE(c.non_ok_count, 0)  AS non_ok_count
         FROM `tabBuilding` b
         LEFT JOIN tmp_c_agg c ON c.building = b.name
-        LEFT JOIN tmp_v_agg v ON v.building = b.name
         WHERE b.status = 'Approved'
     """)
     frappe.db.sql("ALTER TABLE tmp_sum ADD PRIMARY KEY (building_name)")
 
-    # 4) Compute final desired values & keep only rows that would change
+    # 3) Compute desired values & select only rows that would actually change
     frappe.db.sql(f"""
         CREATE TEMPORARY TABLE tmp_changes
         AS
         SELECT
             b.name AS name,
-            IF(s.total_items > 0, ROUND(100 * s.ok_items / s.total_items), 0) AS new_pct,
+            /* Percent only from Approved children where vaccination_status is defined */
+            IF(s.status_count > 0,
+               ROUND(100 * (s.age_count + s.full_count) / s.status_count),
+               0) AS new_pct,
             CASE
-                WHEN s.status_count = 0 THEN 'gray'
+                /* No Approved children at all -> gray */
+                WHEN s.approved_total_rows = 0 THEN 'gray'
+                /* Some Approved children exist; any non-OK among them -> red */
                 WHEN s.non_ok_count > 0 THEN 'red'
+                /* Some "Vaccinated to Age", none non-OK, and all with status are OK -> yellow */
                 WHEN (s.age_count > 0)
                      AND (s.non_ok_count = 0)
                      AND (s.full_count + s.age_count = s.status_count) THEN 'yellow'
-                WHEN s.full_count = s.status_count THEN 'green'
+                /* All Approved children with status are "Fully Vaccinated (Measles 2)" -> green */
+                WHEN s.full_count = s.status_count AND s.status_count > 0 THEN 'green'
+                /* Fallback */
                 ELSE 'gray'
             END AS new_status
         FROM tmp_sum s
         JOIN `tabBuilding` b ON b.name = s.building_name
         WHERE b.status = 'Approved'
           AND (
-              b.percentage_of_vaccinated_children <>
-                  IF(s.total_items > 0, ROUND(100 * s.ok_items / s.total_items), 0)
-              OR b.building_vaccination_status <>
-                  CASE
-                      WHEN s.status_count = 0 THEN 'gray'
-                      WHEN s.non_ok_count > 0 THEN 'red'
-                      WHEN (s.age_count > 0)
-                           AND (s.non_ok_count = 0)
-                           AND (s.full_count + s.age_count = s.status_count) THEN 'yellow'
-                      WHEN s.full_count = s.status_count THEN 'green'
-                      ELSE 'gray'
-                  END
-          )
+                NOT (b.percentage_of_vaccinated_children <=> 
+                     IF(s.status_count > 0,
+                        ROUND(100 * (s.age_count + s.full_count) / s.status_count),
+                        0))
+                OR
+                NOT (NULLIF(b.building_vaccination_status, '') <=> 
+                     CASE
+                         WHEN s.approved_total_rows = 0 THEN 'gray'
+                         WHEN s.non_ok_count > 0 THEN 'red'
+                         WHEN (s.age_count > 0)
+                              AND (s.non_ok_count = 0)
+                              AND (s.full_count + s.age_count = s.status_count) THEN 'yellow'
+                         WHEN s.full_count = s.status_count AND s.status_count > 0 THEN 'green'
+                         ELSE 'gray'
+                     END)
+              )
     """)
     frappe.db.sql("ALTER TABLE tmp_changes ADD PRIMARY KEY (name)")
 
-    # 5) Update in small, short transactions; retry on lock waits by shrinking batch
-    batch = 1000  # start size; will auto-shrink on lock waits
+    # 4) Batched updater with lock-wait backoff
+    batch = 1000
     total = 0
-
     while True:
-        # get a deterministic slice of keys to update
-        names = frappe.db.sql(f"""
-            SELECT name FROM tmp_changes
-            ORDER BY name
-            LIMIT {batch}
-        """)
-        if not names:
+        rows = frappe.db.sql(f"SELECT name FROM tmp_changes ORDER BY name LIMIT {batch}")
+        if not rows:
             break
-
-        # bind list for IN (...)
-        keys = [n[0] for n in names]
+        keys = [r[0] for r in rows]
         placeholders = ", ".join(["%s"] * len(keys))
-
         try:
-            # one small transaction per batch
-            frappe.db.sql("""
+            frappe.db.sql(
+                """
                 UPDATE `tabBuilding` b
                 JOIN tmp_changes t ON t.name = b.name
                 SET b.percentage_of_vaccinated_children = t.new_pct,
@@ -416,25 +568,21 @@ def update_building_vaccination_status():
             affected = frappe.db.sql("SELECT ROW_COUNT()")[0][0]
             total += affected
 
-            # remove processed keys from tmp_changes (keeps next LIMIT fast)
             frappe.db.sql("DELETE FROM tmp_changes WHERE name IN (" + placeholders + ")", keys)
             frappe.db.commit()
 
-            # if we had to shrink before, gradually grow back up (optional)
             if batch < 1000:
                 batch = min(1000, int(batch * 1.5))
-
         except Exception as e:
-            # If lock wait / deadlock, shrink batch and retry that slice later
             frappe.db.rollback()
-            msg = str(e)
-            if "Lock wait timeout" in msg or "Deadlock" in msg or "1205" in msg or "1213" in msg:
+            m = str(e)
+            if "Lock wait timeout" in m or "Deadlock" in m or "1205" in m or "1213" in m:
                 batch = max(50, batch // 2)
             else:
-                # unexpected; re-raise
                 raise
 
     print(f"Updated vaccination status for {total} buildings.")
+
 
 
 def set_enumerated_vaccination_status():
@@ -508,6 +656,345 @@ def create_missing_facility_buildings():
             building.insert(ignore_permissions=True)
             frappe.db.commit()
             print(f"Created Building for Facility: {facility.name} in Settlement: {settlement.name}")
+
+
+
+def update_all_building_vaccination_percentages(batch_size: int = 200):
+    """
+    Scheduled job:
+    - Find all buildings that have Approved Children / Vaccination records
+    - Compute vaccination percentage per building
+    - Update Building.percentage_of_vaccinated_children via SQL (no doc events)
+    """
+
+    APPROVED_STATUSES = ("Vaccinated to Age", "Fully Vaccinated (Measles 2)")
+
+    # Buildings from Children
+    child_buildings = frappe.get_all(
+        "Children",
+        filters={"status": "Approved", "building": ["!=", ""]},
+        pluck="building",
+        distinct=True,
+    )
+
+    # Buildings from Vaccination
+    vacc_buildings = frappe.get_all(
+        "Vaccination",
+        filters={"status": "Approved", "building": ["!=", ""]},
+        pluck="building",
+        distinct=True,
+    )
+
+    # Unique list of buildings to process
+    all_buildings = list({b for b in (child_buildings + vacc_buildings) if b})
+
+    for i, building_name in enumerate(all_buildings, start=1):
+        if not building_name:
+            continue
+
+        # ---- Children stats ----
+        child_row = frappe.db.sql(
+            """
+            SELECT
+                COUNT(*) AS total_children,
+                SUM(
+                    CASE
+                        WHEN vaccination_status IN %(statuses)s THEN 1
+                        ELSE 0
+                    END
+                ) AS vaccinated_children
+            FROM `tabChildren`
+            WHERE status = 'Approved'
+              AND building = %(building)s
+            """,
+            {"building": building_name, "statuses": APPROVED_STATUSES},
+            as_dict=True,
+        )[0]
+
+        total_children = child_row.total_children or 0
+        vaccinated_children = child_row.vaccinated_children or 0
+
+        # ---- Vaccination stats (standalone vaccinations) ----
+        vacc_row = frappe.db.sql(
+            """
+            SELECT
+                COUNT(*) AS total_vaccinations,
+                SUM(
+                    CASE
+                        WHEN vaccination_status IN %(statuses)s THEN 1
+                        ELSE 0
+                    END
+                ) AS vaccinated_records
+            FROM `tabVaccination`
+            WHERE status = 'Approved'
+              AND building = %(building)s
+              AND (children = '' OR children IS NULL)
+            """,
+            {"building": building_name, "statuses": APPROVED_STATUSES},
+            as_dict=True,
+        )[0]
+
+        total_vaccinations = vacc_row.total_vaccinations or 0
+        vaccinated_vaccinations = vacc_row.vaccinated_records or 0
+
+        total = total_children + total_vaccinations
+        vaccinated_total = vaccinated_children + vaccinated_vaccinations
+
+        combined_percentage = round((vaccinated_total / total) * 100) if total > 0 else 0
+
+        # ---- Update Building via SQL (no doc events) ----
+        # frappe.db.sql(
+        #     """
+        #     UPDATE `tabBuilding`
+        #     SET percentage_of_vaccinated_children = %s
+        #     WHERE name = %s
+        #     """,
+        #     (combined_percentage, building_name),
+        # )
+
+        frappe.db.sql(
+            """
+            UPDATE `tabBuilding`
+            SET
+                percentage_of_vaccinated_children = %s,
+                modified = NOW(),
+                modified_by = %s
+            WHERE name = %s
+            """,
+            (combined_percentage, frappe.session.user, building_name),
+        )
+
+
+        # Batch commits to avoid giant transaction
+        if i % batch_size == 0:
+            frappe.db.commit()
+
+    frappe.db.commit()
+
+import frappe
+from frappe.utils import getdate, today, date_diff, add_days
+
+def recompute_children_vaccination_fields(batch_size: int = 2000):
+    """
+    Batch recompute of:
+      - vaccines_taken
+      - vaccination_status
+      - next_vaccination_date
+
+    For Children where:
+      - status = 'Approved'
+      - modified is older than 14 days (or NULL)
+
+    Runs in batches, uses raw SQL, and does NOT trigger doc events.
+    """
+
+    offset = 0
+    today_date = getdate(today())
+    cutoff_date = add_days(today_date, -14)  # 14 days ago
+
+    # Static maps (defined once)
+    vaccine_stages = {
+        "BCG": 0, "HEP B0": 0, "OPV 0": 0,
+        "PENTA 1": 1, "ROTA 1": 1, "PCV 1": 1, "OPV 1": 1, "IPV 1": 1,
+        "PENTA 2": 2, "ROTA 2": 2, "PCV 2": 2, "OPV 2": 2,
+        "PENTA 3": 3, "ROTA 3": 3, "PCV 3": 3, "OPV 3": 3, "IPV 2": 3,
+        "VIT A": 4, "Yellow Fever": 4, "Men A": 4, "MEN A": 4,
+        "Measles 1": 5,
+        "Measles 2": 6,
+    }
+
+    next_vaccine_days = {
+        0: 42,    # 6 weeks
+        1: 28,    # 4 weeks
+        2: 28,    # 4 weeks
+        3: 70,    # 10 weeks
+        4: 84,    # 12 weeks
+        5: 168,   # 24 weeks
+        6: None,  # No next vaccination
+    }
+
+    while True:
+        # 1) Fetch a batch of Children (only the fields we need)
+        children = frappe.db.sql(
+            """
+            SELECT
+                name,
+                date_of_birth,
+                last_vaccination_date
+            FROM `tabChildren`
+            WHERE status = 'Approved'
+              AND (modified IS NULL OR modified < %s)
+            ORDER BY name
+            LIMIT %s OFFSET %s
+            """,
+            (cutoff_date, batch_size, offset),
+            as_dict=True,
+        )
+
+        if not children:
+            break
+
+        child_names = [c["name"] for c in children]
+
+        # 2) Fetch all vaccines for this batch in ONE query
+        vaccines_rows = frappe.db.sql(
+            """
+            SELECT
+                parent AS child,
+                vaccine
+            FROM `tabVaccine Multiselect`
+            WHERE parent IN %(child_names)s
+            """,
+            {"child_names": tuple(child_names)},
+            as_dict=True,
+        )
+
+        # Build a dict: child -> [vaccine, ...]
+        child_to_vaccines = {}
+        for row in vaccines_rows:
+            child_to_vaccines.setdefault(row.child, []).append(row.vaccine)
+
+        # 3) Process each child in Python
+        for child in children:
+            name = child.name
+            dob = child.date_of_birth
+            vacc_date = child.last_vaccination_date
+
+            # If no DOB, we can't compute age-related logic; skip
+            if not dob:
+                continue
+
+            date_of_birth = getdate(dob)
+            age_in_days = date_diff(today_date, date_of_birth)
+            age_in_weeks = age_in_days // 7
+
+            vaccine_records = child_to_vaccines.get(name, []) or []
+            vaccines_taken = "[" + ", ".join(f'"{v}"' for v in vaccine_records) + "]"
+
+            # ---- vaccination_status logic (your original conditions) ----
+            vaccination_status = None
+
+            if not vaccine_records:
+                vaccination_status = "Never Vaccinated"
+
+            elif (
+                ("PENTA 1" not in vaccine_records and
+                 "PENTA 2" not in vaccine_records and
+                 "PENTA 3" not in vaccine_records)
+                and age_in_weeks > 6
+            ):
+                vaccination_status = "Zero Dose"
+
+            elif (
+                (age_in_weeks >= 0 and "BCG" not in vaccine_records) or
+                (age_in_weeks >= 0 and "HEP B0" not in vaccine_records) or
+                (age_in_weeks >= 0 and "OPV 0" not in vaccine_records) or
+                (age_in_weeks >= 6 and "PENTA 1" not in vaccine_records) or
+                (age_in_weeks >= 10 and "PENTA 2" not in vaccine_records) or
+                (age_in_weeks >= 14 and "PENTA 3" not in vaccine_records) or
+                (age_in_weeks >= 24 and "VIT A" not in vaccine_records) or
+                (age_in_weeks >= 36 and "Measles 1" not in vaccine_records) or
+                (age_in_weeks >= 60 and "Measles 2" not in vaccine_records)
+            ):
+                vaccination_status = "Under Immunized"
+
+            elif (
+                (age_in_weeks >= 0 and age_in_weeks <= 6 and
+                 "BCG" in vaccine_records and
+                 "HEP B0" in vaccine_records and
+                 "OPV 0" in vaccine_records) or
+
+                (age_in_weeks >= 6 and age_in_weeks <= 10 and
+                 "PENTA 1" in vaccine_records and
+                 "BCG" in vaccine_records and
+                 "HEP B0" in vaccine_records and
+                 "OPV 0" in vaccine_records) or
+
+                (age_in_weeks >= 10 and age_in_weeks <= 14 and
+                 "PENTA 2" in vaccine_records and
+                 "PENTA 1" in vaccine_records and
+                 "BCG" in vaccine_records and
+                 "HEP B0" in vaccine_records and
+                 "OPV 0" in vaccine_records) or
+
+                (age_in_weeks >= 14 and age_in_weeks <= 36 and
+                 "PENTA 3" in vaccine_records and
+                 "PENTA 2" in vaccine_records and
+                 "PENTA 1" in vaccine_records and
+                 "BCG" in vaccine_records and
+                 "HEP B0" in vaccine_records and
+                 "OPV 0" in vaccine_records) or
+
+                (age_in_weeks >= 24 and age_in_weeks <= 48 and
+                 "VIT A" in vaccine_records and
+                 "PENTA 3" in vaccine_records and
+                 "PENTA 2" in vaccine_records and
+                 "PENTA 1" in vaccine_records and
+                 "BCG" in vaccine_records and
+                 "HEP B0" in vaccine_records and
+                 "OPV 0" in vaccine_records) or
+
+                (age_in_weeks >= 36 and age_in_weeks <= 60 and
+                 "Measles 1" in vaccine_records and
+                 "VIT A" in vaccine_records and
+                 "PENTA 3" in vaccine_records and
+                 "PENTA 2" in vaccine_records and
+                 "PENTA 1" in vaccine_records and
+                 "BCG" in vaccine_records and
+                 "HEP B0" in vaccine_records and
+                 "OPV 0" in vaccine_records)
+            ):
+                vaccination_status = "Vaccinated to Age"
+
+            elif (
+                ("BCG" in vaccine_records) and
+                ("HEP B0" in vaccine_records) and
+                ("OPV 0" in vaccine_records) and
+                ("PENTA 1" in vaccine_records) and
+                ("PENTA 2" in vaccine_records) and
+                ("PENTA 3" in vaccine_records) and
+                ("VIT A" in vaccine_records) and
+                ("Measles 1" in vaccine_records) and
+                ("Measles 2" in vaccine_records)
+            ):
+                vaccination_status = "Fully Vaccinated (Measles 2)"
+
+            # ---- next_vaccination_date logic ----
+            next_vaccination_date = None
+            if vacc_date:
+                last_vaccination_date = getdate(vacc_date)
+
+                highest_stage = -1
+                for v in vaccine_records:
+                    stage = vaccine_stages.get(v.strip())
+                    if stage is not None and stage > highest_stage:
+                        highest_stage = stage
+
+                if highest_stage >= 0:
+                    days_to_add = next_vaccine_days.get(highest_stage)
+                    if days_to_add:
+                        next_vaccination_date = add_days(last_vaccination_date, days_to_add)
+                    else:
+                        next_vaccination_date = None
+
+            # 4) Update this child via SQL (no doc events)
+            frappe.db.sql(
+                """
+                UPDATE `tabChildren`
+                SET
+                    vaccines_taken = %s,
+                    vaccination_status = %s,
+                    next_vaccination_date = %s,
+                    modified = NOW()
+                WHERE name = %s
+                """,
+                (vaccines_taken, vaccination_status, next_vaccination_date, name),
+            )
+
+        frappe.db.commit()
+        offset += batch_size
+
+    frappe.db.commit()
 
 
 

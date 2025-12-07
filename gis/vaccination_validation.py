@@ -274,7 +274,7 @@ def create_vaccination_validation_summary(health_facility=None, start_date=None,
             "status": 401
         }
     
-    # Check if ward is provided
+    # Check if health facility is provided
     if not health_facility:
         return {
             "message": "Select a Health Facility to create a validation summary.",
@@ -306,6 +306,18 @@ def create_vaccination_validation_summary(health_facility=None, start_date=None,
     if existing_summaries:
         return {
             "message": "You already have a pending vaccination validation summary. Please complete it before creating a new one.",
+            "status": 400
+        }
+
+    existing_facility_summaries = frappe.get_all(
+        "Vaccination Validation Summary",
+        filters={"health_facility": health_facility, "status": ["in", ["Pending"]]},
+        fields=["name"]
+    )
+
+    if existing_facility_summaries:
+        return {
+            "message": "This health facility currently has a pending vaccination validation summary. Please complete it before creating a new one.",
             "status": 400
         }
     

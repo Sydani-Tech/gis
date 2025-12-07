@@ -43,6 +43,12 @@ QUESTIONS = {
         "field": "name_of_household_head",
         "type": "Data"
     },
+    "pregnant_women_in_household_match": {
+        "question": "Is this the correct number of pregnant women in this household??",
+        "doctype": "Household",
+        "field": "how_many_pregnant_women_are_there",
+        "type": "Int"
+    },
     "under_5_children_count": {
         "question": "Is this the correct number of under 5 children in the household?",
         "doctype": "Household",
@@ -113,7 +119,7 @@ def get_builing_validation_questions(building_name):
 
     # Fetch all Households where status is "Submitted" for the given Building
     households = frappe.db.get_list("Household", filters={"building": building_name, "status": "Submitted"}, 
-                                    fields=["name", "name_of_household_head", "how_many_household_members_are_below_5"],
+                                    fields=["name", "name_of_household_head", "how_many_household_members_are_below_5", "how_many_pregnant_women_are_there"],
                                     ignore_permissions=True)
   
 

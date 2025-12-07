@@ -292,6 +292,16 @@ def save_children(**kwargs):
     try:
         # If 'name' is provided, fetch the existing record
         if record_name:
+
+            # Generate image names
+            first_name = kwargs["first_name"]
+            last_name = kwargs["last_name"]
+            image_name = f"{first_name}-{last_name.replace(' ', '-')}-{random.randint(1001, 999999)}.jpg"
+            # img2_name = f"{b_num}-{proj.replace(' ', '-')}-{random.randint(1001, 999999)}.jpg"
+
+            picture_of_the_vaccination_card = save_image(frappe.request, 'picture_of_the_vaccination_card', image_name)
+
+
             children = frappe.get_doc("Children", record_name)
         else:
             # Create a new record if 'name' is not provided
@@ -309,6 +319,8 @@ def save_children(**kwargs):
                 "date_of_birth": kwargs["date_of_birth"],
                 "gender": kwargs["gender"],
                 "does_the_child_have_a_vaccination_card": kwargs["does_the_child_have_a_vaccination_card"],
+                "unique_code": kwargs["unique_code"],
+                "picture_of_the_vaccination_card": picture_of_the_vaccination_card,
                 # "vaccination_status": kwargs["vaccination_status"],
                 "geolocation": kwargs["geolocation"],
                 "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
@@ -333,6 +345,8 @@ def save_children(**kwargs):
             "date_of_birth": kwargs["date_of_birth"],
             "gender": kwargs["gender"],
             "does_the_child_have_a_vaccination_card": kwargs["does_the_child_have_a_vaccination_card"],
+            "unique_code": kwargs["unique_code"],
+            "picture_of_the_vaccination_card": picture_of_the_vaccination_card,
             # "vaccination_status": kwargs["vaccination_status"],
             "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
             "geolocation": kwargs["geolocation"],
@@ -405,10 +419,15 @@ def save_household(**kwargs):
         if record_name:
             # Fetch the existing record
             household = frappe.get_doc("Household", record_name)
-            name_of_household_head = sanitize_name(kwargs["name_of_household_head"])
+            first_name_of_household_head = sanitize_name(kwargs["first_name_of_household_head"])
+            last_name_of_household_head = sanitize_name(kwargs["last_name_of_household_head"])
+            name_of_household_head = f"{kwargs['first_name_of_household_head']} {kwargs['last_name_of_household_head']}".strip()
+
 
             # Update fields
             household.update({
+                "first_name_of_household_head": first_name_of_household_head,
+                "last_name_of_household_head": last_name_of_household_head,
                 "name_of_household_head": name_of_household_head,
                 "gender_of_household_head": kwargs["gender_of_household_head"],
                 "date_of_birth_of_household_head": kwargs["date_of_birth_of_household_head"],
@@ -417,12 +436,9 @@ def save_household(**kwargs):
                 "is_the_household_head_employed": kwargs["is_the_household_head_employed"],
                 "industry_of_employment": kwargs["industry_of_employment"] if kwargs["is_the_household_head_employed"] == "Yes" else "",
                 "average_monthly_income": kwargs["average_monthly_income"] if kwargs["is_the_household_head_employed"] == "Yes" else "",
-                # "industry_of_employment": kwargs.get("industry_of_employment"),
-                # "average_monthly_income": kwargs.get("average_monthly_income"),
                 "is_the_household_residing_in_a_rented_apartment": kwargs["is_the_household_residing_in_a_rented_apartment"],
                 "are_there_any_pregnant_women_in_the_household": kwargs["are_there_any_pregnant_women_in_the_household"],
                 "how_many_pregnant_women_are_there": kwargs["how_many_pregnant_women_are_there"] if kwargs["are_there_any_pregnant_women_in_the_household"] == "Yes" else 0,
-                # "how_many_pregnant_women_are_there": kwargs.get("how_many_pregnant_women_are_there"),
                 "how_many_household_members_are_above_18": kwargs["how_many_household_members_are_above_18"],
                 "how_many_household_members_are_between_15_and_18_years": kwargs["how_many_household_members_are_between_15_and_18_years"],
                 "how_many_household_members_are_between_9_and_14_years": kwargs["how_many_household_members_are_between_9_and_14_years"],
@@ -435,13 +451,15 @@ def save_household(**kwargs):
                     int(kwargs.get("how_many_household_members_are_between_15_and_18_years", 0)),
                     int(kwargs.get("how_many_household_members_are_above_18", 0))
                 ]),
+                "how_many_household_members_are_male": kwargs["how_many_household_members_are_male"],
+                "how_many_household_members_are_female": kwargs["how_many_household_members_are_female"],
+                "how_many_women_in_the_household_are_above_the_ages_of_14": kwargs["how_many_women_in_the_household_are_above_the_ages_of_14"],
                 "most_common_illness_within_the_last_year": kwargs["most_common_illness_within_the_last_year"],
                 "if_others_specify": kwargs.get("if_others_specify"),
                 # "what_is_the_nearest_facility": kwargs["what_is_the_nearest_facility"],
                 # "how_far_is_the_nearest_facility": kwargs["how_far_is_the_nearest_facility"],
                 "do_you_take_your_childchildren_to_the_facility_for_ri_services": kwargs["do_you_take_your_childchildren_to_the_facility_for_ri_services"],
                 "please_state_why": kwargs["please_state_why"] if kwargs["do_you_take_your_childchildren_to_the_facility_for_ri_services"] == "No" else "",
-                # "please_state_why": kwargs.get("please_state_why"),
                 # "geolocation": kwargs["geolocation"],
                 "building": kwargs["building"],
                 "comment_to_supervisor": kwargs.get("comment_to_supervisor"),
@@ -454,11 +472,15 @@ def save_household(**kwargs):
                 "response_geolocation": kwargs["response_geolocation"]
             })
         else:
-            name_of_household_head = sanitize_name(kwargs["name_of_household_head"])
+            first_name_of_household_head = sanitize_name(kwargs["first_name_of_household_head"])
+            last_name_of_household_head = sanitize_name(kwargs["last_name_of_household_head"])
+            name_of_household_head = f"{kwargs['first_name_of_household_head']} {kwargs['last_name_of_household_head']}".strip()
 
             # Create a new record if 'name' is not provided
             household = frappe.get_doc({
                 "doctype": "Household",
+                "first_name_of_household_head": first_name_of_household_head,
+                "last_name_of_household_head": last_name_of_household_head,
                 "name_of_household_head": name_of_household_head,
                 "gender_of_household_head": kwargs["gender_of_household_head"],
                 "date_of_birth_of_household_head": kwargs["date_of_birth_of_household_head"],
@@ -482,6 +504,9 @@ def save_household(**kwargs):
                     int(kwargs.get("how_many_household_members_are_between_15_and_18_years", 0)),
                     int(kwargs.get("how_many_household_members_are_above_18", 0))
                 ]),
+                "how_many_household_members_are_male": kwargs["how_many_household_members_are_male"],
+                "how_many_household_members_are_female": kwargs["how_many_household_members_are_female"],
+                "how_many_women_in_the_household_are_above_the_ages_of_14": kwargs["how_many_women_in_the_household_are_above_the_ages_of_14"],
                 "most_common_illness_within_the_last_year": kwargs["most_common_illness_within_the_last_year"],
                 "if_others_specify": kwargs.get("if_others_specify"),
                 # "what_is_the_nearest_facility": kwargs["what_is_the_nearest_facility"],
@@ -500,6 +525,51 @@ def save_household(**kwargs):
                 "response_geolocation": kwargs["response_geolocation"]
             })
         
+        if "pregnant_women" in kwargs:
+            # clear existing rows
+            household.pregnant_women = []
+
+            payload = kwargs["pregnant_women"]
+
+            # accept list or JSON string
+            if isinstance(payload, str):
+                try:
+                    payload = json.loads(payload)
+                except json.JSONDecodeError:
+                    frappe.throw(
+                        'The "pregnant_women" field must be a JSON array of objects like '
+                        '[{"name_of_pregnant_woman":"Adamma Onyeka","how_many_months_into_the_pregnancy_is_she":"6","how_many_anc_visit_has_the_pregnant_woman_attended":"3", "has_the_pregnant_woman_taken_td_vaccine": "Yes","what_dose_of_td_did_she_take": "1st Dose"}].'
+                    )
+
+            if not isinstance(payload, list):
+                frappe.throw('The "pregnant_women" field must be a list.')
+
+            for item in payload:
+                if not isinstance(item, dict):
+                    frappe.throw('Each entry in "pregnant_women" must be an object.')
+
+                name_of_pregnant_woman = (item.get("name_of_pregnant_woman"))
+                how_many_months_into_the_pregnancy_is_she = (item.get("how_many_months_into_the_pregnancy_is_she"))
+                how_many_anc_visit_has_the_pregnant_woman_attended  = item.get("how_many_anc_visit_has_the_pregnant_woman_attended")
+                has_the_pregnant_woman_taken_td_vaccine = (item.get("has_the_pregnant_woman_taken_td_vaccine"))
+                what_dose_of_td_did_she_take = (item.get("what_dose_of_td_did_she_take"))
+
+                if not name_of_pregnant_woman or not how_many_months_into_the_pregnancy_is_she or not how_many_anc_visit_has_the_pregnant_woman_attended or not has_the_pregnant_woman_taken_td_vaccine:
+                    # Require at least a name; relax this if optional
+                    frappe.throw("Please provide the name of the pregnant woman, month into the pregnancy, ANC visits and the tttd vaccine status.")
+
+                row = {
+                    "name_of_pregnant_woman": name_of_pregnant_woman,
+                    "how_many_months_into_the_pregnancy_is_she": how_many_months_into_the_pregnancy_is_she,
+                    "how_many_anc_visit_has_the_pregnant_woman_attended": how_many_anc_visit_has_the_pregnant_woman_attended,
+                    "has_the_pregnant_woman_taken_td_vaccine": has_the_pregnant_woman_taken_td_vaccine,
+                    "what_dose_of_td_did_she_take": what_dose_of_td_did_she_take
+                }
+
+                household.append("pregnant_women", row)
+
+
+
         # Save the record
         household.save(ignore_permissions=True)
         frappe.db.commit()
@@ -740,7 +810,7 @@ def save_vaccination(**kwargs):
 
         # Filter out any empty strings to avoid double spaces
         full_name = " ".join(filter(None, [first_name, middle_name, last_name]))
-        # full_name = f"{kwargs['first_name']} {kwargs.get('middle_name', '')} {kwargs['last_name']}".strip()
+
         type_of_vaccination_post = kwargs.get("type_of_vaccination_post"),
         if type_of_vaccination_post == "Mobile Team":
             building = frappe.get_value("Household", kwargs.get("household"), "building")
@@ -771,6 +841,7 @@ def save_vaccination(**kwargs):
             "did_you_administer_the_child_health_card": kwargs.get("did_you_administer_the_child_health_card"),
             "take_a_picture_of_the_health_card": take_a_picture_of_the_health_card,
             "why_were_health_cards_not_given": kwargs.get("why_were_health_cards_not_given"),
+            "unique_code": kwargs.get("unique_code"),
             "facility": kwargs.get("facility"),
             "type_of_vaccination_post": kwargs.get("type_of_vaccination_post"),
             "geolocation": kwargs.get("geolocation"),

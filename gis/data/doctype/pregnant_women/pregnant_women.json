@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-02 04:11:49.728641",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "name_of_pregnant_woman",
+  "how_many_months_into_the_pregnancy_is_she",
+  "how_many_anc_visit_has_the_pregnant_woman_attended",
+  "column_break_xnpi",
+  "has_the_pregnant_woman_taken_td_vaccine",
+  "what_dose_of_td_did_she_take"
+ ],
+ "fields": [
+  {
+   "fieldname": "how_many_months_into_the_pregnancy_is_she",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "How many months into the pregnancy is she?",
+   "reqd": 1
+  },
+  {
+   "fieldname": "how_many_anc_visit_has_the_pregnant_woman_attended",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "How many ANC visit has the pregnant woman attended?",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_xnpi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "has_the_pregnant_woman_taken_td_vaccine",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Has the pregnant woman taken TD vaccine?",
+   "options": "\nYes\nNo",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.has_the_pregnant_woman_taken_td_vaccine === \"Yes\"",
+   "fieldname": "what_dose_of_td_did_she_take",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "What dose of TD did she take?",
+   "mandatory_depends_on": "eval:doc.has_the_pregnant_woman_taken_td_vaccine === \"Yes\"",
+   "options": "\n1st Dose\n2nd Dose\n3rd Dose\n4th Dose"
+  },
+  {
+   "fieldname": "name_of_pregnant_woman",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name of pregnant woman",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-03 08:31:57.179525",
+ "modified_by": "Administrator",
+ "module": "Data",
+ "name": "Pregnant Women",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -8,6 +8,7 @@
  "field_order": [
   "tab_2_tab",
   "child_information_section",
+  "building",
   "household",
   "first_name",
   "middle_name",
@@ -20,14 +21,15 @@
   "vaccination_status",
   "enumerated_vaccination_status",
   "does_the_child_have_a_vaccination_card",
+  "picture_of_the_vaccination_card",
   "next_vaccination_date",
   "last_vaccination_date",
   "column_break_alww",
   "last_vaccine_administered",
   "vaccines_taken",
+  "unique_code",
   "location_tab",
   "location_section",
-  "building",
   "settlement",
   "ward",
   "local_government_area",
@@ -286,9 +288,11 @@
    "read_only": 1
   },
   {
+   "fetch_from": "household.geolocation",
    "fieldname": "geolocation",
    "fieldtype": "Geolocation",
-   "label": "Geolocation"
+   "label": "Geolocation",
+   "permlevel": 2
   },
   {
    "fieldname": "last_vaccination_date",
@@ -331,6 +335,18 @@
    "options": "\nFully Vaccinated (Measles 2)\nVaccinated to Age\nUnder Immunized\nZero Dose\nNever Vaccinated",
    "permlevel": 2,
    "read_only": 1
+  },
+  {
+   "fieldname": "picture_of_the_vaccination_card",
+   "fieldtype": "Attach Image",
+   "label": "Picture of the Vaccination Card"
+  },
+  {
+   "fieldname": "unique_code",
+   "fieldtype": "Data",
+   "label": "Unique Code",
+   "no_copy": 1,
+   "unique": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -341,7 +357,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-11-13 10:50:42.772985",
+ "modified": "2025-12-07 17:35:59.952006",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Children",

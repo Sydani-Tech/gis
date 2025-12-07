@@ -242,8 +242,9 @@ scheduler_events = {
         "gis.scheduled_events.create_missing_facility_buildings"
 	],
 	"daily_long": [
-		"gis.scheduled_events.update_approved_records",
         "gis.scheduled_events.update_fully_vaccinated_households",
+        "gis.scheduled_events.update_all_building_vaccination_percentages",
+        "gis.scheduled_events.recompute_children_vaccination_fields",
 	],
     "cron": {
 		"30 * * * *": [

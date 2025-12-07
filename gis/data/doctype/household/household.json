@@ -8,6 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "personal_details_section",
+  "first_name_of_household_head",
+  "last_name_of_household_head",
   "name_of_household_head",
   "gender_of_household_head",
   "date_of_birth_of_household_head",
@@ -21,7 +23,11 @@
   "is_the_household_residing_in_a_rented_apartment",
   "are_there_any_pregnant_women_in_the_household",
   "how_many_pregnant_women_are_there",
+  "pregnant_women",
   "column_break_armw",
+  "how_many_household_members_are_male",
+  "how_many_household_members_are_female",
+  "how_many_women_in_the_household_are_above_the_ages_of_14",
   "how_many_household_members_are_above_18",
   "how_many_household_members_are_between_15_and_18_years",
   "how_many_household_members_are_between_9_and_14_years",
@@ -69,6 +75,7 @@
    "in_list_view": 1,
    "label": "Name of Household Head",
    "options": "Name",
+   "permlevel": 2,
    "reqd": 1
   },
   {
@@ -425,6 +432,43 @@
    "label": "Does this Household have fully Vaccinated Children",
    "permlevel": 2,
    "read_only": 1
+  },
+  {
+   "fieldname": "first_name_of_household_head",
+   "fieldtype": "Data",
+   "label": "First Name of Household Head"
+  },
+  {
+   "fieldname": "last_name_of_household_head",
+   "fieldtype": "Data",
+   "label": "Last Name of Household Head"
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_male",
+   "fieldtype": "Int",
+   "label": "How many household members are Male?",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_household_members_are_female",
+   "fieldtype": "Int",
+   "label": "How many household members are Female?",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "how_many_women_in_the_household_are_above_the_ages_of_14",
+   "fieldtype": "Int",
+   "label": "How many women in the household are above the ages of 14?",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pregnant_women",
+   "fieldtype": "Table",
+   "label": "Pregnant Women",
+   "options": "Pregnant Women"
   }
  ],
  "grid_page_length": 50,
@@ -440,7 +484,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-11-13 10:50:19.637591",
+ "modified": "2025-12-02 04:55:29.079692",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Household",

@@ -171,6 +171,7 @@ def settlements(ward, lga, state):
         filters['local_government_area'] = lga
     if state:
         filters['state'] = state
+    filters['status'] = 'Approved'
 
     # Fetch settlements based on the filters
     settlements = fetch_db_resource(
