@@ -1,4 +1,3 @@
-
 # import frappe, json
 # from datetime import datetime
 # from werkzeug.wrappers import Response
@@ -6,8 +5,8 @@
 
 
 # # Hard caps / defaults
-# MAX_LIMIT = 500000
-# DEFAULT_LIMIT = 1000
+# MAX_LIMIT = 15000
+# DEFAULT_LIMIT = 15000
 
 # # ---- Allowed doctypes & geometry field mapping ----
 # ALLOWED = {
@@ -176,15 +175,14 @@
 #     fields: str | None = None,
 #     updated_since: str | None = None,
 #     # common filters:
-#     region: str | None = None,
-#     district: str | None = None,
-#     chiefdoms_and_zones: str | None = None,
-#     communities_and_villages: str | None = None,
-#     facility: str | None = None,
+#     state: str | None = None,
+#     local_government_area: str | None = None,
+#     ward: str | None = None,
+#     settlement: str | None = None,
 #     status: str | None = None,
 # ):
 
-
+        
 #     """
 #     Return **pure GeoJSON**:
 
@@ -217,11 +215,10 @@
 #         field_whitelist = set([f.strip() for f in fields.split(",") if f and f.strip()])
 
 #     args = {
-#         "region": region,
-#         "district": district,
-#         "chiefdoms_and_zones": chiefdoms_and_zones,
-#         "communities_and_villages": communities_and_villages,
-#         "facility": facility,
+#         "state": state,
+#         "local_government_area": local_government_area,
+#         "ward": ward,
+#         "settlement": settlement,
 #         "status": status,
 #     }
 #     filters = _build_filters(cfg, args)
@@ -291,7 +288,6 @@
 #     return resp
 
 
-
 import frappe, json
 from datetime import datetime
 from werkzeug.wrappers import Response
@@ -299,8 +295,8 @@ from frappe import get_site_config
 
 
 # Hard caps / defaults
-MAX_LIMIT = 500000
-DEFAULT_LIMIT = 1000
+MAX_LIMIT = 15000
+DEFAULT_LIMIT = 15000
 
 # ---- Allowed doctypes & geometry field mapping ----
 ALLOWED = {
@@ -460,12 +456,11 @@ def _get_fields_for_query(doctype, geom_field, field_whitelist):
         return list({*base, *field_whitelist})
     return ["*"]  # fetch all, we’ll drop excluded at serialization
 
-# ----------------- endpoint -----------------
 @frappe.whitelist(allow_guest=True)  # keep allow_guest while testing
 def export_geojson_arcgis(
     doctype: str,
-    limit: int = DEFAULT_LIMIT,
-    offset: int = 0,
+    limit: int = DEFAULT_LIMIT,      # page size
+    page: int = 1,                   # 1-based page number
     fields: str | None = None,
     updated_since: str | None = None,
     # common filters:
@@ -475,21 +470,28 @@ def export_geojson_arcgis(
     settlement: str | None = None,
     status: str | None = None,
 ):
-
-        
     """
-    Return **pure GeoJSON**:
+    Return **GeoJSON FeatureCollection** with simple page-based pagination.
 
+    Query params:
+      - doctype: one of the ALLOWED doctypes
+      - limit:   page size (max 10,000)
+      - page:    1-based page number
+      - fields:  comma list to whitelist properties
+      - updated_since: ISO-8601 datetime → filters `modified >=` this value
+
+    Response:
     {
       "type": "FeatureCollection",
       "name": "<Doctype>",
-      "features": [ { "type":"Feature", "properties": {...}, "geometry": {...} }, ... ]
+      "features": [...],
+      "properties": {
+        "page": <int>,
+        "page_size": <int>,
+        "total_features": <int>,
+        "total_pages": <int>
+      }
     }
-
-    - No child tables.
-    - Paging via limit/offset.
-    - Optional 'fields' (comma list) to whitelist properties.
-    - Optional 'updated_since' (ISO-8601) filters `modified` >= timestamp.
     """
     if doctype not in ALLOWED:
         frappe.throw(f"Doctype not allowed: {doctype}")
@@ -498,16 +500,23 @@ def export_geojson_arcgis(
     geom_field = cfg["geom_field"]
     exclude_props = set(cfg["exclude_fields"])
 
+    # ---- paging params ----
     try:
         limit = max(1, min(int(limit or DEFAULT_LIMIT), MAX_LIMIT))
-        offset = max(0, int(offset or 0))
+        page = max(1, int(page or 1))
     except Exception:
-        frappe.throw("Invalid limit/offset")
+        frappe.throw("Invalid limit/page")
 
+    offset = (page - 1) * limit
+
+    # ---- field whitelist ----
     field_whitelist = None
     if fields:
-        field_whitelist = set([f.strip() for f in fields.split(",") if f and f.strip()])
+        field_whitelist = set(
+            f.strip() for f in fields.split(",") if f and f.strip()
+        )
 
+    # ---- build filters ----
     args = {
         "state": state,
         "local_government_area": local_government_area,
@@ -526,23 +535,28 @@ def export_geojson_arcgis(
 
     fields_for_query = _get_fields_for_query(doctype, geom_field, field_whitelist)
 
+    # ---- total count for pagination ----
+    total_features = frappe.db.count(doctype, filters=filters)
+    # avoid division by zero
+    total_pages = (total_features + limit - 1) // limit if total_features else 0
+
+    # clamp page if user requested beyond last page
+    if total_pages and page > total_pages:
+        page = total_pages
+        offset = (page - 1) * limit
+
+    # ---- fetch current page ----
     rows = frappe.get_all(
         doctype,
         filters=filters,
         fields=fields_for_query,
         limit_page_length=limit,
         limit_start=offset,
-        order_by="modified desc, name asc",
+        # changed: order by *creation* instead of modified
+        order_by="creation desc, name asc",
     )
 
-    # features = []
-    # for r in rows:
-    #     feat = _to_feature(r, geom_field, exclude_props, field_whitelist)
-    #     # Only include if geometry is present & valid
-    #     if feat.get("geometry"):
-    #         features.append(feat)
-
-    # Build base URL from site_config.site_name
+    # ---- build features ----
     site_conf = get_site_config()
     site_name = site_conf.get("site_name")
     base_url = f"https://{site_name}" if site_name else ""
@@ -565,18 +579,182 @@ def export_geojson_arcgis(
 
         features.append(feat)
 
-
     fc = {
         "type": "FeatureCollection",
         "name": doctype,
         "features": features,
+        "properties": {  # valid extra member on FeatureCollection
+            "page": page,
+            "page_size": limit,
+            "total_features": total_features,
+            "total_pages": total_pages,
+        },
     }
 
-    # body = json.dumps(fc, ensure_ascii=False)
     body = frappe.as_json(fc)
-    # Replace the escaped Naira sign with the literal symbol
-    body = body.replace("\\u20a6", "₦")
+    body = body.replace("\\u20a6", "₦")  # unescape Naira sign
+
     resp = Response(body, mimetype="application/json; charset=utf-8")
-    # Optional CORS for ArcGIS/clients
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    return resp
+
+
+
+import frappe, json
+from datetime import datetime
+from werkzeug.wrappers import Response
+from frappe import get_site_config
+
+# We reuse the same MAX_LIMIT / DEFAULT_LIMIT constants:
+# MAX_LIMIT = 10000
+# DEFAULT_LIMIT = 10000
+
+@frappe.whitelist()  # NOTE: no allow_guest=True → auth required
+def export_excel_table(
+    doctype: str,
+    limit: int = DEFAULT_LIMIT,      # page size
+    page: int = 1,                   # 1-based page number
+    fields: str | None = None,
+    updated_since: str | None = None,
+    # common filters:
+    state: str | None = None,
+    local_government_area: str | None = None,
+    ward: str | None = None,
+    settlement: str | None = None,
+    status: str | None = None,
+):
+    """
+    Return a JSON *table* suitable for Excel / Power Query:
+
+    {
+      "doctype": "Building",
+      "page": 1,
+      "page_size": 10000,
+      "total_rows": 12345,
+      "total_pages": 2,
+      "rows": [
+        { "name": "...", "field1": "...", ... },
+        ...
+      ]
+    }
+
+    Notes:
+    - Auth required (session cookie or API key/secret).
+    - Page-based pagination: ?limit=10000&page=1
+    - Optional 'fields' = comma-separated list to whitelist columns.
+    - Optional 'updated_since' (ISO-8601) filters `modified >=`.
+    """
+
+    # --- 1. Validate doctype ---
+    if doctype not in ALLOWED:
+        frappe.throw(f"Doctype not allowed: {doctype}")
+
+    cfg = ALLOWED[doctype]
+    geom_field = cfg["geom_field"]
+    exclude_props = set(cfg["exclude_fields"])
+
+    # --- 2. Paging parameters ---
+    try:
+        limit = max(1, min(int(limit or DEFAULT_LIMIT), MAX_LIMIT))
+        page = max(1, int(page or 1))
+    except Exception:
+        frappe.throw("Invalid limit/page")
+
+    offset = (page - 1) * limit
+
+    # --- 3. Field whitelist (optional) ---
+    field_whitelist = None
+    if fields:
+        field_whitelist = set(
+            f.strip() for f in fields.split(",") if f and f.strip()
+        )
+
+    # --- 4. Filters (state, LGA, ward, etc.) ---
+    args = {
+        "state": state,
+        "local_government_area": local_government_area,
+        "ward": ward,
+        "settlement": settlement,
+        "status": status,
+    }
+    filters = _build_filters(cfg, args)
+
+    if updated_since:
+        try:
+            _ = datetime.fromisoformat(updated_since.replace("Z", "+00:00"))
+            filters["modified"] = [">=", updated_since]
+        except Exception:
+            frappe.throw("updated_since must be ISO-8601, e.g. 2024-10-10T12:00:00Z")
+
+    fields_for_query = _get_fields_for_query(doctype, geom_field, field_whitelist)
+
+    # --- 5. Total count for pagination ---
+    total_rows = frappe.db.count(doctype, filters=filters)
+    total_pages = (total_rows + limit - 1) // limit if total_rows else 0
+
+    # Clamp page if too high
+    if total_pages and page > total_pages:
+        page = total_pages
+        offset = (page - 1) * limit
+
+    # --- 6. Fetch current page (ordered by creation) ---
+    rows_raw = frappe.get_all(
+        doctype,
+        filters=filters,
+        fields=fields_for_query,
+        limit_page_length=limit,
+        limit_start=offset,
+        order_by="creation desc, name asc",  # or "creation asc" if you prefer oldest-first
+    )
+
+    # --- 7. Clean / normalize rows for Excel ---
+    site_conf = get_site_config()
+    site_name = site_conf.get("site_name")
+    base_url = f"https://{site_name}" if site_name else ""
+
+    rows_clean = []
+    for r in rows_raw:
+        row = {}
+
+        # We keep name by default
+        row["name"] = r.get("name")
+
+        for k, v in r.items():
+            if k == "name":
+                continue
+
+            # Drop internal / excluded fields
+            if k in exclude_props:
+                continue
+
+            # If a whitelist is provided, only keep those + geom_field
+            if field_whitelist and (k not in field_whitelist) and (k != geom_field):
+                continue
+
+            row[k] = v
+
+        # For Buildings, expand picture URLs
+        if doctype == "Building" and base_url:
+            for key in ("building_picture", "building_picture_2"):
+                val = row.get(key)
+                if isinstance(val, str) and val.startswith("/"):
+                    row[key] = base_url + val
+
+        rows_clean.append(row)
+
+    payload = {
+        "doctype": doctype,
+        "page": page,
+        "page_size": limit,
+        "total_rows": total_rows,
+        "total_pages": total_pages,
+        "rows": rows_clean,
+    }
+
+    body = frappe.as_json(payload)
+    body = body.replace("\\u20a6", "₦")  # unescape Naira sign if present
+
+    resp = Response(body, mimetype="application/json; charset=utf-8")
+    # CORS is usually not needed for Excel Power Query, but safe:
     resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp

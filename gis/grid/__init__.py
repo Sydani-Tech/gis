@@ -356,3 +356,91 @@ def grid_households(grid_id):
     return set_res(households=households)
 
 
+import frappe
+
+@frappe.whitelist()
+def grid_vaccination_buildings(grid_id):
+    bldngs = frappe.db.sql(
+        """
+        SELECT 
+            g.name AS grid_id, 
+            g.location AS grid_location, 
+            b.name, 
+            b.geolocation,
+            b.building_number, 
+            b.building_address,
+            b.settlement, 
+            b.ward, 
+            b.local_government_area, 
+            b.state, 
+            b.country 
+        FROM `tabGrid` g
+        JOIN `tabBuilding` b
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(b.geolocation)
+             ) 
+        WHERE
+            g.name = %s
+            AND b.status = 'Approved'
+            AND EXISTS (
+                SELECT 1
+                FROM `tabChildren` c
+                WHERE
+                    c.building = b.name
+                    AND c.status = 'Approved'
+                    AND c.vaccination_status NOT IN (
+                        'Vaccinated to Age',
+                        'Fully Vaccinated (Measles 2)'
+                    )
+            )
+        """,
+        (grid_id,),
+        as_dict=True,
+    )
+
+    return set_res(buildings=bldngs)
+
+
+
+@frappe.whitelist()
+def grid_vaccination_households(grid_id):
+
+    households = frappe.db.sql(
+        """
+        SELECT 
+            g.name AS grid_id,
+            hs.geolocation AS geolocation,
+            hs.settlement AS settlement,  
+            hs.phone_number AS phone_number, 
+            hs.name_of_household_head AS name_of_household_head, 
+            hs.building AS building, 
+            hs.ward AS ward, 
+            hs.name AS name 
+        FROM `tabGrid` g
+        JOIN `tabHousehold` hs
+          ON ST_Contains(
+                ST_GeomFromGeoJSON(g.geolocation_kyow),
+                ST_GeomFromGeoJSON(hs.geolocation)
+             )
+        WHERE
+            g.name = %s
+            AND hs.status = 'Approved'
+            AND EXISTS (
+                SELECT 1
+                FROM `tabChildren` c
+                WHERE
+                    c.household = hs.name
+                    AND c.status = 'Approved'
+                    AND c.vaccination_status NOT IN (
+                        'Vaccinated to Age',
+                        'Fully Vaccinated (Measles 2)'
+                    )
+            )
+        """,
+        (grid_id,),
+        as_dict=True,
+    )
+
+    return set_res(households=households)
+

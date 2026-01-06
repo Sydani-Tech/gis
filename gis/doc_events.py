@@ -960,3 +960,149 @@ def before_save_issue(doc, method):
             "document_name": doc.name
         }).insert(ignore_permissions=True)
 
+import frappe
+from frappe.utils import getdate
+from frappe import _
+
+def enumeration_validation_check(doc, method):
+    # If dates are not set, nothing to validate
+    if not doc.start_date or not doc.end_date:
+        return
+
+    start = getdate(doc.start_date)
+    end = getdate(doc.end_date)
+
+    # Use empty string for new docs so we don't accidentally exclude everything with name != NULL
+    current_name = doc.name or ""
+
+    # --- 1) Check for validator overlap ---
+    if doc.validator:
+        validator_conflicts = frappe.db.sql(
+            """
+            SELECT name, start_date, end_date
+            FROM `tabEnumeration Validation Summary`
+            WHERE status = 'Pending'
+              AND validator = %(validator)s
+              AND start_date <= %(end)s
+              AND end_date >= %(start)s
+              AND name != %(docname)s
+            """,
+            {
+                "validator": doc.validator,
+                "start": start,
+                "end": end,
+                "docname": current_name,
+            },
+            as_dict=True,
+        )
+
+        if validator_conflicts:
+            conflict_names = ", ".join([c["name"] for c in validator_conflicts])
+            frappe.throw(
+                _(
+                    "The validator <b>{0}</b> already has a pending Enumeration Validation Summary "
+                    "in this date range: <b>{1}</b>"
+                ).format(doc.validator, conflict_names)
+            )
+
+    # --- 2) Check for ward overlap ---
+    if getattr(doc, "ward", None):
+        ward_conflicts = frappe.db.sql(
+            """
+            SELECT name, start_date, end_date
+            FROM `tabEnumeration Validation Summary`
+            WHERE status = 'Pending'
+              AND ward = %(ward)s
+              AND start_date <= %(end)s
+              AND end_date >= %(start)s
+              AND name != %(docname)s
+            """,
+            {
+                "ward": doc.ward,
+                "start": start,
+                "end": end,
+                "docname": current_name,
+            },
+            as_dict=True,
+        )
+
+        if ward_conflicts:
+            conflict_names = ", ".join([c["name"] for c in ward_conflicts])
+            frappe.throw(
+                _(
+                    "Ward <b>{0}</b> already has a pending Enumeration Validation Summary "
+                    "in this date range: <b>{1}</b>"
+                ).format(doc.ward, conflict_names)
+            )
+
+def vaccination_validation_check(doc, method):
+    # If dates are not set, nothing to validate
+    if not doc.start_date or not doc.end_date:
+        return
+
+    start = getdate(doc.start_date)
+    end = getdate(doc.end_date)
+
+    # Use empty string for new docs so we don't accidentally exclude everything with name != NULL
+    current_name = doc.name or ""
+
+    # --- 1) Check for validator overlap ---
+    if doc.validator:
+        validator_conflicts = frappe.db.sql(
+            """
+            SELECT name, start_date, end_date
+            FROM `tabVaccination Validation Summary`
+            WHERE status = 'Pending'
+              AND validator = %(validator)s
+              AND start_date <= %(end)s
+              AND end_date >= %(start)s
+              AND name != %(docname)s
+            """,
+            {
+                "validator": doc.validator,
+                "start": start,
+                "end": end,
+                "docname": current_name,
+            },
+            as_dict=True,
+        )
+
+        if validator_conflicts:
+            conflict_names = ", ".join([c["name"] for c in validator_conflicts])
+            frappe.throw(
+                _(
+                    "The validator <b>{0}</b> already has a pending Vaccination Validation Summary "
+                    "in this date range: <b>{1}</b>"
+                ).format(doc.validator, conflict_names)
+            )
+
+    # --- 2) Check for Health Facility overlap ---
+    if getattr(doc, "health_facility", None):
+        facility_conflicts = frappe.db.sql(
+            """
+            SELECT name, start_date, end_date
+            FROM `tabVaccination Validation Summary`
+            WHERE status = 'Pending'
+              AND health_facility = %(health_facility)s
+              AND start_date <= %(end)s
+              AND end_date >= %(start)s
+              AND name != %(docname)s
+            """,
+            {
+                "health_facility": doc.health_facility,
+                "start": start,
+                "end": end,
+                "docname": current_name,
+            },
+            as_dict=True,
+        )
+
+        if facility_conflicts:
+            conflict_names = ", ".join([c["name"] for c in facility_conflicts])
+            frappe.throw(
+                _(
+                    "This Health Facility <b>{0}</b> already has a pending Vaccination Validation Summary "
+                    "in this date range: <b>{1}</b>"
+                ).format(doc.health_facility, conflict_names)
+            )
+

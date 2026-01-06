@@ -1,120 +1,193 @@
-
-# import requests
 # import frappe
-# import datetime
-# import re
-# import json
 # from difflib import SequenceMatcher
 
-# def find_best_match(vaccination, children_records):
-#     """Find the best matching Children record based on full_name similarity."""
-#     best_match = None
-#     highest_ratio = 0
-    
-#     for child in children_records:
-#         match_ratio = SequenceMatcher(None, vaccination.full_name, child.full_name).ratio()
-#         if match_ratio > highest_ratio:
-#             highest_ratio = match_ratio
-#             best_match = child
-    
-#     return best_match
-
 # def has_sufficient_name_match(vaccination_name, child_name):
-#     """Check if there is a sufficient match between the names by comparing word occurrences."""
-#     vaccination_words = set(vaccination_name.lower().split())
+#     vacc_words = set(vaccination_name.lower().split())
 #     child_words = set(child_name.lower().split())
-#     common_words = vaccination_words.intersection(child_words)
-
-#     return len(common_words) >= 2  # Adjust threshold as needed
+#     return len(vacc_words.intersection(child_words)) >= 2  # same rule as before
 
 # def match_vaccination_to_children():
-#     """Matches Vaccination records with Children records based on given criteria."""
-#     vaccinations = frappe.get_all(
-#         "Vaccination", 
-#         filters={"status": "Approved", "children": ("is", "not set")},
-#         fields=["name", "full_name", "date_of_birth", "gender", "ward", "state"]
-#     )
-    
-#     for vaccination in vaccinations:
-#         children_records = frappe.get_all(
-#             "Children", 
-#             filters={
-#                 "status": "Approved", 
-#                 "date_of_birth": vaccination["date_of_birth"], 
-#                 "gender": vaccination["gender"], 
-#                 "state": vaccination["state"]
-#             },
-#             fields=["name", "full_name"]
-#         )
-        
-#         # Filter based on name similarity using word matching
-#         matching_children = [child for child in children_records if has_sufficient_name_match(vaccination["full_name"], child["full_name"])]
-        
-#         if not matching_children:
+#     """
+#     Same outcome as your original function:
+#     - Only Vaccinations with status=Approved and children is not set.
+#     - Candidate Children must be Approved and match DOB, gender, state.
+#     - Use word-overlap >= 2 as preliminary filter.
+#     - Pick best match via SequenceMatcher ratio.
+#     - Write back vaccination.children.
+#     """
+
+#     # 1) Pull ALL candidates in one SQL JOIN (huge reduction in round-trips)
+#     #    We fetch fields we need for both sides.
+#     pairs = frappe.db.sql("""
+#         SELECT
+#             v.name        AS vacc_name,
+#             v.full_name   AS vacc_full_name,
+#             v.date_of_birth AS vacc_dob,
+#             v.gender      AS vacc_gender,
+#             v.state       AS vacc_state,
+
+#             c.name        AS child_name,
+#             c.full_name   AS child_full_name
+#         FROM `tabVaccination` v
+#         JOIN `tabChildren`   c
+#               ON c.status = 'Approved'
+#              AND c.date_of_birth = v.date_of_birth
+#              AND c.gender       = v.gender
+#              AND c.state        = v.state
+#         WHERE v.status = 'Approved'
+#           AND (v.children IS NULL OR v.children = '')
+#     """, as_dict=True)
+
+#     if not pairs:
+#         return
+
+#     # 2) Group candidate children by vaccination to keep memory local and fast
+#     from collections import defaultdict
+#     group = defaultdict(list)
+#     for row in pairs:
+#         group[row["vacc_name"]].append(row)
+
+#     # 3) For each vaccination, apply the same name filters and pick best via SequenceMatcher
+#     to_update = []  # list of tuples (children_name, vaccination_name)
+#     for vacc_name, rows in group.items():
+#         vacc_full = rows[0]["vacc_full_name"]  # same for this vaccination across rows
+
+#         # preliminary filter: word overlap >= 2
+#         prelim = [
+#             r for r in rows
+#             if has_sufficient_name_match(vacc_full, r["child_full_name"])
+#         ]
+#         if not prelim:
 #             continue
-        
-#         best_match = find_best_match(vaccination, matching_children)
-        
-#         if best_match:
-#             frappe.db.set_value("Vaccination", vaccination["name"], "children", best_match["name"])
-#             frappe.db.commit()
+
+#         # pick best
+#         best_row = None
+#         best_ratio = -1.0
+#         for r in prelim:
+#             ratio = SequenceMatcher(None, vacc_full, r["child_full_name"]).ratio()
+#             if ratio > best_ratio:
+#                 best_ratio = ratio
+#                 best_row = r
+
+#         if best_row:
+#             to_update.append((best_row["child_name"], vacc_name))
+
+#     # 4) Apply updates in batches to avoid per-row commits
+#     if not to_update:
+#         return
+
+#     BATCH = 1000
+#     for i in range(0, len(to_update), BATCH):
+#         batch = to_update[i:i+BATCH]
+#         # Use parameterized updates to avoid SQL injection & keep it simple
+#         # (Frappe doesn't support multi-row SET in one statement easily, so do executemany)
+#         args = [(child, vacc) for child, vacc in batch]
+#         frappe.db.sql("""
+#             UPDATE `tabVaccination`
+#             SET children = %s
+#             WHERE name = %s
+#         """, args, as_list=False)  # executemany behavior with a list of tuples
+#         frappe.db.commit()
 
 
 import frappe
 from difflib import SequenceMatcher
+from collections import defaultdict
 
 def has_sufficient_name_match(vaccination_name, child_name):
     vacc_words = set(vaccination_name.lower().split())
     child_words = set(child_name.lower().split())
-    return len(vacc_words.intersection(child_words)) >= 2  # same rule as before
+    return len(vacc_words.intersection(child_words)) >= 2
+
 
 def match_vaccination_to_children():
-    """
-    Same outcome as your original function:
-    - Only Vaccinations with status=Approved and children is not set.
-    - Candidate Children must be Approved and match DOB, gender, state.
-    - Use word-overlap >= 2 as preliminary filter.
-    - Pick best match via SequenceMatcher ratio.
-    - Write back vaccination.children.
-    """
-
-    # 1) Pull ALL candidates in one SQL JOIN (huge reduction in round-trips)
-    #    We fetch fields we need for both sides.
-    pairs = frappe.db.sql("""
+    # -------------------
+    # PHASE 1: unique_code + ward exact match
+    # -------------------
+    phase1_pairs = frappe.db.sql(
+        """
         SELECT
-            v.name        AS vacc_name,
-            v.full_name   AS vacc_full_name,
-            v.date_of_birth AS vacc_dob,
-            v.gender      AS vacc_gender,
-            v.state       AS vacc_state,
-
-            c.name        AS child_name,
-            c.full_name   AS child_full_name
+            v.name  AS vacc_name,
+            MIN(c.name) AS child_name
         FROM `tabVaccination` v
         JOIN `tabChildren`   c
-              ON c.status = 'Approved'
+              ON c.status      = 'Approved'
+             AND v.status      = 'Approved'
+             AND (v.children IS NULL OR v.children = '')
+             AND c.unique_code = v.unique_code
+             AND c.ward        = v.ward
+        GROUP BY v.name
+        """,
+        as_dict=True,
+    )
+
+    # Use Doc API so doc events run
+    BATCH = 200  # small-ish batch for commits
+    counter = 0
+
+    for row in phase1_pairs:
+        vacc_name = row["vacc_name"]
+        child_name = row["child_name"]
+
+        if not child_name:
+            continue
+
+        doc = frappe.get_doc("Vaccination", vacc_name)
+
+        # Double-check it's still unmatched (in case something changed)
+        if doc.children:
+            continue
+
+        doc.children = child_name
+        # If you want to bypass perms but still trigger hooks:
+        doc.save(ignore_permissions=True)
+
+        counter += 1
+        if counter % BATCH == 0:
+            frappe.db.commit()
+
+    # Final commit after any remaining
+    if counter % BATCH != 0:
+        frappe.db.commit()
+
+    # -------------------
+    # PHASE 2: fuzzy matching (same as before, but now only unmatched ones)
+    # -------------------
+    pairs = frappe.db.sql(
+        """
+        SELECT
+            v.name          AS vacc_name,
+            v.full_name     AS vacc_full_name,
+            v.date_of_birth AS vacc_dob,
+            v.gender        AS vacc_gender,
+            v.state         AS vacc_state,
+
+            c.name          AS child_name,
+            c.full_name     AS child_full_name
+        FROM `tabVaccination` v
+        JOIN `tabChildren`   c
+              ON c.status        = 'Approved'
+             AND v.status        = 'Approved'
              AND c.date_of_birth = v.date_of_birth
-             AND c.gender       = v.gender
-             AND c.state        = v.state
-        WHERE v.status = 'Approved'
-          AND (v.children IS NULL OR v.children = '')
-    """, as_dict=True)
+             AND c.gender        = v.gender
+             AND c.state         = v.state
+        WHERE (v.children IS NULL OR v.children = '')
+        """,
+        as_dict=True,
+    )
 
     if not pairs:
         return
 
-    # 2) Group candidate children by vaccination to keep memory local and fast
-    from collections import defaultdict
     group = defaultdict(list)
     for row in pairs:
         group[row["vacc_name"]].append(row)
 
-    # 3) For each vaccination, apply the same name filters and pick best via SequenceMatcher
-    to_update = []  # list of tuples (children_name, vaccination_name)
-    for vacc_name, rows in group.items():
-        vacc_full = rows[0]["vacc_full_name"]  # same for this vaccination across rows
+    to_update = []
 
-        # preliminary filter: word overlap >= 2
+    for vacc_name, rows in group.items():
+        vacc_full = rows[0]["vacc_full_name"]
+
         prelim = [
             r for r in rows
             if has_sufficient_name_match(vacc_full, r["child_full_name"])
@@ -122,7 +195,6 @@ def match_vaccination_to_children():
         if not prelim:
             continue
 
-        # pick best
         best_row = None
         best_ratio = -1.0
         for r in prelim:
@@ -134,39 +206,22 @@ def match_vaccination_to_children():
         if best_row:
             to_update.append((best_row["child_name"], vacc_name))
 
-    # 4) Apply updates in batches to avoid per-row commits
-    if not to_update:
-        return
+    # Apply Phase 2 also via Doc API, to keep behavior consistent
+    counter = 0
+    for child_name, vacc_name in to_update:
+        doc = frappe.get_doc("Vaccination", vacc_name)
+        if doc.children:
+            continue  # might have been set by another run / manual fix
 
-    BATCH = 1000
-    for i in range(0, len(to_update), BATCH):
-        batch = to_update[i:i+BATCH]
-        # Use parameterized updates to avoid SQL injection & keep it simple
-        # (Frappe doesn't support multi-row SET in one statement easily, so do executemany)
-        args = [(child, vacc) for child, vacc in batch]
-        frappe.db.sql("""
-            UPDATE `tabVaccination`
-            SET children = %s
-            WHERE name = %s
-        """, args, as_list=False)  # executemany behavior with a list of tuples
+        doc.children = child_name
+        doc.save(ignore_permissions=True)
+
+        counter += 1
+        if counter % BATCH == 0:
+            frappe.db.commit()
+
+    if counter % BATCH != 0:
         frappe.db.commit()
-
-            
-
-def update_approved_records():
-    approved_vaccinations = frappe.get_all("Vaccination", {"status": "Approved"}, ["name"])
-    for vaccination in approved_vaccinations:
-        doc = frappe.get_doc("Vaccination", vaccination.name)
-        doc.status = "Approved"
-        doc.save()
-    frappe.db.commit()
-
-    approved_children = frappe.get_all("Children", {"status": "Approved"}, ["name"])
-    for child in approved_children:
-        doc = frappe.get_doc("Children", child.name)
-        doc.status = "Approved"
-        doc.save()
-    frappe.db.commit()
 
 
 def update_fully_vaccinated_households():

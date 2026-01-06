@@ -204,8 +204,9 @@ doc_events = {
         "on_update": [
             "gis.enumeration_validation.update_enumeration_records_from_sample_responses_on_save"
         ],
-        "validate": [
-            "gis.enumeration_validation.calculate_validation_status"
+        "validate": [          
+            "gis.doc_events.enumeration_validation_check",
+            "gis.enumeration_validation.calculate_validation_status",
         ],
         "before_submit": [
             "gis.enumeration_validation.validate_status_is_approved"
@@ -216,6 +217,7 @@ doc_events = {
             "gis.vaccination_validation.process_vaccinations_before_submit"
         ],
         "validate": [
+            "gis.doc_events.vaccination_validation_check",
             "gis.vaccination_validation.process_vaccinations_before_save"
         ],
     },
@@ -248,7 +250,7 @@ scheduler_events = {
 	],
     "cron": {
 		"30 * * * *": [
-			# "gis.enumeration_validation.assign_enumeration_validations",
+			"gis.enumeration_validation.auto_assign_enumeration_validations",
 		],
 		
 	},

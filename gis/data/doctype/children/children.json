@@ -37,6 +37,8 @@
   "country",
   "column_break_vavp",
   "geolocation",
+  "longitude",
+  "latitude",
   "comment_tab",
   "comment_section",
   "comment_to_supervisor",
@@ -347,6 +349,18 @@
    "label": "Unique Code",
    "no_copy": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "9"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "9"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -357,7 +371,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2025-12-07 17:35:59.952006",
+ "modified": "2026-01-06 15:33:07.985554",
  "modified_by": "Administrator",
  "module": "Data",
  "name": "Children",
